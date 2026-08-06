@@ -50,6 +50,8 @@ const canvasAssets = require('./bridge/niannian_canvas_assets');
 const canvasImage2RuntimeModule = require('./bridge/niannian_canvas_image2_runtime');
 const canvasH3RuntimeModule = require('./bridge/niannian_canvas_h3_runtime');
 const canvasProviderConfig = require('./bridge/niannian_canvas_provider_config');
+const canvasTextRuntimeModule = require('./bridge/niannian_canvas_text_runtime');
+const canvasTextJobs = require('./bridge/niannian_canvas_text_jobs');
 const nomiRunningHubH3 = require('./bridge/niannian_nomi_runninghub_h3');
 const nomiWebTaskStoreModule = require('./bridge/niannian_nomi_web_task_store');
 const smartCutJobs = require('./bridge/niannian_smart_cut_jobs');
@@ -120,6 +122,7 @@ const websiteIdempotencyPath = path.join(dataRoot, 'website-idempotency.json');
 const canvasDocumentsPath = path.join(dataRoot, 'canvas-documents.json');
 const directorDeskDocumentsPath = path.join(dataRoot, 'director-desk-documents.json');
 const canvasGenerationJobsPath = path.join(dataRoot, 'canvas-generation-jobs.json');
+const canvasTextJobsPath = path.join(dataRoot, 'canvas-text-jobs.json');
 const smartCutJobsPath = path.join(dataRoot, 'smart-cut-jobs.json');
 const canvasAssetsPath = path.join(dataRoot, 'canvas-assets.json');
 const nomiWebTasksPath = path.join(dataRoot, 'nomi-web-tasks.json');
@@ -136,6 +139,8 @@ const canvasAssetService = canvasAssets.createCanvasAssetService({indexPath:canv
 const canvasProviderStatus = canvasProviderConfig.readCanvasProviderConfig();
 const canvasImage2Runtime = canvasImage2RuntimeModule.createCanvasImage2Runtime({jobService:canvasGenerationJobService,assetService:canvasAssetService,enabled:canvasProviderStatus.imageSubmitEnabled});
 const canvasH3Runtime = canvasH3RuntimeModule.createCanvasH3Runtime({jobService:canvasGenerationJobService,assetService:canvasAssetService,enabled:canvasProviderStatus.videoSubmitEnabled});
+const canvasTextRuntime = canvasTextRuntimeModule.createCanvasTextRuntime();
+const canvasTextJobService = canvasTextJobs.createCanvasTextJobService({filePath:canvasTextJobsPath});
 const nomiWebH3 = nomiRunningHubH3.createNomiRunningHubH3();
 const nomiWebTaskStore = nomiWebTaskStoreModule.createNomiWebTaskStore({filePath:nomiWebTasksPath});
 const smartCutJobService = smartCutJobs.createSmartCutJobService({filePath:smartCutJobsPath});
@@ -7278,6 +7283,54 @@ function canvasGenerationSubmitEnabled(nodeType) {
   return nodeType === 'video' ? canvasH3Runtime.enabled : canvasImage2Runtime.enabled;
 }
 
+function publicCanvasTextResponse(job) {
+  return {
+    job:canvasTextJobService.publicJob(job),
+    providerStatus:canvasTextRuntimeModule.publicCanvasTextStatus(),
+    spendRequested:job.status === 'succeeded'
+  };
+}
+
+async function handleCanvasTextApi(request, response, pathname, user) {
+  const match = pathname.match(/^\/api\/projects\/([^/]+)\/text\/jobs(?:\/([^/]+))?$/);
+  if (!match) return false;
+  const projectId = decodeURIComponent(match[1]);
+  const jobId = match[2] ? decodeURIComponent(match[2]) : null;
+  try {
+    const body = request.method === 'POST' ? await readBodyJson(request) : {};
+    const requestedKind = canvasText(body.projectKind || request.headers['x-niannian-project-kind'] || '', 20) || null;
+    const owned = await ownedCanvasProjectById(user, projectId, requestedKind);
+    if (!owned) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
+    if (!jobId && request.method === 'POST') {
+      const nodeId = canvasText(body.nodeId, 160);
+      const node = await canvasGenerationNode(owned.project, owned.projectKind, nodeId);
+      if (!node) return json(response, 404, {code:'CANVAS_TEXT_NODE_NOT_FOUND',error:'文本节点不存在或尚未保存'});
+      if (node.type !== 'text') return json(response, 422, {code:'CANVAS_TEXT_NODE_REQUIRED',error:'当前节点不是文本节点'});
+      const requestedModel = canvasText(body.model || node.meta?.modelKey || node.data?.modelKey || canvasTextRuntime.config.model, 200);
+      const prompt = canvasText(body.prompt || node.prompt || node.data?.prompt, 12000);
+      const idempotencyKey = request.headers['idempotency-key'];
+      const created = await canvasTextJobService.create({ownerId:user.id,projectId,projectKind:owned.projectKind,nodeId,model:requestedModel,prompt,idempotencyKey});
+      if (!created.created) return json(response, 200, {code:'CANVAS_TEXT_JOB_REUSED',idempotent:true,...publicCanvasTextResponse(created.job)});
+      try {
+        const result = await canvasTextRuntime.submit({model:requestedModel,prompt});
+        const completed = await canvasTextJobService.updateOwned(user.id, projectId, created.job.id, {status:'succeeded',text:result.text,error:null,completedAt:new Date().toISOString()});
+        return json(response, 201, {code:'CANVAS_TEXT_GENERATED',...publicCanvasTextResponse(completed)});
+      } catch (error) {
+        const failed = await canvasTextJobService.updateOwned(user.id, projectId, created.job.id, {status:'recoverable',error:'文本生成暂未完成，请稍后重试或重新读取当前项目。'});
+        return json(response, error.httpStatus || 502, {code:error.code || 'CANVAS_TEXT_GENERATION_FAILED',error:error.message || '文本生成失败',...publicCanvasTextResponse(failed)});
+      }
+    }
+    if (jobId && request.method === 'GET') {
+      const job = await canvasTextJobService.getOwned(user.id, projectId, jobId);
+      if (!job) return json(response, 404, {code:'CANVAS_TEXT_JOB_NOT_FOUND',error:'任务不存在'});
+      return json(response, 200, publicCanvasTextResponse(job));
+    }
+    return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
+  } catch (error) {
+    return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_TEXT_JOB_INVALID',error:error.message || '文本任务无效'});
+  }
+}
+
 function publicCanvasGenerationResponse(job) {
   const providerSubmitEnabled = canvasGenerationSubmitEnabled(job.nodeType);
   return {
@@ -8052,7 +8105,10 @@ async function handleApi(request, response, pathname) {
   if (request.method === 'GET' && pathname === '/api/health') return json(response, 200, {ok:true,service:'niannian-ai',router:'mx-shortdrama-00-router'});
   if (request.method === 'GET' && pathname === '/api/canvas/provider-status') {
     return json(response, 200, {
-      providerStatus:canvasProviderConfig.publicCanvasProviderStatus()
+      providerStatus:{
+        ...canvasProviderConfig.publicCanvasProviderStatus(),
+        text:canvasTextRuntimeModule.publicCanvasTextStatus()
+      }
     }, {'Cache-Control':'no-store'});
   }
   if (pathname.startsWith('/api/internal/smart-cut/')) {
@@ -8087,6 +8143,10 @@ async function handleApi(request, response, pathname) {
   }
   if (pathname.match(/^\/api\/projects\/[^/]+\/canvas\/jobs/)) {
     const handled = await handleCanvasGenerationApi(request, response, pathname, user);
+    if (handled) return;
+  }
+  if (pathname.match(/^\/api\/projects\/[^/]+\/text\/jobs/)) {
+    const handled = await handleCanvasTextApi(request, response, pathname, user);
     if (handled) return;
   }
   if (pathname.match(/^\/api\/projects\/[^/]+\/smart-cut\/(?:jobs|sessions)/)) {

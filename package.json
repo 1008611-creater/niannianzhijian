@@ -44,6 +44,8 @@
     "test:visual-motion-browser": "playwright test test_web_visual_motion_browser.spec.js --reporter=line",
     "test:canvas-generation-jobs": "node test_canvas_generation_jobs.js",
     "test:canvas-provider-config": "node test_canvas_provider_config.js",
+    "test:canvas-text-runtime": "node test_canvas_text_runtime.js",
+    "test:canvas-text-jobs": "node test_canvas_text_jobs.js",
     "test:web-runtime-adapter": "node test_web_runtime_adapter.js",
     "test:canvas-generation-http": "node test_canvas_generation_http.js",
     "test:canvas-assets-http": "node test_canvas_assets_http.js",

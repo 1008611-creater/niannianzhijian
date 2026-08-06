@@ -47,6 +47,19 @@
   }
 
   function providerModel(kind, status) {
+    if (kind === 'text') {
+      var textStatus = status.text || {};
+      return {
+        modelKey: textStatus.model || 'asxs-text',
+        modelAlias: textStatus.model || 'asxs-text',
+        vendorKey: 'asxs',
+        labelZh: textStatus.model || 'ASXS 文本模型',
+        kind: 'text',
+        enabled: true,
+        pricing: {cost: 0, enabled: textStatus.submitEnabled === true, specCosts: []},
+        meta: {transportTaskKind: 'chat'}
+      };
+    }
     var video = kind === 'video';
     var enabled = video ? status.videoSubmitEnabled : status.imageSubmitEnabled;
     return {
@@ -68,14 +81,24 @@
 
   async function listVendors() {
     var status = await providerStatus();
-    return [{
-      key: 'runninghub',
-      name: 'RunningHub',
-      enabled: true,
-      hasApiKey: status.credentialConfigured === true,
-      authType: 'bearer',
-      baseUrlHint: status.baseUrl || null
-    }];
+    return [
+      {
+        key: 'runninghub',
+        name: 'RunningHub',
+        enabled: true,
+        hasApiKey: status.credentialConfigured === true,
+        authType: 'bearer',
+        baseUrlHint: status.baseUrl || null
+      },
+      {
+        key: 'asxs',
+        name: 'ASXS',
+        enabled: true,
+        hasApiKey: status.text?.credentialConfigured === true,
+        authType: 'bearer',
+        baseUrlHint: status.text?.baseUrl || null
+      }
+    ];
   }
 
   async function listModels(params) {
@@ -84,7 +107,12 @@
     var models = [];
     if (!requested || requested === 'image' || requested === 'imageEdit') models.push(providerModel('image', status));
     if (!requested || requested === 'video') models.push(providerModel('video', status));
-    return status.credentialConfigured === true ? models : [];
+    if (!requested || requested === 'text' || requested === 'chat') models.push(providerModel('text', status));
+    return models.filter(function (model) {
+      return model.vendorKey === 'asxs'
+        ? status.text?.credentialConfigured === true && status.text?.modelConfigured === true
+        : status.credentialConfigured === true;
+    });
   }
 
   function assetIds(extras) {
@@ -108,6 +136,16 @@
     return {id: job.id, kind: kind, status: job.status === 'awaiting_authorization' ? 'queued' : job.status, assets: assets, raw: {jobId: job.id}, error: job.error || undefined};
   }
 
+  function taskFromTextJob(job) {
+    return {
+      id: job.id,
+      kind: 'chat',
+      status: job.status,
+      raw: job.raw || (job.text ? {choices: [{message: {role: 'assistant', content: job.text}}], model: job.model, object: 'chat.completion'} : {}),
+      error: job.error || undefined
+    };
+  }
+
   async function grantSpend(payload) {
     var project = projectId();
     if (!project) throw new Error('请从念念项目中打开画布后再生成');
@@ -126,6 +164,20 @@
     var extras = request.extras || {};
     var nodeId = String(extras.nodeId || '').trim();
     if (!nodeId) throw new Error('画布节点尚未保存，请稍后重试');
+    if (request.kind === 'chat') {
+      var textPrepared = await api('/api/projects/' + encodeURIComponent(project) + '/text/jobs', {
+        method: 'POST',
+        headers: {'content-type': 'application/json', 'idempotency-key': extras.idempotencyKey || idempotency('nomi-text')},
+        body: JSON.stringify({
+          projectKind: canvasProjectKind(),
+          nodeId: nodeId,
+          model: extras.modelKey || extras.modelAlias || '',
+          prompt: request.prompt || ''
+        })
+      });
+      if (!textPrepared.job) throw new Error('服务器没有返回文本任务');
+      return taskFromTextJob(textPrepared.job);
+    }
     var video = request.kind === 'text_to_video' || request.kind === 'image_to_video';
     var prepared = await api('/api/projects/' + encodeURIComponent(project) + '/canvas/jobs', {
       method: 'POST',
@@ -153,6 +205,10 @@
 
   async function result(payload) {
     var project = projectId();
+    if (payload && (payload.taskKind === 'chat' || payload.kind === 'chat')) {
+      var textResponse = await api('/api/projects/' + encodeURIComponent(project) + '/text/jobs/' + encodeURIComponent(payload.taskId) + '?projectKind=' + encodeURIComponent(canvasProjectKind()));
+      return {vendor: 'asxs', result: taskFromTextJob(textResponse.job)};
+    }
     var response = await api('/api/projects/' + encodeURIComponent(project) + '/canvas/jobs/' + encodeURIComponent(payload.taskId) + '?projectKind=' + encodeURIComponent(canvasProjectKind()));
     return {vendor: 'runninghub', result: taskFromCanvasJob(response.job, project)};
   }
