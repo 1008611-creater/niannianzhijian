@@ -52,6 +52,6 @@ This directory is the independent canonical project root for NianNian AI. Work f
 
 ## Migration boundary
 
-The former `niannian-ai-canonical-local` directory is retained as a read-only rollback/reference source during migration. It must not be silently treated as the active development root after this project is verified. The `local-wsl-validation-*` directories are candidates only and never become the source of truth.
+The former `niannian-ai-canonical-local` directory has been moved to `E:\codex\archive\niannian-ai-canonical-local-retired-20260807` as a read-only rollback/reference source. It must not be silently treated as the active development root after this project is verified. The `local-wsl-validation-*` directories are candidates only and never become the source of truth.
 
 When a task says `继续`, continue from the current approved scope and this directory. Do not change the canvas family, route, provider, or release baseline unless the user explicitly changes that decision.
