@@ -47,6 +47,7 @@ This directory is the independent canonical project root for NianNian AI. Work f
 - Keep one bounded candidate per change. Do not merge files from several old candidates or overwrite the canonical source with a validation package.
 - Never replace confirmed assets, API adapters, canvas behavior, or project data with placeholders, guessed resources, stale bundles, or empty provider responses.
 - A change is complete only after the real local browser path is tested, including the requested interaction, loaded assets, relevant API response, and the protected desktop/mobile surface when UI is changed.
+- For static Studio builds, keep the HTML module entry and dynamically imported shared chunks on the same physical module filename and identity; duplicate renamed copies can create separate React contexts and surface false Provider-missing errors. Check the import graph and real browser console before delivery.
 - Keep secrets, API keys, cookies, signed URLs, `.env` files, user media, generated outputs, and runtime state out of source, documentation, commits, and migration copies.
 
 ## Migration boundary
