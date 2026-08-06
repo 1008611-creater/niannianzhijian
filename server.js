@@ -49,6 +49,7 @@ const canvasGenerationJobs = require('./bridge/niannian_canvas_generation_jobs')
 const canvasAssets = require('./bridge/niannian_canvas_assets');
 const canvasImage2RuntimeModule = require('./bridge/niannian_canvas_image2_runtime');
 const canvasH3RuntimeModule = require('./bridge/niannian_canvas_h3_runtime');
+const canvasProviderConfig = require('./bridge/niannian_canvas_provider_config');
 const nomiRunningHubH3 = require('./bridge/niannian_nomi_runninghub_h3');
 const nomiWebTaskStoreModule = require('./bridge/niannian_nomi_web_task_store');
 const smartCutJobs = require('./bridge/niannian_smart_cut_jobs');
@@ -132,8 +133,9 @@ const scriptUploadChunkBytes = Math.max(256 * 1024, Math.min(4 * 1024 * 1024, Nu
 const sessionTtlMs = 7 * 24 * 60 * 60 * 1000;
 const canvasGenerationJobService = canvasGenerationJobs.createCanvasGenerationJobService({filePath:canvasGenerationJobsPath});
 const canvasAssetService = canvasAssets.createCanvasAssetService({indexPath:canvasAssetsPath,storageRoot:canvasAssetsRoot,maxBytes:process.env.CANVAS_ASSET_MAX_BYTES});
-const canvasImage2Runtime = canvasImage2RuntimeModule.createCanvasImage2Runtime({jobService:canvasGenerationJobService,assetService:canvasAssetService,enabled:String(process.env.NIANNIAN_CANVAS_PROVIDER_SUBMIT || '').toLowerCase() === 'on'});
-const canvasH3Runtime = canvasH3RuntimeModule.createCanvasH3Runtime({jobService:canvasGenerationJobService,assetService:canvasAssetService,enabled:String(process.env.NIANNIAN_CANVAS_H3_SUBMIT || '').toLowerCase() === 'on'});
+const canvasProviderStatus = canvasProviderConfig.readCanvasProviderConfig();
+const canvasImage2Runtime = canvasImage2RuntimeModule.createCanvasImage2Runtime({jobService:canvasGenerationJobService,assetService:canvasAssetService,enabled:canvasProviderStatus.imageSubmitEnabled});
+const canvasH3Runtime = canvasH3RuntimeModule.createCanvasH3Runtime({jobService:canvasGenerationJobService,assetService:canvasAssetService,enabled:canvasProviderStatus.videoSubmitEnabled});
 const nomiWebH3 = nomiRunningHubH3.createNomiRunningHubH3();
 const nomiWebTaskStore = nomiWebTaskStoreModule.createNomiWebTaskStore({filePath:nomiWebTasksPath});
 const smartCutJobService = smartCutJobs.createSmartCutJobService({filePath:smartCutJobsPath});
@@ -7272,8 +7274,18 @@ async function canvasGenerationNode(project, projectKind, nodeId) {
   return document.nodes.find(node => node.id === nodeId) || null;
 }
 
+function canvasGenerationSubmitEnabled(nodeType) {
+  return nodeType === 'video' ? canvasH3Runtime.enabled : canvasImage2Runtime.enabled;
+}
+
 function publicCanvasGenerationResponse(job) {
-  return {job:canvasGenerationJobService.publicJob(job),providerSubmitEnabled:false,spendRequested:false};
+  const providerSubmitEnabled = canvasGenerationSubmitEnabled(job.nodeType);
+  return {
+    job:canvasGenerationJobService.publicJob(job, {providerSubmitEnabled}),
+    providerSubmitEnabled,
+    providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),
+    spendRequested:false
+  };
 }
 
 async function handleCanvasGenerationApi(request, response, pathname, user) {
@@ -7290,7 +7302,11 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
     if (!owned) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
     if (!jobId && !action && request.method === 'GET') {
       const jobs = await canvasGenerationJobService.listOwned(user.id, projectId);
-      return json(response, 200, {jobs:jobs.map(canvasGenerationJobService.publicJob),providerSubmitEnabled:false});
+      return json(response, 200, {
+        jobs:jobs.map(job => canvasGenerationJobService.publicJob(job, {providerSubmitEnabled:canvasGenerationSubmitEnabled(job.nodeType)})),
+        providerSubmitEnabled:canvasImage2Runtime.enabled || canvasH3Runtime.enabled,
+        providerStatus:canvasProviderConfig.publicCanvasProviderStatus()
+      });
     }
     if (!jobId && !action && request.method === 'POST') {
       const nodeId = canvasText(body.nodeId, 80);
@@ -7331,7 +7347,15 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
     if (jobId && action === 'dry-run' && request.method === 'POST') {
       const job = await canvasGenerationJobService.getOwned(user.id, projectId, jobId);
       if (!job) return json(response, 404, {code:'CANVAS_JOB_NOT_FOUND',error:'任务不存在'});
-      return json(response, 200, {code:'CANVAS_GENERATION_DRY_RUN_READY',job:canvasGenerationJobService.publicJob(job),dryRun:canvasGenerationJobService.dryRunContract(job),providerSubmitEnabled:false,spendRequested:false});
+      const providerSubmitEnabled = canvasGenerationSubmitEnabled(job.nodeType);
+      return json(response, 200, {
+        code:'CANVAS_GENERATION_DRY_RUN_READY',
+        job:canvasGenerationJobService.publicJob(job, {providerSubmitEnabled}),
+        dryRun:canvasGenerationJobService.dryRunContract(job, {providerSubmitEnabled}),
+        providerSubmitEnabled,
+        providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),
+        spendRequested:false
+      });
     }
     if (jobId && action === 'authorize' && request.method === 'POST') {
       const job = await canvasGenerationJobService.getOwned(user.id, projectId, jobId);
@@ -7340,12 +7364,12 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       if (job.nodeType === 'image') {
         if (!canvasImage2Runtime.enabled) return json(response, 409, {code:'CANVAS_PROVIDER_SUBMIT_DISABLED',error:'图像生成尚未启用，当前任务仅完成准备'});
         const submitted = await canvasImage2Runtime.submit(user.id, projectId, jobId);
-        return json(response, 202, {code:'CANVAS_GENERATION_SUBMITTED',job:canvasGenerationJobService.publicJob(submitted),providerSubmitEnabled:true,spendRequested:true});
+        return json(response, 202, {code:'CANVAS_GENERATION_SUBMITTED',job:canvasGenerationJobService.publicJob(submitted, {providerSubmitEnabled:true}),providerSubmitEnabled:true,providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),spendRequested:true});
       }
       if (job.nodeType === 'video') {
         if (!canvasH3Runtime.enabled) return json(response, 409, {code:'CANVAS_PROVIDER_SUBMIT_DISABLED',error:'视频生成尚未启用，当前任务仅完成准备'});
         const submitted = await canvasH3Runtime.submit(user.id, projectId, jobId);
-        return json(response, 202, {code:'CANVAS_GENERATION_SUBMITTED',job:canvasGenerationJobService.publicJob(submitted),providerSubmitEnabled:true,spendRequested:true});
+        return json(response, 202, {code:'CANVAS_GENERATION_SUBMITTED',job:canvasGenerationJobService.publicJob(submitted, {providerSubmitEnabled:true}),providerSubmitEnabled:true,providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),spendRequested:true});
       }
       return json(response, 409, {code:'CANVAS_PROVIDER_MODEL_UNAVAILABLE',error:'当前节点尚未接入可提交的服务端执行器'});
     }
@@ -8026,6 +8050,11 @@ async function handleStudioTaskApi(request, response, pathname, user) {
 
 async function handleApi(request, response, pathname) {
   if (request.method === 'GET' && pathname === '/api/health') return json(response, 200, {ok:true,service:'niannian-ai',router:'mx-shortdrama-00-router'});
+  if (request.method === 'GET' && pathname === '/api/canvas/provider-status') {
+    return json(response, 200, {
+      providerStatus:canvasProviderConfig.publicCanvasProviderStatus()
+    }, {'Cache-Control':'no-store'});
+  }
   if (pathname.startsWith('/api/internal/smart-cut/')) {
     const handled = await handleSmartCutInternalApi(request, response, pathname);
     if (handled) return;

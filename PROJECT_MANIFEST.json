@@ -3,7 +3,7 @@
   "project_type": "existing Node static site with local API service",
   "source_of_truth": {
     "type": "authoritative_local_release_source",
-    "path": "E:\\codex\\aisp\\aidaihuo\\niannian-ai-canonical-local",
+    "path": "E:\\codex\\niannianai\\niannianai",
     "source_mode": "canonical_release_source",
     "online_target": "https://ai.cauai.fun",
     "online_write_policy": "explicit production releases only",
@@ -14,7 +14,7 @@
     }
   },
   "local_working_copy": {
-    "path": "E:\\codex\\aisp\\aidaihuo\\niannian-ai-canonical-local",
+    "path": "E:\\codex\\niannianai\\niannianai",
     "authority_status": "same_as_source_of_truth",
     "preview_url": "http://localhost:4188",
     "data_dir": "data-local",
@@ -26,7 +26,7 @@
   },
   "release_governance": {
     "schema_version": "niannian_release_governance_v1",
-    "authoritative_source_path": "E:\\codex\\aisp\\aidaihuo\\niannian-ai-canonical-local",
+    "authoritative_source_path": "E:\\codex\\niannianai\\niannianai",
     "target_allowlist": [
       "https://ai.cauai.fun"
     ],
@@ -123,7 +123,7 @@
       "capture_reason": "Verified active Haika ai.cauai.fun safe-payload alignment replaces an obsolete local Step04 staging baseline; no production write occurred.",
       "attestation": {
         "path": "release_baseline_attestation_20260805_online_alignment.json",
-        "sha256": "f930845798324a5de1319037d473724aa44de8566e80964cd1239019f343b8b2"
+          "sha256": "3eb90a6e0d5e2b3c6bab0cf6a4b33a9d2fa20f49fc029dddb5bac87824361fc1"
       },
       "files": {
         "server.js": "147d0dc303dbe1b451ee9a95fea87fbd5f63455e82a716525e7e2c6ce492e27f",

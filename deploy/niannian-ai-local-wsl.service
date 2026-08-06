@@ -1,0 +1,20 @@
+[Unit]
+Description=NianNian AI local WSL validation service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/niannianai-wsl-runtime
+EnvironmentFile=%h/.config/niannian-ai/canvas.env
+Environment=NODE_ENV=development
+Environment=PORT=4399
+Environment=DATA_DIR=/mnt/e/codex/niannianai/niannianai/data
+ExecStart=%h/.local/bin/node %h/niannianai-wsl-runtime/server.js
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

@@ -11,6 +11,7 @@ Environment=NODE_ENV=production
 Environment=PORT=18083
 Environment=DATA_DIR=/var/lib/niannian-ai
 Environment=MAX_UPLOAD_BYTES=1073741824
+EnvironmentFile=-/etc/niannian-ai/canvas.env
 EnvironmentFile=-/etc/niannian-ai/bridge.env
 ExecStart=/usr/bin/node /opt/niannian-ai/server.js
 Restart=always

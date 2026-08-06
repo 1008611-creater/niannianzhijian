@@ -43,6 +43,8 @@
     "test:workspace-draft-recovery": "node test_workspace_draft_recovery.js",
     "test:visual-motion-browser": "playwright test test_web_visual_motion_browser.spec.js --reporter=line",
     "test:canvas-generation-jobs": "node test_canvas_generation_jobs.js",
+    "test:canvas-provider-config": "node test_canvas_provider_config.js",
+    "test:web-runtime-adapter": "node test_web_runtime_adapter.js",
     "test:canvas-generation-http": "node test_canvas_generation_http.js",
     "test:canvas-assets-http": "node test_canvas_assets_http.js",
     "test:canvas-image2-runtime": "node test_canvas_image2_runtime.js",

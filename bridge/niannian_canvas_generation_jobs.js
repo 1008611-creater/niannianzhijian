@@ -50,8 +50,9 @@ function validateIdempotencyKey(value) {
   return key;
 }
 
-function publicJob(job) {
+function publicJob(job, options = {}) {
   const model = MODELS[job.nodeType] || MODELS.image;
+  const providerSubmitEnabled = options.providerSubmitEnabled === true ? true : model.providerSubmitEnabled;
   return {
     id: job.id,
     projectId: job.projectId,
@@ -61,7 +62,7 @@ function publicJob(job) {
     model: model.id,
     modelLabel: model.label,
     status: PUBLIC_STATUSES.has(job.status) ? job.status : 'failed',
-    providerSubmitEnabled: model.providerSubmitEnabled,
+    providerSubmitEnabled,
     inputAssetIds: Array.isArray(job.inputAssetIds) ? job.inputAssetIds : [],
     outputAssetIds: Array.isArray(job.outputAssetIds) ? job.outputAssetIds : [],
     resolution: job.resolution || '2k',
@@ -75,8 +76,9 @@ function publicJob(job) {
   };
 }
 
-function dryRunContract(job) {
+function dryRunContract(job, options = {}) {
   const model = MODELS[job.nodeType] || MODELS.image;
+  const providerSubmitEnabled = options.providerSubmitEnabled === true ? true : model.providerSubmitEnabled;
   return {
     schema: 'niannian.canvas_generation_dry_run.v1',
     projectId: job.projectId,
@@ -86,7 +88,7 @@ function dryRunContract(job) {
     model: model.id,
     modelLabel: model.label,
     provider: model.provider,
-    providerSubmitEnabled: model.providerSubmitEnabled,
+    providerSubmitEnabled,
     spendRequested: false,
     inputAssetCount: job.inputAssetIds.length,
     resolution: job.resolution || '2k',
