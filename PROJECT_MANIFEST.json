@@ -1,0 +1,1363 @@
+{
+  "project": "念念 AI",
+  "project_type": "existing Node static site with local API service",
+  "source_of_truth": {
+    "type": "authoritative_local_release_source",
+    "path": "E:\\codex\\aisp\\aidaihuo\\niannian-ai-canonical-local",
+    "source_mode": "canonical_release_source",
+    "online_target": "https://ai.cauai.fun",
+    "online_write_policy": "explicit production releases only",
+    "legacy_base_repo": {
+      "path": "D:\\codex-work\\zhuanhui\\outputs\\niannian-ai-web",
+      "deployment_policy": "prohibited",
+      "reason": "Core server.js, index.html, mvp.js, and product.css SHA-256 values differ from the authoritative canonical source."
+    }
+  },
+  "local_working_copy": {
+    "path": "E:\\codex\\aisp\\aidaihuo\\niannian-ai-canonical-local",
+    "authority_status": "same_as_source_of_truth",
+    "preview_url": "http://localhost:4188",
+    "data_dir": "data-local",
+    "excluded_from_baseline_copy": [
+      "node_modules",
+      "runtime uploads and project data",
+      "bridge events, bridge state, and logs"
+    ]
+  },
+  "release_governance": {
+    "schema_version": "niannian_release_governance_v1",
+    "authoritative_source_path": "E:\\codex\\aisp\\aidaihuo\\niannian-ai-canonical-local",
+    "target_allowlist": [
+      "https://ai.cauai.fun"
+    ],
+    "legacy_source_deployment": "prohibited",
+    "activation_readiness_contract": {
+      "schema_version": "niannian_activation_readiness_v1",
+      "origin_url": "http://127.0.0.1:18082/api/health",
+      "loopback_origin_required": true,
+      "total_window_ms": 45000,
+      "interval_ms": 1000,
+      "connect_timeout_ms": 3000,
+      "request_timeout_ms": 5000,
+      "ready_condition": "HTTP 200 with JSON ok:true",
+      "after_ready": [
+        "origin static SHA verification from raw bounded response bytes; static HTTP body must stream directly to sha256sum or a binary-safe verifier and must not enter shell command substitution",
+        "Windows 127.0.0.1:28083 forward health with bounded request",
+        "Windows public https://ai.cauai.fun API and static readback with bounded requests; application JS/CSS must match raw SHA-256 and index.html must match raw SHA-256 unless verifyPublicHtmlSha256 proves the only difference is one documented Cloudflare telemetry beacon immediately before </body>"
+      ],
+      "not_a_primary_success_condition": "remote Linux self-call to ai.cauai.fun public hostname",
+      "rollback_on": [
+        "readiness window elapsed",
+        "service inactive",
+        "origin health remains non-ready after readiness polling",
+        "origin static SHA mismatch",
+        "Windows forward gate failure",
+        "Windows public readback failure"
+      ]
+    },
+    "release_package": {
+      "package_manifest_required": true,
+      "forbidden_path_prefixes": [
+        "node_modules",
+        "data-local",
+        "data",
+        "output",
+        "logs",
+        ".local",
+        "mature-web/.local"
+      ],
+      "required_files": [
+        "server.js",
+        "index.html",
+        "app.js",
+        "styles.css",
+        "product.css",
+        "product-system.css",
+        "hero-oil-paint.css",
+        "manifest.webmanifest",
+        "sw.js",
+        "vendor/gsap-3.13.0.min.js",
+        "vendor/gsap-flip-3.13.0.min.js",
+        "assets/home/niannian-hero-oil-paint-quiet-v1.png",
+        "assets/home/niannian-hero-oil-vortex-loop-v2.mp4",
+        "assets/showcase/short-drama-keyart-v1.png",
+        "assets/showcase/animation-drama-keyart-v1.png",
+        "assets/showcase/redraw-keyart-partial-xuedi-v1.png",
+        "assets/brand/niannian-ai-fused-monogram-v6-brand-pink.png",
+        "bridge/niannian_shot_review.js",
+        "bridge/niannian_step02_runtime.js",
+        "docs/shot-review-contract/contract-manifest.json",
+        "docs/shot-review-contract/api-contract.md",
+        "docs/shot-review-contract/mapping-rules.md",
+        "docs/shot-review-contract/schemas/revision-overlay.schema.json",
+        "docs/shot-review-contract/schemas/shot-review-model.schema.json",
+        "docs/shot-review-contract/schemas/single-shot-reanalysis-input.schema.json",
+        "docs/shot-review-contract/schemas/single-shot-reanalysis-output.schema.json",
+        "runtime/skill-bundles/shortdrama-localization-runtime-1/manifest.json",
+        "runtime/skill-bundles/shortdrama-localization-runtime-1/instructions.md",
+        "runtime/skill-bundles/shortdrama-localization-runtime-1/locale-rules.json",
+        "runtime/skill-bundles/shortdrama-step04-abcd-runtime-1/manifest.json",
+        "runtime/skill-bundles/shortdrama-step04-abcd-runtime-1/instructions.md",
+        "tools/render_step04_abcd_docx.py",
+        "tools/qa_step04_abcd_docx_preview.js",
+        "tools/finalize_step04_abcd.py",
+        "tools/vendor/docx-preview/dist/docx-preview.js",
+        "tools/vendor/jszip/dist/jszip.min.js",
+        "docs/step02-runtime-contract/README.md",
+        "docs/step02-runtime-contract/step01-snapshot.schema.json",
+        "docs/step02-runtime-contract/step02-shot.schema.json",
+        "docs/step02-runtime-contract/step02-variant.schema.json",
+        "docs/step02-runtime-contract/step02-qa.schema.json",
+        "docs/step02-runtime-contract/step02-candidate.schema.json",
+        "docs/step02-runtime-contract/step02-revision.schema.json",
+        "docs/step02-runtime-contract/api-fixtures.json",
+        "scripts/probe_step02_mcgrox.js",
+        "package.json",
+        "package-lock.json"
+      ]
+    },
+    "shared_file_handoff_baseline": {
+      "schema_version": "niannian_shared_file_handoff_baseline_v2",
+      "review_id": "release-baseline-20260805-online-alignment",
+      "captured_at": "2026-08-05T00:00:00+08:00",
+      "capture_reason": "Verified active Haika ai.cauai.fun safe-payload alignment replaces an obsolete local Step04 staging baseline; no production write occurred.",
+      "attestation": {
+        "path": "release_baseline_attestation_20260805_online_alignment.json",
+        "sha256": "f930845798324a5de1319037d473724aa44de8566e80964cd1239019f343b8b2"
+      },
+      "files": {
+        "server.js": "147d0dc303dbe1b451ee9a95fea87fbd5f63455e82a716525e7e2c6ce492e27f",
+        "index.html": "234cb54c4278d0f7dad70af6bf504042e4210344ae871198f51e9b8764f59dba",
+        "app.js": "4c512e50f7687468aa4916da87dd8244b3d3b796b5415d7ecd72bb5cabf702ae",
+        "product.css": "4d090191c1dc9da0c8aa06df0b4b9d6f946a061aac71e391873f78434fc85f72",
+        "styles.css": "d8254de1de1b0cddeee13301ee64a0e5605294980a9c8de384ea76625822a489",
+        "product-system.css": "86836318ae20e3eda006d1a6aee23a3fe199f31b3893376a9ae2c04d66864875",
+        "hero-oil-paint.css": "0fcba9536da02a0f8843331f986f01dbb670e0d2c1b1ccd2226046ffc0f60cdd",
+        "sw.js": "cbfd1d820123f9fed70a9aa64ee9a851fe08e748b5df69df1b64ae1f5071d3a8",
+        "bridge/niannian_controller_bridge.js": "64157f96db7f48c33dfe028263cd15138a109e15a194e0375a18ee0f89e427cc"
+      }
+    },
+    "current_production_release": {
+      "release_id": "niannian-web-20260804-workbench-clarity-r2-short-drama-modal-fix1",
+      "remote_release_path": "/opt/niannian-ai-releases/niannian-web-20260804-workbench-clarity-r2-short-drama-modal-fix1/package",
+      "remote_symlink_targets": {
+        "/opt/niannian-ai": "/opt/niannian-ai-releases/niannian-web-20260804-workbench-clarity-r2-short-drama-modal-fix1/package",
+        "/var/www/niannian-ai": "/opt/niannian-ai-releases/niannian-web-20260804-workbench-clarity-r2-short-drama-modal-fix1/package",
+        "/opt/niannian-ai-current": "/opt/niannian-ai-releases/niannian-web-20260804-workbench-clarity-r2-short-drama-modal-fix1/package"
+      },
+      "parity_with_current_canonical": "diverged_requires_new_staged_release",
+      "deployed_shared_file_sha256": {
+        "server.js": "147d0dc303dbe1b451ee9a95fea87fbd5f63455e82a716525e7e2c6ce492e27f",
+        "index.html": "234cb54c4278d0f7dad70af6bf504042e4210344ae871198f51e9b8764f59dba",
+        "app.js": "4c512e50f7687468aa4916da87dd8244b3d3b796b5415d7ecd72bb5cabf702ae",
+        "mvp.js": "714033c2a051d43ef09957a83f414cf2cf7f537927254360a8ee21f5b25a7315",
+        "product.css": "4d090191c1dc9da0c8aa06df0b4b9d6f946a061aac71e391873f78434fc85f72",
+        "product-system.css": "86836318ae20e3eda006d1a6aee23a3fe199f31b3893376a9ae2c04d66864875",
+        "styles.css": "d8254de1de1b0cddeee13301ee64a0e5605294980a9c8de384ea76625822a489",
+        "hero-oil-paint.css": "0fcba9536da02a0f8843331f986f01dbb670e0d2c1b1ccd2226046ffc0f60cdd",
+        "sw.js": "cbfd1d820123f9fed70a9aa64ee9a851fe08e748b5df69df1b64ae1f5071d3a8",
+        "bridge/niannian_controller_bridge.js": "64157f96db7f48c33dfe028263cd15138a109e15a194e0375a18ee0f89e427cc"
+      },
+      "verified_at": "2026-08-05T00:00:00+08:00"
+    },
+    "rollback": {
+      "status": "created_and_verified_for_step01_shot_review_r13",
+      "remote_path": "/opt/niannian-ai-releases/rollback-20260722-step01-shot-review-r13",
+      "legacy_static_roots": [
+        "/var/www/niannian-ai.backup-20260711-1783707102809",
+        "/var/www/niannian-ai.backup-20260711-1783708082990"
+      ],
+      "verified_contents": [
+        "previous app files",
+        "previous node_modules",
+        "previous public root",
+        "niannian-ai.service"
+      ],
+      "available_capacity_snapshot": "2880483328 bytes available after activation",
+      "verified_at": "2026-07-22T04:29:38+08:00"
+    },
+    "production_data_backup": {
+      "status": "unknown_after_metadata_audit",
+      "checked_at": "2026-07-13T03:54:00+08:00",
+      "reason": "A metadata-only audit confirmed that /var/lib/niannian-ai is separate and owned by www-data, but found no identifiable backup artifact for that data root and no restore-drill record. /var/backups/niannian-ai currently contains historical application/static backup metadata, not verified production-data backups.",
+      "metadata_evidence": [
+        "Remote systemd has sub2api-backup-user-data.timer, but its name and unit metadata do not establish that it covers /var/lib/niannian-ai.",
+        "No backup archive or restore-named evidence was discovered for /var/lib/niannian-ai by the bounded metadata-only path/name scan.",
+        "No production data file contents, user/session/project/audit records, backup archive contents, or credentials were read."
+      ],
+      "last_restore_drill": "unknown"
+    },
+    "local_release_candidates": [
+      {
+        "candidate_id": "niannian-web-20260714-workbench-entry-r10",
+        "status": "active_verified_origin_windows_forward_public_raw_sha",
+        "target": "https://ai.cauai.fun",
+        "source_root": "E:\\codex\\aisp\\aidaihuo\\niannian-ai-canonical-local",
+        "stage_root": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260714-workbench-entry-r10\\package",
+        "package_manifest": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260714-workbench-entry-r10\\release-package-manifest.json",
+        "file_count": 1197,
+        "total_bytes": 29985637,
+        "gate": "release_ready_true_and_active_readback_verified",
+        "production_parity": "active_r10_verified; current canonical contains local-only workbench-entry and cache-refresh revisions",
+        "deployment_authorization": "user_authorized_frontend_quality_release_2026-07-14",
+        "remote_stage": "/opt/niannian-ai-releases/niannian-web-20260714-workbench-entry-r10",
+        "rollback_path": "/opt/niannian-ai-releases/rollback-20260714-workbench-entry-r10",
+        "verification": {
+          "remote_stage": "manifest verifier passed: 1197 files, 29985637 bytes, required static files verified",
+          "isolated_runtime": "temporary-data candidate health and 14 static runtime reads passed before activation",
+          "readiness": "existing niannian-ai.service restarted through the bounded 45-second loopback readiness contract and returned ok:true",
+          "origin": "active r10 symlink targets, service state, loopback health, and raw static SHA contract verified",
+          "windows_forward": "http://127.0.0.1:28083/api/health returned HTTP 200 with ok:true",
+          "public": "https://ai.cauai.fun/api/health returned HTTP 200 with ok:true; public HTML references r10 assets and v6 brand; 13 public static resources matched candidate raw SHA-256. Large files used bounded HTTP byte ranges and binary-safe recombination."
+        },
+        "safety": [
+          "only /opt/niannian-ai and /var/www/niannian-ai symlinks changed during activation",
+          "production data, auth/session, worker, provider, Mac, tunnel, forwarding, package/send, and registry paths were not read or modified",
+          "remote Linux public-hostname self-call was not used as a success gate"
+        ]
+      },
+      {
+        "candidate_id": "niannian-web-20260714-product-system-r8",
+        "status": "inactive_superseded_by_workbench_entry_r10",
+        "target": "https://ai.cauai.fun",
+        "source_root": "E:\\codex\\aisp\\aidaihuo\\niannian-ai-canonical-local",
+        "stage_root": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260714-product-system-r8\\package",
+        "package_manifest": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260714-product-system-r8\\release-package-manifest.json",
+        "file_count": 1197,
+        "total_bytes": 29978542,
+        "gate": "release_ready_true_and_active_readback_verified",
+        "production_parity": "superseded_by_active_r10",
+        "deployment_authorization": "user_authorized_frontend_quality_release_2026-07-14",
+        "remote_stage": "/opt/niannian-ai-releases/niannian-web-20260714-product-system-r8",
+        "rollback_path": "/opt/niannian-ai-releases/rollback-20260714-product-system-r8",
+        "verification": {
+          "remote_stage": "manifest verifier passed: 1197 files, 29978542 bytes, required static files verified",
+          "isolated_runtime": "temporary-data candidate health and 14 static runtime reads passed before activation",
+          "readiness": "existing niannian-ai.service restarted through the bounded 45-second loopback readiness contract and returned ok:true",
+          "origin": "active r8 symlink targets, service state, loopback health, and raw static SHA contract verified",
+          "windows_forward": "http://127.0.0.1:28083/api/health returned HTTP 200 with ok:true",
+          "public": "https://ai.cauai.fun/api/health returned HTTP 200 with ok:true; index references r9/v5/r6 assets; 13 public JS, CSS, manifest, vendor, showcase, and brand files matched candidate raw SHA-256. Large files used bounded HTTP byte-range readback to preserve original bytes."
+        },
+        "safety": [
+          "only /opt/niannian-ai and /var/www/niannian-ai symlinks changed during activation",
+          "production data, auth/session, worker, provider, Mac, tunnel, forwarding, package/send, and registry paths were not read or modified",
+          "remote Linux public-hostname self-call was not used as a success gate"
+        ]
+      },
+      {
+        "candidate_id": "niannian-web-20260714-product-system-r6",
+        "status": "staged_inactive_superseded_by_r8",
+        "target": "https://ai.cauai.fun",
+        "reason": "does not contain the final v5 square monogram asset/version"
+      },
+      {
+        "candidate_id": "niannian-web-20260714-product-system-r7",
+        "status": "staged_inactive_superseded_by_r8",
+        "target": "https://ai.cauai.fun",
+        "reason": "does not contain the final v5 square monogram asset/version"
+      },
+      {
+        "candidate_id": "niannian-web-20260713-cache-refresh-r5",
+        "status": "active_verified_origin_windows_forward_public",
+        "target": "https://ai.cauai.fun",
+        "source_root": "E:\\codex\\aisp\\aidaihuo\\niannian-ai-canonical-local",
+        "stage_root": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260713-cache-refresh-r5\\package",
+        "package_manifest": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260713-cache-refresh-r5\\release-package-manifest.json",
+        "file_count": 1188,
+        "total_bytes": 12997951,
+        "gate": "release_ready_true_and_active_readback_verified",
+        "production_parity": "verified_current_parity",
+        "deployment_authorization": "user_authorized_online_cache_correction_2026-07-13",
+        "remote_stage": "/opt/niannian-ai-releases/niannian-web-20260713-cache-refresh-r5",
+        "verification": {
+          "origin": "index.html, app.js, mvp.js, and product.css raw SHA-256 all match the immutable package",
+          "public": "https://ai.cauai.fun/api/health returned HTTP 200 with ok:true; public cache-busted app.js and product.css match exact SHA-256; public index.html normalized SHA-256 matches after the documented Cloudflare telemetry normalization"
+        }
+      },
+      {
+        "candidate_id": "niannian-web-20260713-product-system-r4",
+        "status": "active_verified_origin_windows_forward_public",
+        "target": "https://ai.cauai.fun",
+        "source_root": "E:\\codex\\aisp\\aidaihuo\\niannian-ai-canonical-local",
+        "stage_root": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260713-product-system-r4\\package",
+        "package_manifest": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260713-product-system-r4\\release-package-manifest.json",
+        "file_count": 1188,
+        "total_bytes": 12997950,
+        "gate": "release_ready_true_and_active_readback_verified",
+        "production_parity": "verified_current_parity",
+        "deployment_authorization": "user_authorized_complete_online_release_2026-07-13",
+        "remote_stage": "/opt/niannian-ai-releases/niannian-web-20260713-product-system-r4",
+        "verification": {
+          "origin": "index.html, app.js, mvp.js, and product.css raw SHA-256 all match the immutable package",
+          "windows_forward": "http://127.0.0.1:28083/api/health returned HTTP 200 with ok:true",
+          "public": "https://ai.cauai.fun/api/health returned HTTP 200 with ok:true; public app.js, mvp.js, and product.css raw SHA-256 match; public index.html normalized SHA-256 matches after the exact documented Cloudflare telemetry beacon and body-tag indentation transformation"
+        }
+      },
+      {
+        "candidate_id": "niannian-web-20260713-canonical-r1",
+        "status": "active_verified_origin_windows_forward_public",
+        "target": "https://ai.cauai.fun",
+        "source_root": "E:\\codex\\aisp\\aidaihuo\\niannian-ai-canonical-local",
+        "stage_root": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260713-canonical-r1\\package",
+        "package_manifest": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260713-canonical-r1\\release-package-manifest.json",
+        "file_count": 1009,
+        "total_bytes": 6811198,
+        "gate": "release_ready_true_and_active_readback_verified",
+        "production_parity": "matches_fixed_r1_candidate",
+        "deployment_authorization": "consumed_for_third_activation_2026-07-13",
+        "remote_stage": "/opt/niannian-ai-releases/niannian-web-20260713-canonical-r1",
+        "deployment_attempt": {
+          "result": "not_accepted_as_deployed",
+          "failure": "The activation command exceeded the local wait limit during public readback and produced no successful completion receipt.",
+          "rollback_path": "/opt/niannian-ai-releases/rollback-20260712T182003Z-canonical-r1",
+          "recovery_verified": [
+            "/opt/niannian-ai and /var/www/niannian-ai resolve to niannian-web-20260713-step01-bundle",
+            "niannian-ai.service active",
+            "origin health returned ok",
+            "Windows local forward health returned ok",
+            "Windows public https health returned ok after recovery"
+          ],
+          "not_verified": [
+            "r1 activation completion",
+            "r1 public static asset readback",
+            "r1 successful production release",
+            "stable remote-server self-call to public https after recovery"
+          ],
+          "retry_attempt": {
+            "result": "activation_not_accepted_rollback_verified",
+            "rollback_path": "/opt/niannian-ai-releases/rollback-20260712T183300Z-canonical-r1-retry",
+            "failure": "Immediately after restart, bounded origin static reads returned 502 before the service had a readiness polling window. The activation trap restored the old symlinks.",
+            "recovery_verified": [
+              "/opt/niannian-ai and /var/www/niannian-ai resolve to niannian-web-20260713-step01-bundle",
+              "niannian-ai.service active",
+              "origin health recovered through bounded polling",
+              "Windows forward and public https API readbacks returned ok"
+            ],
+            "next_retry_requirement": "new explicit authorization and an activation script with bounded readiness polling before origin static verification"
+          },
+          "third_attempt": {
+            "result": "active_verified_origin_windows_forward_public",
+            "rollback_path": "/opt/niannian-ai-releases/rollback-20260712T185934Z-canonical-r1-third",
+            "readiness_contract": "45-second loopback readiness window; 1-second interval; 3-second connect timeout; 5-second request timeout; HTTP 200 plus JSON ok:true",
+            "readiness_attempt": 2,
+            "verified": [
+              "r1 core server/static file SHA-256 values matched the fixed candidate before activation",
+              "origin loopback health returned HTTP 200 with ok:true after restart",
+              "origin cache-busted mvp.js and product.css SHA-256 matched r1",
+              "Windows 127.0.0.1:28083 forward health returned ok:true",
+              "Windows public https://ai.cauai.fun API health returned ok:true",
+              "Windows cache-busted public mvp.js and product.css SHA-256 matched r1"
+            ],
+            "not_used_as_gate": "remote Linux self-call to the public hostname"
+          }
+        }
+      },
+      {
+        "candidate_id": "niannian-web-20260713-auth-ui-r1",
+        "status": "active_verified_origin_windows_forward_public_cache_bust_followup_required",
+        "target": "https://ai.cauai.fun",
+        "stage_root": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260713-auth-ui-r1\\package",
+        "package_manifest": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260713-auth-ui-r1\\release-package-manifest.json",
+        "file_count": 1009,
+        "total_bytes": 6811180,
+        "scope": [
+          "production auth UI wording",
+          "email-only field accuracy",
+          "non-side-effect auth UI regression test"
+        ],
+        "forbidden_changes": [
+          "auth API",
+          "session or cookie logic",
+          "production user, project, audit, or upload data",
+          "service, tunnel, worker, provider, Mac, or SD2"
+        ],
+        "production_parity": "diverged_requires_new_staged_release",
+        "deployment_authorization": "low_risk_auth_ui_fix_authorized_2026-07-13",
+        "candidate_diff_against_active_r1": {
+          "changed_files": [
+            "app.js",
+            "index.html",
+            "mvp.js",
+            "package.json"
+          ],
+          "added_files": [],
+          "removed_files": [],
+          "scope_gate": "approved_governance_script_only",
+          "blocker": "none; package.json contains only the explicitly approved existing test:release-readiness script difference, with no dependency or lockfile change."
+        }
+      },
+      {
+        "candidate_id": "niannian-web-20260713-auth-ui-cache-r1",
+        "status": "active_verified_origin_windows_forward_public_browser_ui",
+        "target": "https://ai.cauai.fun",
+        "stage_root": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260713-auth-ui-cache-r1\\package",
+        "package_manifest": "E:\\codex\\aisp\\aidaihuo\\release-staging\\niannian-web-20260713-auth-ui-cache-r1\\release-package-manifest.json",
+        "file_count": 1009,
+        "total_bytes": 6811189,
+        "scope": [
+          "cache-bust the already approved app.js auth UI field-label correction"
+        ],
+        "allowed_changed_file": "index.html",
+        "forbidden_changes": [
+          "auth API",
+          "session or cookie logic",
+          "production user, project, audit, or upload data",
+          "service, tunnel, worker, provider, Mac, or SD2"
+        ],
+        "production_parity": "verified_current_parity",
+        "deployment_authorization": "consumed_low_risk_auth_ui_fix_authorization_2026-07-13",
+        "candidate_diff_against_auth_ui_r1": {
+          "changed_files": [
+            "index.html"
+          ],
+          "added_files": [],
+          "removed_files": [],
+          "scope_gate": "passed"
+        },
+        "deployment_attempt": {
+          "result": "active_verified_origin_windows_forward_public_browser_ui",
+          "rollback_path": "/opt/niannian-ai-releases/rollback-20260712T193814Z-auth-ui-cache-r1",
+          "readiness_attempt": 2,
+          "verified": [
+            "remote stage manifest: 1009 files, 6811189 bytes, zero SHA mismatch",
+            "isolated temporary-DATA_DIR health smoke",
+            "origin loopback health and index.html SHA",
+            "Windows forward/public API health and public index.html/app.js/mvp.js SHA",
+            "browser public workbench and register modal UI readback"
+          ]
+        }
+      }
+    ]
+  },
+  "production_release_records": [
+    {
+      "released_at": "2026-08-04T19:31:00+08:00",
+      "target": "https://ai.cauai.fun",
+      "release_id": "niannian-web-20260804-step04-abcd-r2",
+      "rollback_path": "/opt/niannian-ai-releases/rollback-niannian-web-20260804-step04-abcd-r2",
+      "verification": [
+        "remote release-package-manifest and protected Step01 verifier passed",
+        "staging Step04 API returned STEP04_ABCD_COMPILED with provider_calls image=false video=false",
+        "staging Word download SHA matched generated DOCX; docx-preview + Chromium QA passed: 1 page, 5 tables, no overflow",
+        "invalid identity fixture returned STEP04_ENTITY_BINDING_MISMATCH HTTP 409 with no output directory",
+        "post-restart process SHA matched the Step04 release server.js; loopback and public health returned ok:true"
+      ],
+      "safety": [
+        "activation changed only release consumer symlinks and restarted niannian-ai.service",
+        "no image/video Provider was called",
+        "old guard release remains available at rollback-niannian-web-20260804-studio-router-fix-r1"
+      ]
+    },
+    {
+      "released_at": "2026-07-14T19:36:51+08:00",
+      "target": "https://ai.cauai.fun",
+      "release_id": "niannian-web-20260714-workbench-entry-r10",
+      "rollback_path": "/opt/niannian-ai-releases/rollback-20260714-workbench-entry-r10",
+      "verification": [
+        "remote immutable-stage manifest: 1197 files, 29985637 bytes, zero required-static mismatches",
+        "isolated candidate runtime health and 14 raw static reads passed before activation",
+        "post-restart bounded loopback readiness returned HTTP 200 with ok:true",
+        "active app/static symlinks both resolve to r10; niannian-ai.service is active; origin health returned ok:true",
+        "Windows 127.0.0.1:28083 forward health returned ok:true",
+        "Windows public https API health returned ok:true",
+        "public index.html references r10 styles, product-system CSS, app and MVP scripts, and the v6 monogram asset",
+        "13 public static files, including app.js, mvp.js, three CSS layers, service worker, manifest, GSAP, showcase assets, and v6 brand asset, matched candidate raw SHA-256; large image readback used bounded HTTP byte ranges and binary-safe recombination"
+      ],
+      "safety": [
+        "activation changed only the existing app/static symlinks and restarted the existing service",
+        "no production data, user/session/project/audit/upload data, provider, Mac, tunnel, forward, worker, package/send, or registry path was changed",
+        "remote Linux public-hostname self-call was not used as a release gate"
+      ]
+    },
+    {
+      "released_at": "2026-07-14T18:02:00+08:00",
+      "target": "https://ai.cauai.fun",
+      "release_id": "niannian-web-20260714-product-system-r8",
+      "rollback_path": "/opt/niannian-ai-releases/rollback-20260714-product-system-r8",
+      "verification": [
+        "remote immutable-stage manifest: 1197 files, 29978542 bytes, zero required-static mismatches",
+        "isolated candidate runtime health and 14 raw static reads passed before activation",
+        "post-restart bounded loopback readiness returned HTTP 200 with ok:true",
+        "active app/static symlinks both resolve to r8; niannian-ai.service is active; origin health returned ok:true",
+        "Windows 127.0.0.1:28083 forward health returned ok:true",
+        "Windows public https API health returned ok:true",
+        "public index.html references styles.css?v=20260714-fused-monogram-square-r9, product-system.css?v=20260714-product-system-r6, and the v5 monogram asset",
+        "13 public static files, including app.js, mvp.js, three CSS layers, service worker, manifest, GSAP, showcase assets, and v5 brand asset, matched candidate raw SHA-256; large image readback used bounded HTTP byte ranges and binary-safe recombination"
+      ],
+      "safety": [
+        "activation changed only the existing app/static symlinks and restarted the existing service",
+        "no production data, user/session/project/audit/upload data, provider, Mac, tunnel, forward, worker, package/send, or registry path was changed",
+        "a later local-only v6 brand candidate is deliberately not included in this r8 record"
+      ]
+    },
+    {
+      "released_at": "2026-07-13T05:02:30+08:00",
+      "target": "https://ai.cauai.fun",
+      "release_id": "niannian-web-20260713-auth-mvp-cache-r1",
+      "rollback_path": "/opt/niannian-ai-releases/rollback-20260713-auth-mvp-cache-r2",
+      "verification": [
+        "remote staged manifest: 1009 files, 6811197 bytes, zero SHA mismatch",
+        "isolated candidate runtime used /opt/node24/bin/node, an unused port, and a temporary DATA_DIR",
+        "post-restart bounded loopback readiness: ready on poll 2",
+        "origin index.html raw-byte SHA-256 matched dd533100cb46f91d9cd999124b0cfbe0cc53c524d205c7ea238a9df806c298b4",
+        "origin and Windows public index.html reference mvp.js?v=20260713-auth-ui-r3",
+        "Windows forward/public API health returned ok:true and public index.html/mvp.js raw SHA-256 matched the candidate"
+      ],
+      "safety": [
+        "only app/static symlinks changed during activation",
+        "production data root /var/lib/niannian-ai was not read or modified",
+        "auth API, session, cookie, user, project, audit, service unit, tunnel, worker, provider, Mac, SD2, and payment paths were unchanged"
+      ]
+    },
+    {
+      "released_at": "2026-07-13T03:45:00+08:00",
+      "target": "https://ai.cauai.fun",
+      "release_id": "niannian-web-20260713-auth-ui-cache-r1",
+      "rollback_path": "/opt/niannian-ai-releases/rollback-20260712T193814Z-auth-ui-cache-r1",
+      "verification": [
+        "candidate differs from auth-ui-r1 only in index.html: app.js cache query advanced to 20260713-auth-ui-r2",
+        "isolated remote stage tree and SHA verification: 1009 files, 6811189 bytes, zero mismatches",
+        "isolated temporary-DATA_DIR runtime smoke passed",
+        "post-restart bounded loopback readiness: ready on poll 2",
+        "Windows forward/public API health returned ok:true",
+        "Windows public index.html, app.js, and mvp.js SHA-256 matched the candidate",
+        "browser public workbench no longer exposes local-environment copy; register form exposes 邮箱 with type=email"
+      ],
+      "safety": [
+        "only app/static symlinks changed during activation",
+        "production data root /var/lib/niannian-ai was not read or modified",
+        "auth API, session, cookie, user, project, audit, service unit, tunnel, worker, provider, Mac, SD2, and payment paths were unchanged"
+      ]
+    },
+    {
+      "released_at": "2026-07-13T03:30:00+08:00",
+      "target": "https://ai.cauai.fun",
+      "release_id": "niannian-web-20260713-auth-ui-r1",
+      "rollback_path": "/opt/niannian-ai-releases/rollback-20260712T193339Z-auth-ui-r1",
+      "verification": [
+        "isolated remote stage tree and SHA verification: 1009 files, 6811180 bytes, zero mismatches",
+        "isolated temporary-DATA_DIR runtime smoke passed",
+        "post-restart bounded loopback readiness: ready on poll 2",
+        "origin index.html, app.js, and mvp.js SHA-256 matched the candidate",
+        "Windows forward and public API health returned ok:true",
+        "Windows public index.html, app.js, and mvp.js SHA-256 matched the candidate"
+      ],
+      "known_followup": "The deployed HTML retained the old app.js query version, so browsers may use a stale cached app.js. A separate cache-bust-only candidate is required before claiming the email field label is live."
+    },
+    {
+      "released_at": "2026-07-13T03:00:00+08:00",
+      "target": "https://ai.cauai.fun",
+      "release_id": "niannian-web-20260713-canonical-r1",
+      "rollback_path": "/opt/niannian-ai-releases/rollback-20260712T185934Z-canonical-r1-third",
+      "verification": [
+        "preflight: old release, remote fixed candidate SHA values, active service, origin health, existing rollback, and Windows forward",
+        "post-restart bounded loopback readiness: ready on poll 2",
+        "origin cache-busted mvp.js and product.css SHA-256 matched r1",
+        "Windows 127.0.0.1:28083 health returned ok:true",
+        "Windows public API health returned ok:true",
+        "Windows cache-busted public mvp.js and product.css SHA-256 matched r1"
+      ],
+      "safety": [
+        "fixed staged r1 candidate was neither rebuilt nor re-uploaded",
+        "production data root /var/lib/niannian-ai was not read or modified",
+        "Cloudflare, SSH forward, worker, provider, Mac, SD2, and payment paths were not changed",
+        "remote Linux public-hostname self-call was not a release gate"
+      ]
+    },
+    {
+      "released_at": "2026-07-13T00:37:05+08:00",
+      "target": "https://ai.cauai.fun",
+      "release_id": "niannian-web-20260713-step01-bundle",
+      "release_archive_sha256": "0132d79188f664fd552e8d29396b2933eec332fd5bac197743014d59a8125274",
+      "runtime": "/opt/node24/bin/node v24.17.0",
+      "verification": [
+        "remote staging syntax and module-load check",
+        "isolated remote health smoke on port 18085",
+        "origin health check on port 18083",
+        "public https health check and static asset readback",
+        "remote source SHA-256 parity for server.js, index.html, mvp.js, product.css, and niannian_low_risk_policy.js",
+        "post-release www-data authentication and project-state write permission verification"
+      ],
+      "safety": [
+        "production data directory preserved",
+        "preexisting production data ownership restored to the www-data service account without changing data content",
+        "previous app, public root, and systemd unit retained under the release rollback directory",
+        "NIANNIAN_STEP01_AUTO_EXECUTE=off",
+        "NIANNIAN_N05_REGENERATION_AUTOSTART=off"
+      ]
+    }
+  ],
+  "source_repositories": [
+    {
+      "name": "Design Tokens Community Group",
+      "url": "https://github.com/design-tokens/community-group",
+      "status": "applied_in_current_stage",
+      "purpose": "Figma Variable layering, token type semantics, WEB code syntax, and Figma-to-CSS traceability",
+      "boundary": "No new runtime dependency and no third parallel CSS token system"
+    },
+    {
+      "name": "GSAP",
+      "url": "https://github.com/greensock/GSAP",
+      "status": "already_applied_and_retained",
+      "purpose": "Existing workbench entry motion, Flip transitions, and reduced-motion behavior",
+      "boundary": "No second animation framework and no new scroll controller"
+    },
+    {
+      "name": "Playwright",
+      "url": "https://github.com/microsoft/playwright",
+      "status": "already_applied_and_extended",
+      "purpose": "Anonymous request-budget, desktop/mobile, stage, routing, motion, and regression verification",
+      "boundary": "Browser evidence does not replace real production-provider evidence"
+    },
+    {
+      "name": "Figma Code Connect",
+      "url": "https://github.com/figma/code-connect",
+      "status": "conditional_not_applied",
+      "purpose": "Potential future design-to-code mapping",
+      "boundary": "Not counted as adopted without suitable Figma plan and Dev Mode permissions"
+    },
+    {
+      "name": "Style Dictionary",
+      "url": "https://github.com/style-dictionary/style-dictionary",
+      "status": "future_conditional_not_applied",
+      "purpose": "Potential future stable token synchronization",
+      "boundary": "Not a current-stage prerequisite"
+    },
+    {
+      "name": "Tokens Studio",
+      "url": "https://github.com/tokens-studio/figma-plugin",
+      "status": "not_adopted",
+      "purpose": "Reference only",
+      "boundary": "Native Figma Variables are sufficient for the current stage"
+    },
+    {
+      "name": "Storybook",
+      "url": "https://github.com/storybookjs/storybook",
+      "status": "not_adopted",
+      "purpose": "Reference only",
+      "boundary": "No framework migration for the existing native HTML/CSS/JS architecture"
+    }
+  ],
+  "source_application_records": [
+    {
+      "source": "D:\\codex-work\\zhuanhui\\outputs\\niannian-ai-web",
+      "applied_as": "historical_base_repo_before_canonical_takeover",
+      "evidence": "2026-07-11 deployment review hash parity and local source inspection",
+      "changed": [
+        "responsive public header",
+        "hero viewport sizing",
+        "local empty-session behavior",
+        "favicon delivery",
+        "workbench, guide, and team views",
+        "reference-aligned workbench tool deck",
+        "Codex worker gateway and worker-status projection",
+        "script-only novel-to-short-drama N00 project entry",
+        "DOCX source intake with hashed local extraction",
+        "deterministic N01 source manifest and chapter-index workspace"
+      ]
+    },
+    {
+      "source": "E:\\codex\\aisp\\aidaihuo\\outputs\\website_reference_20260711\\step01_evidence",
+      "applied_as": "production-workspace interaction reference",
+      "evidence": "2026-07-12 transcript plus shot-level frames confirm the product flow: project entry → original input → asset details → storyboard management → video editing, with a top progress stepper, asset cards/drawer, a deliberate next-step action, and no future-stage action before the current work is accepted.",
+      "changed": [
+        "two independent production-studio routes",
+        "four-stage human-facing mapping for redraw and script-only production",
+        "top production stepper with current/completed/locked state",
+        "separate working canvas and current-contract inspector",
+        "explicit bottom previous/next action with gate-controlled disablement",
+        "legacy novel Nxx route canonicalization"
+      ]
+    },
+    {
+      "source": "https://github.com/design-tokens/community-group",
+      "applied_as": "DTCG-aligned design-token traceability",
+      "evidence": "Figma file qqUkGgkkNnDPYA8MkNnsJD collection NianNian / Foundations; 18 WEB code syntax bindings; docs/website-program/workbench-calibration-20260720/FIGMA_TOKEN_CSS_MAP.md",
+      "changed": [
+        "Figma Variable grouping and semantic naming",
+        "Variable-to-existing-CSS code syntax mapping",
+        "explicit unmapped handling for info and motion duration variables",
+        "documented radius/card compatibility difference instead of silent overwrite"
+      ]
+    },
+    {
+      "source": "https://github.com/greensock/GSAP",
+      "applied_as": "retained existing motion implementation",
+      "evidence": "vendor/gsap-3.13.0.min.js, vendor/gsap-flip-3.13.0.min.js, mvp.js workbench transitions, and test:visual-motion / test:workbench-view-transition",
+      "changed": [
+        "no new runtime change in this calibration stage",
+        "existing Flip and reduced-motion contracts remain the sole workbench animation system"
+      ]
+    },
+    {
+      "source": "https://github.com/microsoft/playwright",
+      "applied_as": "existing browser verification extended as the implementation gate",
+      "evidence": "test_workbench_view_transition.js and final desktop/mobile browser evidence",
+      "changed": [
+        "anonymous workbench request-budget assertion",
+        "desktop and mobile workbench verification",
+        "future-stage no-fake-workspace assertion",
+        "motion and route-restoration regression coverage"
+      ]
+    }
+  ],
+  "website": {
+    "visual_reference": "https://video.jurilu.com/index",
+    "asset_policy": "Use the verified local oil-paint hero asset for the public home surface. Do not copy reference branding, partner logos, legal claims, or imagery.",
+    "active_quality_verticals": [
+      "existing-project redesign",
+      "responsive public UI",
+      "browser verification"
+    ]
+  },
+  "verification_records": [
+    {
+      "type": "workbench_figma_calibration",
+      "date": "2026-07-21",
+      "result": "Figma Current/Target and minimal public-workbench calibration completed without backend or production-contract changes.",
+      "figma": "qqUkGgkkNnDPYA8MkNnsJD; Product Map 33:14; shared components 33:16/33:17; public Target 35:127/35:159; authenticated Target 35:191/35:223/35:252/35:278; eight-stage groups 35:294-35:852; handoff 35:870",
+      "browser": "1440x960 and 390x844 screenshots captured; title computed at 44px/28px; zero horizontal overflow; anonymous requests contain only /api/auth/session; zero console errors/warnings; keyboard skip-link focus-visible verified.",
+      "tests": [
+        "test:pwa-shell",
+        "test:visual-motion",
+        "test:redraw-step02-ui",
+        "test:workbench-view-transition"
+      ],
+      "evidence": "docs/website-program/workbench-calibration-20260720/FINAL_VALIDATION_20260721.md"
+    },
+    {
+      "type": "source_baseline_check",
+      "date": "2026-07-11",
+      "result": "Local source was found at the recorded deployment path. Its prior deployment review records hash parity for server.js, index.html, mvp.js, and product.css."
+    },
+    {
+      "type": "reachable_url_check",
+      "date": "2026-07-11",
+      "result": "GET / and GET /api/health return HTTP 200 on localhost:4188."
+    },
+    {
+      "type": "playwright_visual_check",
+      "date": "2026-07-11",
+      "desktop": "1440x900 screenshot captured with no horizontal overflow.",
+      "mobile": "390x844 homepage and project page screenshots captured with scrollWidth equal to clientWidth.",
+      "primary_flow": "Mobile menu opens; 项目管理 navigates to #projects and closes the menu.",
+      "console": "0 errors and 0 warnings after favicon and empty-session fixes."
+    },
+    {
+      "type": "workspace_route_check",
+      "date": "2026-07-11",
+      "result": "The local header exposes 首页 / 项目管理 / 工作台 / 作品展示 / 创作指引 / 团队管理. Workbench renders the truthful no-project state and its CTA opens the real project-creation wizard for a signed-in local account. The five guide steps switch the active focus panel. Team management renders the local owner and routes its project action to #projects."
+    },
+    {
+      "type": "reference_workbench_check",
+      "date": "2026-07-11",
+      "result": "The local workbench now uses the reference site's six-card tool-deck hierarchy. One-click redraw opens the existing local project wizard; My Works exposes the local project count and status; unavailable tools are explicitly labeled as upcoming. Desktop and 390x844 mobile layouts render without horizontal overflow."
+    },
+    {
+      "type": "source_preflight_recovery_check",
+      "date": "2026-07-11",
+      "result": "A deliberately invalid local upload was blocked before Step01. The project detail showed both recheck and source-replacement controls. After a full 15-second polling interval, the selected valid replacement remained attached; submitting it rewrote the local task contract, refreshed media evidence, and reached passed preflight with no browser console errors or external provider request."
+    },
+    {
+      "type": "codex_worker_gateway_check",
+      "date": "2026-07-11",
+      "result": "An isolated fake Codex process was dispatched from a materialized website job, wrote a validated worker receipt, produced a captured thread ID, kept the provider gate blocked, and returned worker status to the website runtime. A separate real Codex CLI smoke returned a new thread ID and a fixed no-op response without customer material or provider calls."
+    },
+    {
+      "type": "codex_worker_windows_sandbox_probe",
+      "date": "2026-07-11",
+      "result": "A real ephemeral Codex worker thread was started from an isolated synthetic job with workspace-write and an explicit job-directory allowlist. Its harmless terminal command failed with CreateProcessAsUserW failed: 5. The runtime therefore remains infrastructure-blocked for real Step01 execution; no provider, package/send, or user-visible acceptance action was attempted."
+    },
+    {
+      "type": "script_only_workbench_check",
+      "date": "2026-07-12",
+      "result": "The workbench first card is a functional 小说一键生成短剧 entry. A signed-in local user opened the text-project dialog and created a local pasted-text project. The UI moved from 0/N00 起步 to 1/N00, the API persisted a SHA-256-backed text source without exposing its path, and the project's video_provider gate stayed blocked. No provider request, image generation, video generation, package/send, or registry promotion occurred.",
+      "evidence": [
+        "npm run test:script-project",
+        "Playwright desktop UI flow on http://127.0.0.1:4188/#workbench",
+        "Playwright mobile 390x844 check: scrollWidth=390, clientWidth=390, console errors=0"
+      ]
+    },
+    {
+      "type": "script_only_docx_intake_check",
+      "date": "2026-07-12",
+      "result": "The script-only workbench accepts one .docx source up to 25MB as an alternative to pasted text. A synthetic DOCX was uploaded through the authenticated API, extracted with mammoth@1.12.0, persisted with separate raw-document and extracted-text SHA-256 values, and created an N00 project with the video provider gate blocked. A malformed .docx was rejected with SCRIPT_DOCUMENT_PARSE_FAILED and its temporary source was removed.",
+      "evidence": [
+        "npm run test:script-project",
+        "npm audit --omit=dev --audit-level=high: 0 vulnerabilities",
+        "Playwright signed-in dialog check on http://127.0.0.1:4188/#workbench",
+        "Playwright mobile 390x844 DOCX dialog check: scrollWidth=390, clientWidth=390, console errors=0"
+      ]
+    },
+    {
+      "type": "script_only_n01_source_ingest_check",
+      "date": "2026-07-12",
+      "result": "Successful pasted-text and DOCX projects now complete N00 intake and enter N01 with a private source manifest, extracted text, chapter index, and ingestion checkpoint. The workbench renders all N00-N07 nodes, shows N00 completed and N01 in progress, and exposes CANON_LEDGER_PENDING_AI_ADAPTATION instead of inventing a canon ledger or treating the project as a video.",
+      "evidence": [
+        "npm run test:script-project",
+        "Playwright signed-in project creation on http://127.0.0.1:4188/#workbench",
+        "Playwright mobile 390x844 N01 workbench check: scrollWidth=390, clientWidth=390, console errors=0"
+      ]
+    },
+    {
+      "type": "script_only_ai_screenwriter_worker_contract_check",
+      "date": "2026-07-12",
+      "result": "Every successful script-only project creation automatically materializes one idempotent web_ns-* N01 AI-screenwriter job from verified extracted text. The direct job uses source_script rather than source_video, has a source SHA-256, transaction intent, route decision, artifact ledger, checkpoint, gate dashboard, and worker prompt. The shared dispatcher and Mac pull relay both preserve source_kind and require source-hash verification. The job remains queued with provider, package/send, and registry promotion blocked; an owner-bound endpoint provides retry only when materialization is blocked.",
+      "evidence": [
+        "npm run test:script-project",
+        "npm run test:script-worker",
+        "npm run test:worker",
+        "npm run test:mac-relay-gateway",
+        "npm run test:mac-relay-worker",
+        "npm audit --omit=dev --audit-level=high: 0 vulnerabilities"
+      ]
+    },
+    {
+      "type": "script_only_job_to_workbench_reconciliation_check",
+      "date": "2026-07-12",
+      "result": "The website now resolves the exact owner-bound web_ns-* script job and projects its current N00-N07 state only after checking job ID, remote project ID, and the current source-file SHA-256. The workbench can refresh this projection via a visible action and also reconciles on its normal local status fetch; a contract or source mismatch remains blocked instead of replacing the website state.",
+      "evidence": [
+        "node --check server.js",
+        "node --check mvp.js",
+        "npm run test:script-project",
+        "npm run test:script-worker",
+        "npm run test:worker"
+      ]
+    },
+    {
+      "type": "script_only_n04_website_review_and_n05_authorization_check",
+      "date": "2026-07-12",
+      "result": "At N04, the owner can open the exact current prompt package in the website and inspect the character identity-set direction, physical-light contract, five planned true first frames, and five two-part video prompt groups. The website verifies owner/session, web_ns job ID, remote project ID, stored source SHA-256, in-job artifact path, and prompt-package SHA before displaying or authorizing. Explicit website confirmation creates only a durable N05 whole-image-candidate authorization event; stale review hashes are rejected and provider submission, package/send, registry promotion, and local image editing remain disabled.",
+      "evidence": [
+        "node --check server.js",
+        "node --check mvp.js",
+        "npm run test:script-project",
+        "npm run test:script-worker",
+        "npm run test:worker",
+        "Browser desktop: N04 review panel displayed 5 first-frame cards and 5 video-group cards with zero console errors",
+        "Browser mobile 390x844: review panel displayed with scrollWidth 375 <= viewport 390 and no overflowing elements"
+      ]
+    },
+    {
+      "type": "script_only_existing_project_entrypoint_check",
+      "date": "2026-07-12",
+      "result": "An existing script-only project no longer leaves the workbench card on the ambiguous new-project action. Its card shows the current node in a `继续制作 · Nxx` action, which focuses the exact script workbench section for that project.",
+      "evidence": [
+        "node --check mvp.js",
+        "Browser workbench: one visible `继续制作 · N04` button; click focused #script-workbench-NS-MRGUJUH9-9E8904 with target top 100"
+      ]
+    },
+    {
+      "type": "script_only_dedicated_studio_route_check",
+      "date": "2026-07-12",
+      "result": "The existing script-project card now opens a dedicated `#script/<project-id>` production view rather than appending the script workflow below the general workbench. The independent view contains the N00-N07 pipeline and a return-to-workbench action; the direct hash route restores the correct project after a reload.",
+      "evidence": [
+        "node --check app.js",
+        "node --check mvp.js",
+        "Browser: #workbench shows one `进入短剧制作台 · N04` action and no appended script pipeline",
+        "Browser: click reached #script/NS-MRGUJUH9-9E8904; dedicated studio visible; return action restored #workbench; direct route reload had zero console errors"
+      ]
+    },
+    {
+      "type": "script_only_step_route_and_next_action_check",
+      "date": "2026-07-12",
+      "result": "The dedicated novel short-drama studio now uses one route and one content stage per N00-N07 step. The active stage is encoded as #script/<project-id>/<step-id>; the rail opens prior completed stages for review, and the explicit next action advances only to the next stage without rendering the N04 review or later-stage content on an N03 page.",
+      "evidence": [
+        "node --check app.js",
+        "node --check mvp.js",
+        "Browser: N03 route had activeSteps=[N03], N03 content, and no N04 review",
+        "Browser: `下一步：N04` reached #script/NS-MRGUJUH9-9E8904/N04 with only N04 review content",
+        "Browser mobile 390x844: N04 step route visible, scrollWidth 375 <= viewport 390, no overflowing elements"
+      ]
+    },
+    {
+      "type": "four_stage_production_studio_reference_check",
+      "date": "2026-07-12",
+      "result": "Reference evidence was applied as interaction structure, not copied branding or visual assets. The shared workbench now exposes separate Redraw Studio and Novel-to-Short-Drama Studio entries. The novel project uses the new #script/<project-id>/stage/01..04 routes, maps N00/N01 → N02/N03 → N04/N05 → N06/N07, shows only one current production canvas, and keeps stage 04 disabled while N05/N06 are blocked. A legacy #script/<project-id>/N04 deep link resolves to #script/<project-id>/stage/03. The redraw studio implementation maps Step01 → Step02 → Step04 → Step05 into the same independent four-stage surface; no redraw project existed in the local account to exercise that entry with customer data.",
+      "evidence": [
+        "source transcript and shot-level frames from website_reference_20260711/step01_evidence",
+        "node --check app.js",
+        "node --check mvp.js",
+        "npm run test:controller",
+        "npm run test:preflight",
+        "npm run test:script-project",
+        "npm run test:script-worker",
+        "npm run test:worker",
+        "Browser desktop: #script/NS-MRGUJUH9-9E8904/stage/01 → stage/02; no horizontal overflow",
+        "Browser: legacy N04 canonicalized to stage/03; N04 review loaded; stage-04 next action stayed disabled",
+        "Browser mobile 390x844: stage/03 showed four stage controls and scrollWidth <= viewport"
+      ]
+    },
+    {
+      "type": "website_quality_audit",
+      "date": "2026-07-15",
+      "scope": "project library, creation guide, and team/workspace first-screen hierarchy; homepage contract frozen",
+      "active_verticals": [
+        "visual hierarchy",
+        "UX writing",
+        "desktop/mobile browser verification"
+      ],
+      "result": "The project library no longer presents a large decorative pseudo-cover when no real project media exists; its cards use a compact factual header and stronger title hierarchy. The creation guide removes a redundant explanatory paragraph while preserving the selected flow, stage outputs, entry conditions, next stage, checklist, and real creation action. The signed-in team surface now groups the actual current account, workspace boundary, and next actions into a deliberate two-column layout; the signed-out workspace title no longer wraps incorrectly on desktop or mobile and its privacy explanation is concise.",
+      "evidence": [
+        "output/playwright/public-surfaces-projects-desktop.png",
+        "output/playwright/public-surfaces-projects-mobile.png",
+        "output/playwright/public-surfaces-guide-desktop.png",
+        "output/playwright/public-surfaces-guide-mobile.png",
+        "output/playwright/public-surfaces-team-desktop.png",
+        "output/playwright/public-surfaces-team-mobile.png",
+        "output/playwright/public-surfaces-team-signed-in-normal-reload.png",
+        "output/playwright/public-surfaces-projects-signed-in-normal-reload.png",
+        "Playwright browser regression 8/8",
+        "signed-in normal-reload DOM readback: team grid areas member/scope + member/next; project card 232px and media-free 68px factual header; guide checklist has zero direct explanatory paragraphs",
+        "no horizontal overflow and no browser console errors"
+      ]
+    },
+    {
+      "type": "playwright_visual_check",
+      "date": "2026-07-15",
+      "status": "superseded_by_layered_oil_r5",
+      "scope": "guided second-tier homepage oil motion after direct user feedback that the first tier was not perceptible",
+      "result": "The single accepted oil asset now uses a 16-second transform-only alternate drift and a 10-second edge-opacity breath. A normal 4188 reload loaded hero CSS r4 and application r33. Over an observed three-second interval, the background transform changed from matrix scale 1.02511 / translation -0.0355,0.0123 to scale 1.03078 / translation -1.8668,0.6461, while edge opacity changed from 0.161616 to 0.241293 (delta 0.079677). The title and CTA remained on static upper layers, no canvas element existed, and horizontal overflow stayed zero.",
+      "evidence": [
+        "output/playwright/hero-oil-motion-desktop.png",
+        "output/playwright/hero-oil-motion-mobile.png",
+        "output/playwright/hero-oil-guided-normal-reload-t0.png",
+        "output/playwright/hero-oil-guided-normal-reload-t3.png",
+        "Playwright 8/8 including a real three-second transform/opacity delta assertion",
+        "prefers-reduced-motion: before/after animation-name none and before transform none",
+        "asset SHA-256 6FBEC29BD26518D99E3B39E6DF1E9E35B4F9B138A59781A679FD167771042E7B"
+      ]
+    },
+    {
+      "type": "playwright_visual_check",
+      "date": "2026-07-15",
+      "status": "rejected_superseded_by_fluid_shader_r6",
+      "scope": "third-tier layered oil Hero after direct user rejection of camera-like single-layer drift",
+      "result": "Hero r5 uses two independently animated pseudo-elements sourced from the same accepted PNG. The 18-second base layer follows a closed five-point asymmetric path; the 12-second soft-light texture layer follows a different closed path while changing opacity and background position. Playwright samples at t=0/1.5/4/8s prove four distinct base transforms, four distinct texture transforms, at least three texture positions and opacity states, stable headline/CTA geometry, mobile reduction, and a fully static reduced-motion fallback.",
+      "post_coding_review": "post_coding_review_layered_oil_hero_r5_20260715.md",
+      "evidence": [
+        "output/playwright/hero-oil-flow-t0-desktop.png",
+        "output/playwright/hero-oil-flow-t4-desktop.png",
+        "output/playwright/hero-oil-motion-desktop.png",
+        "output/playwright/hero-oil-motion-mobile.png",
+        "output/playwright/hero-oil-layered-normal-reload-t0.png",
+        "output/playwright/hero-oil-layered-normal-reload-t4.png",
+        "output/playwright/hero-oil-layered-samples.json",
+        "Playwright browser regression 8/8 after one 6/8 stale-test audit and two focused red-to-green corrections",
+        "normal local readback: hero r5, app r34, release r59, shell r37, no fluidCanvas, no overflow, zero console warnings/errors",
+        "asset SHA-256 6FBEC29BD26518D99E3B39E6DF1E9E35B4F9B138A59781A679FD167771042E7B"
+      ]
+    },
+    {
+      "type": "playwright_visual_check",
+      "date": "2026-07-15",
+      "status": "superseded_by_provider_oil_video_v2",
+      "scope": "bounded restoration of the dormant genuine WebGL/Canvas liquid Shader after direct user rejection of static-image motion",
+      "result": "Hero r6 restores the existing blue/violet/magenta FBM/noise/swirl WebGL Shader as the only dynamic homepage background. Canvas screenshots at t=0/1.5/4 seconds have three distinct hashes while the Canvas transform remains none and headline/CTA geometry stays fixed. The renderer stops off-home and under reduced motion, resumes on return, caps mobile DPR at 1.2, and uses a verified animated 2D fallback when WebGL is unavailable. The same accepted oil PNG remains an unmodified static fallback. D-018 permanently rejects r3-r5 static-image transform/opacity/background-position/soft-light material-flow simulation.",
+      "post_coding_review": "post_coding_review_fluid_shader_hero_r6_20260715.md",
+      "evidence": [
+        "output/playwright/hero-fluid-shader-t0-desktop.png",
+        "output/playwright/hero-fluid-shader-t1_5-desktop.png",
+        "output/playwright/hero-fluid-shader-t4-desktop.png",
+        "output/playwright/hero-fluid-shader-desktop.png",
+        "output/playwright/hero-fluid-shader-mobile.png",
+        "output/playwright/hero-fluid-shader-reduced-motion.png",
+        "output/playwright/hero-fluid-shader-2d-fallback.png",
+        "output/playwright/hero-fluid-shader-samples.json",
+        "normal local readback: hero r6, app r35, release r60, shell r38",
+        "Playwright browser regression 8/8 plus PWA, visual-motion, auth, command-palette, workbench-transition, script-project and syntax regressions PASS",
+        "application console warnings/errors zero; allowlisted Chromium ReadPixels GPU diagnostics recorded separately",
+        "asset SHA-256 6FBEC29BD26518D99E3B39E6DF1E9E35B4F9B138A59781A679FD167771042E7B"
+      ]
+    },
+    {
+      "type": "playwright_visual_check",
+      "date": "2026-07-19",
+      "status": "current_local_candidate",
+      "scope": "user-authorized replacement of the homepage Shader candidate with a qualified provider-generated oil-paint loop video",
+      "result": "Dola conversation 38415798043097105 produced a 16:9, 10.10068-second oil-paint video with strong persistent counterclockwise vortex motion. The provider file and watermark-free extension file have distinct hashes; the watermark-free contact sheet contains no Dola AI logo or other text. First/last evidence returns to the original blue lower-left and magenta upper-right composition with SSIM 0.829412. The browser asset is an H.264 yuv420p fast-start MP4 with no audio. Real Chromium verification proves autoplay, visible frame change, fixed headline/CTA geometry, off-home pause, return resume, 390x844 cover crop without overflow, reduced-motion static poster, and Shader/2D fallback only when video loading fails.",
+      "post_coding_review": "post_coding_review_home_oil_video_v2_20260719.md",
+      "evidence": [
+        "output/dola-home-oil-loop-20260717/evidence_v2_watermark_free_contact_sheet.jpg",
+        "output/dola-home-oil-loop-20260717/evidence_v2_first_last.jpg",
+        "output/playwright/hero-oil-video-t0-desktop.png",
+        "output/playwright/hero-oil-video-t1_8-desktop.png",
+        "output/playwright/hero-oil-video-desktop.png",
+        "output/playwright/hero-oil-video-mobile.png",
+        "output/playwright/hero-oil-video-reduced-motion.png",
+        "output/playwright/hero-oil-video-fallback.png",
+        "output/playwright/hero-oil-video-samples.json",
+        "watermark-free provider SHA-256 6E374DA88672F118E2C9DBDF61FBFF9506E330D10E6D7BD01123F63BC9F1A4ED",
+        "browser H.264 asset SHA-256 48B3A9590CA86843CCE5D285161537E3AE4BF83AA2EC43F940B01F3DAB845341",
+        "focused Playwright homepage regression 1/1 PASS",
+        "static visual-motion contract PASS"
+      ]
+    },
+    {
+      "type": "mac_employee_training_contract",
+      "date": "2026-07-15",
+      "status": "threads_visible_integrated_readiness_pin_pending_media_provider_disabled",
+      "scope": "five Mac Codex Desktop App full-chain employee tasks with shared 13-Skill authority and isolated exact-job synthetic training",
+      "result": "Five fixed Mac App tasks exist with distinct thread IDs and the canonical Mac project root. The official standalone app-server lists all five and current readback contains five clean assistant readiness completions. The user explicitly confirmed all five are visible in the Mac App sidebar; supported pinned=true proof remains pending. The Krill Codex employee model channel uses codex_local_access/responses/env_key=KRILL_CODEX_API_KEY/requires_openai_auth=false and is recorded separately from Mimo/Image2 media adapters. Exact turn/completed status=completed error=null plus thread/read is integrated readiness, never real_delivery. No replacement thread or new audit turn was created. The deterministic 13-Skill bundle remains hash-stable. The 12-row route matrix and seven negatives preserve authority, Mimo identity, V001→V002, submit/cost and QA gates. Current v2 synthetic evidence separates employee_model_channel from media-provider network, keeps fake V001 test_only, and leaves V002 SCRIPT_N06_V001_ONLY. Step01 local runtimes and secure Keychain/hq gate remain as previously verified; ASR/OCR input and authorized health evidence are still pending.",
+      "post_coding_review": "post_coding_review_mac_krill_employee_model_channel_d017_20260715.md",
+      "evidence": [
+        "AGENTS.md sha256 8712889c2d3eb1e12e12f78333fb468f051b99fdaa55d2a760ecbd438dab14dc",
+        "bridge/mac-employee-training/route_matrix.json sha256 cc89ce3e742b75c471dc11a643ab1d932c57ea8b28def37a0eda89feb2b0091a",
+        "bridge/mac-employee-training/fixtures/redraw_step01.json sha256 ba93eee9c62bfddcadd023ef993698f5037d9b5b0d3bf0e7b824e6c8b53fd73b",
+        "bridge/mac-employee-training/fixtures/script_n06_v001_v002.json sha256 5dcc5bb9aaa0d532257fdfcd2610f571f54cba92bd13a0ca5ff371141bf2a0ce",
+        "bridge/mac-employee-training/fixtures/negative_contracts.json sha256 8869a7843db24b42815289f0950e79e55eb92b9f720c393cb151957010995505",
+        "bridge/mac-employee-training/work_ledger.json sha256 1fb53d07f7e146c11640b9febb4749b6b409c3c8b97c00f69cc79f35a1428abc",
+        "bridge/MAC_EMPLOYEE_TRAINING_REPORT.md sha256 48512e3ec4c3312aea98ae755637f3b33fc30ed4182c26a741a536bc22ea12af",
+        "post_coding_review_mac_runtime_completion_d017_20260715.md sha256 2c6be007f02b8e3621a905c07cd9423f22c3256467dbc05192bbc6e472662000",
+        "bridge/install_mac_ffmpeg_runtime.sh sha256 42711598d4a1e4905237ed23c4f0cd7428a84c161c271c961ce5e9b216492ed5",
+        "bridge/self_test_mac_forced_aligner.sh sha256 9cc4461042e3d633a648750d7b47eef825e26c80f8cdbf70ac2aa05419ac3dd6",
+        "bridge/install_mac_step01_runtimes.sh sha256 a4443288d07ecbf3e98b30810f2c93bb3d1d9a77cb9c1417ac356ae754fef171",
+        "bundle archive sha256 d1ffd229a953a5258d5c74926e240c8b1fc087622d85522c7f52ed4c93a21f01",
+        "bundle manifest sha256 83432127b0ddb34b4445f90469f3c5d315416265a897a9a82457a3b19877be91",
+        "Mac install receipt sha256 dd128fa98322febe8426a51cd152091088efde70259928ec7ccdfa72d2ab10d0; installed_verified, 13 skills, 123 skill files, provider_network_requested:false",
+        "Mac thread 01 019f6201-c013-7cf3-b155-61d2789085f4 pin pending",
+        "Mac thread 02 019f6201-cb91-7cf0-819e-696eeabd9e78 pin pending",
+        "Mac thread 03 019f6201-d5e8-7083-884d-c714eb1a78b0 pin pending",
+        "Mac thread 04 019f6201-dff9-7f63-94d8-7f9020b3c223 pin pending",
+        "Mac thread 05 019f6201-ea1b-7e22-9dd0-a3b851b15b69 pin pending",
+        "official standalone app-server v2 receipt sha256 6396382d1b533b601e539f0c138b44e37724c8b428ca93785ee97abb5b7d1182; account_present false; requires_openai_auth false; five clean turn/completed events; user-confirmed sidebar; pin pending",
+        "Mac Step01 runtime receipt sha256 17eac4e7503547da7451c68555dd2f2976f93bd04705acc5e3a146956ad673b4; TransNetV2 ready and independent ForcedAligner readiness preserved",
+        "Mac FFmpeg runtime receipt sha256 f785add36442fd8498850c2f9a9cbaa4e56571f9ff987f78692bc794c48b96c3; ffmpeg/ffprobe 7.1.1 synthetic probe passed",
+        "Mac ForcedAligner model install receipt sha256 6e17e12f56902864d23b40f9197691f27c0fd65877540439d3cb7c9453f56d9a; pinned revision installed",
+        "Mac ForcedAligner self-test receipt sha256 e2be57b7feb24d4f09bd334188bc426a4de3b441c5806746033126927d6ff8fd; synthetic Chinese timestamp alignment passed",
+        "Mac Step01 secure Keychain launcher sha256 eb2e4fbdf2f9430cea6cc9d479853dbdbda36332e04fdbfc282909c15387b947; present in project bridge and Downloads, executable, hidden input to security stdin",
+        "Mac Step01 hq_full gate receipt sha256 12a030ec709bd40573000426aaa01f4b26875add659a0a15f5077d6d3d64a5bb; ready false; no provider network or project media",
+        "Mac Step01 credential bootstrap install/action-card receipt sha256 9201eae51578c41055e27f146a4bcb21f44e0ea9f09a05920e2ee7c585d49321; six requests consumed; user input not confirmed",
+        "post_coding_review_step01_keychain_hq_gate_d017_20260715.md sha256 e5eff639092cc1c57df3227d2dfed388e6fe5f5d61ff79b4dd7e65539b5ced4a",
+        "durable synthetic v2 V001 receipt sha256 5b4c9c38f72a0b86630a23b0925b467c142649cae0fb4a3a40dd594b14414a6e; employee/model and media-provider fields separated",
+        "durable synthetic v2 V002 blocked receipt sha256 5adaf76926ea04d76d0509153ad060db2419879a7e603725fc77337f1b653a81",
+        "bridge/mac_codex_app_employee_bootstrap.js sha256 93e307cf346a3da813fde51ab2b99115770a56fb30ef17af85a18cfdccd06af2",
+        "bridge/MAC_CODEX_FIVE_EMPLOYEE_BOOTSTRAP.md sha256 673c8bf2678e056871225816bda0fd8b206c2f90458d89a0fcae2f39ea470e99",
+        "post_coding_review_mac_krill_employee_model_channel_d017_20260715.md sha256 7994a69f607e0aaf65a23686bdeb4b55f10c8736fec402050cbf3e9c644e351e",
+        "node test_mac_skill_bundle_install.js PASS",
+        "node test_mac_employee_training_contract.js PASS",
+        "node test_mac_employee_training_synthetic.js PASS",
+        "node test_mac_codex_app_employee_bootstrap.js PASS",
+        "node test_install_mac_step01_runtimes.js PASS",
+        "node test_install_mac_ffmpeg_runtime.js PASS",
+        "node test_self_test_mac_forced_aligner.js PASS"
+      ]
+    },
+    {
+      "type": "d017_website_mac_vertical_and_step01_fixed_app_gate",
+      "date": "2026-07-15",
+      "status": "changed_code_pass_live_n06_and_real_step01_pending",
+      "scope": "website-to-Mac N06 phase carrier, exact video-channel evidence projection, stage-focus/cache closure, durable redraw rights authority, and canonical fixed-App Step01 hq_full gate",
+      "result": "N06 now has manifest-bound export, restricted SSH/SCP carrier, exact Mac workspace/employee validation, launchd-only Krill child injection, final return import, automatic server reconcile, process-tree cleanup, and completed-inbox recovery archival. Focused fake-run coverage passes, but no authenticated website package or live cross-device App turn/return exists, so this remains structural/injected. Step01 now rejects blocked/stale/missing hq_full capability evidence before package creation; a ready synthetic fixture proves fixed-thread App preflight, employee mutex plus phase lease, matching turn/completed and thread/readback, while remaining explicitly preflight_ready_not_executed and step01_verified:false. Legacy relay_complete is directly rejected. Redraw source rights are persisted as an exact user/source-SHA authority event. Cache contract is mvp r49, release r63, shell r41; stage focus passed 5/5 and browser regression passed 8/8.",
+      "post_coding_review": "post_coding_review_d017_website_mac_vertical_step01_fixed_app_20260715.md",
+      "evidence": [
+        "post_coding_review_d017_website_mac_vertical_step01_fixed_app_20260715.md sha256 3f5cd69232505f27c44504b08147a2336e785117a94950f6ea2185d035ada4af",
+        "bridge/niannian_n06_mac_app_phase_transport.js sha256 33ed073280a63a9af70910d54778fb05373ce3816bd0b1096723650604dce931",
+        "bridge/niannian_n06_windows_mac_phase_carrier.js sha256 6b348cfb0bbf83ed1f3d73df0488802844802c3ca6e47b93b365b4aaf02b155c",
+        "bridge/niannian_n06_mac_app_phase_worker.js sha256 5ec7b57920e52e979fe55763f70101a424957abf7c3b80b4b61f45832fabbe74",
+        "bridge/niannian_n06_mac_app_phase_worker_launcher.js sha256 47ff64544b7163fb812763811b009b054ed326bea835af5526cf0f78cc3e4474",
+        "bridge/niannian_n06_mac_app_phase_cleanup.js sha256 fcbcbec9c04ab4e4c8b311a637d65f1d5d89da27cc10eee740ead86d1d0d9c03",
+        "bridge/niannian_redraw_step01_mac_app_phase.js sha256 70be7b5f108c44ab624ad8ec7a9f8b12f636d1ef5d535e79ea438af0493bacb0",
+        "bridge/niannian_redraw_step01_mac_app_dispatcher.js sha256 866cb14ef6da7593b465f4774d6626d6ea06e9b611283894d7edd0b6163bcaba",
+        "bridge/mac-employee-training/execute_redraw_step01_dispatch.js sha256 336d9064f2ed8301d9eb7ddc8f981d520e05b74996b0ca3a3389e94243ad377e",
+        "bridge/niannian_step01_orchestrator.js sha256 06a6b6f88fae1bb619f1cf9cd0caa71c25dd2f6bdfe9096ba4d70865c2165ee0",
+        "bridge/video_channel_evidence_registry.json sha256 e5940374bfee076ff74048895247456e236f76aa2b2ff569b6c45e6737cd1ba8",
+        "bridge/niannian_video_channel_registry.js sha256 de459f066d07b7c132326844d472b85926aabe0590d48b2efcd0c699b17333cf",
+        "mvp.js?v=20260715-public-surfaces-r49; serviceWorkerRelease=20260715-d017-step01-fixed-app-r63; CACHE_NAME=niannian-app-shell-20260715-r41",
+        "node test_niannian_redraw_step01_mac_app_phase.js PASS",
+        "node test_niannian_redraw_step01_mac_app_dispatcher.js PASS",
+        "node test_redraw_step01_flow.js PASS including rights authority and direct legacy relay rejection",
+        "node test_niannian_n06_windows_mac_phase_carrier.js PASS",
+        "node test_niannian_n06_mac_app_phase_cleanup.js PASS",
+        "node test_video_channel_registry.js PASS",
+        "node test_script_project_flow.js 5/5 consecutive PASS",
+        "npm run test:visual-motion-browser 8/8 PASS",
+        "Windows N06 carrier orphan readback 0; Mac phase-worker orphan readback 0; active/archive N06 inbox counts 0/0 because no live dispatch occurred",
+        "all media-provider upload/submit/spend/package/send/registry/deploy/real_delivery fields remain false"
+      ]
+    },
+    {
+      "type": "d022_step01_dispatcher_and_phase_lease_atomicity",
+      "date": "2026-07-16",
+      "status": "pass_shared_step01_lease_atomicity_synthetic_only_real_mac_evidence_blocked",
+      "scope": "Exact 001 project Step01 Mac phase lease recovery for NN-20260715083045-8120F5; shared transport lease parent initialization, dispatcher lock atomicity, stale same-dispatch replay cleanup, and reducer-safe Step01 retry prerequisites",
+      "result": "The known STEP01_MAC_PHASE_LEASE_DIRECTORY_MISSING class is repaired in shared source: the Mac phase transport now creates and validates the lease parent inside acquireLease, claims via complete staging directory plus atomic rename, recovers empty crash directories, and rejects non-empty incomplete locks. The Step01 App dispatcher had the same two-step lock pattern and is now repaired with atomic owner.json staging for both employee and per-dispatch locks plus matching same-dispatch replay cleanup. Focused synthetic tests prove zero duplicate turn/start, active-thread fail-closed, empty lock crash recovery, incomplete lock rejection, carrier child-env minimization, and coherent failure reducer projection. Real Mac fixed-thread evidence remains blocked because the Windows AppServer store cannot access the Mac Codex Desktop App fixed thread store.",
+      "post_coding_review": "post_coding_review_d022_step01_dispatcher_lease_atomicity_20260716.md",
+      "evidence": [
+        "post_coding_review_d022_step01_dispatcher_lease_atomicity_20260716.md sha256 f3f53cf33f1d111db4490b22f72d90a4bdf62796b54891e100f2f52dc574b864; PASS_SHARED_STEP01_LEASE_ATOMICITY_SYNTHETIC_ONLY",
+        "bridge/niannian_redraw_step01_mac_app_phase_transport.js sha256 bc54f350a80eb7ff5d73febb660d9a2619cc24aae1875c2953bf418243813b0f; shared Mac phase lease parent create/validate, staging lease.json atomic rename, empty crash recovery and incomplete-lock rejection",
+        "test_niannian_redraw_step01_mac_app_phase_transport.js sha256 b5cf7a3774dbc45ea018a89b89cce001d02108a7ab13f00aecba4aa34e12e92c; lease parent auto-create, empty crash recovery, nonempty incomplete rejection, conflict/release and return replay PASS",
+        "bridge/niannian_redraw_step01_mac_app_dispatcher.js sha256 97988aa9d966f070ed13f75f9acd5f7cb9c3f758864c7ed2e039d9a40dea305a; atomic dispatcher employee/phase locks and valid replay cleanup of exact same dispatch locks",
+        "test_niannian_redraw_step01_mac_app_dispatcher.js sha256 4978fb5f8cdfb94792bbdd517333f65802de5dbd5fdf6b0d2e8c676d88982d62; all-five double read/CAS, active zero-start, racing dispatch conflict, empty lock recovery, incomplete lock rejection, replay zero duplicate PASS",
+        "node --check bridge/niannian_redraw_step01_mac_app_dispatcher.js / test_niannian_redraw_step01_mac_app_dispatcher.js / bridge/niannian_redraw_step01_mac_app_phase_transport.js all exit 0",
+        "node test_niannian_redraw_step01_mac_app_dispatcher.js / test_niannian_redraw_step01_mac_app_phase_transport.js / test_niannian_redraw_step01_mac_app_phase.js / test_niannian_redraw_step01_windows_mac_phase_carrier.js all exit 0",
+        "node test_niannian_step01_orchestrator_failure_reducer.js / test_redraw_step01_flow.js / npm run test:redraw-step01-hq-promotion all exit 0",
+        "current project remains blocked until real Mac fixed-thread AppServer readback, install/parity/adoption/HQ/credential-presence readback, controlled resume_event, and real Step01 retry; no 4188 restart, DATA_DIR switch, data-local touch, new project, Step02 dispatch, Provider/spend or local image edit occurred"
+      ]
+    },
+    {
+      "type": "d025_win_mac_fixed_appturn_bridge",
+      "date": "2026-07-16",
+      "status": "integrated_read_only_fixed_mac_appturn_verified_no_production_delivery",
+      "scope": "Windows-to-Mac Codex Desktop App fixed employee turn bridge over the restricted Tailscale SSH forced-command relay",
+      "result": "A narrow `ai-brain-relay app-turn` operation was added without opening arbitrary shell or arbitrary task access. Windows builds a SHA-bound base64url JSON envelope only from a local UTF-8 prompt/envelope file; the Mac gateway accepts only the five fixed NianNian employee thread IDs and dispatches to a Mac-local runner. The runner validates request/thread/SHA/size/secret-like content, reads all five fixed tasks, rejects active/CAS drift, resumes only the selected notLoaded task, starts a read-only network-false AppServer turn, verifies clean completion plus exact latest-turn readback, and writes a mode-600 receipt. The installed Windows caller and Mac user-space gateway/runner were upgraded, and a real no-side-effect AppTurn to employee 01 completed and wrote a verified receipt. This proves the bridge at integrated level only; it does not prove Step01, Provider, media generation, or final delivery.",
+      "post_coding_review": "post_coding_review_d025_win_mac_fixed_appturn_bridge_20260716.md",
+      "evidence": [
+        "post_coding_review_d025_win_mac_fixed_appturn_bridge_20260716.md sha256 b2671deaf81ac94a88e05a6650d65b82fcda9c8194cb3dd644031718ab1ee392; PASS_INTEGRATED_FIXED_MAC_APP_TURN_BRIDGE_READ_ONLY",
+        "bridge/mac_relay_ssh_gateway.sh sha256 6d962c4bfd10ece8b87a7a6fb77d3bbc2a7c2aa2f514f4e66e636108dc586a03; app-turn branch with local IFS-only argument splitting, fixed five thread allowlist, SHA/base64url size checks and no arbitrary shell",
+        "bridge/mac_codex_app_fixed_thread_turn.js sha256 5c651271dd9a1a1ee9d6f8514cd521103b67b516e0e858793403752c6b34604f; Mac-local AppServer runner with launchd KRILL env presence injection, exact notification normalization, all-five read, active/CAS rejection, read-only network-false turn, completion/readback, replay/conflict and failed receipt paths",
+        "bridge/Invoke-AiBrainMacRelay.ps1 sha256 0047747b5744edf19b9b587a9d538f6aa159b72bed9bfe50e30f9170aca2712d; installed caller upgraded from old Status/ExecuteOnce-only SHA 9da6ee30922ad15f3331840226ae12e6a9e5d51441cdffa080a4f5f6e99e98b1",
+        "test_mac_codex_app_fixed_thread_turn.js sha256 4e9096cd72f3b5b3558781cbc245ce522cb85830f0f21d99ea3362b1ab697600 PASS including exact notification shape and no-assistant-text clean completion",
+        "test_mac_relay_ssh_gateway_contract.js sha256 965c531ff68d211890ee5d51ade11851986c562cc48aefda25d72976f0a29ebb PASS",
+        "package.json sha256 134099ee0b01ce05f31d99aaa3d4ec3b816c450fc00b666b45242409a5311ac9; test:mac-fixed-app-turn script added",
+        "bundled Python quick_validate passed for C:/Users/lsb/.codex/skills/win-mac-codex-bridge and C:/Users/lsb/.codex/skills/master-control-router",
+        "Mac gateway readback sha256 6d962c4bfd10ece8b87a7a6fb77d3bbc2a7c2aa2f514f4e66e636108dc586a03 at /Users/lsb/.local/bin/ai-brain-mac-relay-gateway.sh; Mac runner readback sha256 5c651271dd9a1a1ee9d6f8514cd521103b67b516e0e858793403752c6b34604f at /Users/lsb/AI-Brain/niannian-ai-canonical-local/bridge/mac_codex_app_fixed_thread_turn.js",
+        "real AppTurn receipt /Users/lsb/.local/share/niannian-ai/mac-app-turn-receipts/appturnprobe20260716h.json sha256 baf203d291582407a23c02b0e1a4fe2f3c09a37912119c27bc7cf6dc5002a545; mode 0600; thread 019f6201-c013-7cf3-b155-61d2789085f4; turn 019f6a1b-bc1a-7181-a5b9-bbbb4db2b19a; exact notification turn.status completed/error null; readback latest turn matched; response bytes 97; same request replay returned same receipt; different envelope conflict rejected; raw_secret_recorded false; all Provider/spend/deploy/local-edit flags false",
+        "no 4188 restart, DATA_DIR switch, data-local touch, duplicate project, Step01 retry, Step02 dispatch, Provider call, spend, production write, deployment, package/send or local image edit occurred in this bridge stage"
+      ]
+    },
+    {
+      "type": "d017_bundle_v2_receipt_backed_step01_toolchain_candidate",
+      "date": "2026-07-15",
+      "status": "mac_v2_install_parity_five_adoption_verified_fresh_hq_credentials_pending",
+      "scope": "deterministic 127-file Bundle v2, durable recoverable installer, exact parity, canonical Step01 hq_full Python orchestrator, and receipt-backed JS execution authority",
+      "result": "Bundle v2 is installed_verified and exact_parity_verified on the real Mac shared Skill root while preserving v1 rollback, and all five fixed Mac App tasks now have exact read-only adoption receipts with network_used=true and replay zero duplicate. Installer/parity remain canonical 13/127 plus exact four unmanaged preserved. The receipt-backed v2 HQ builder enforces Darwin/project/settings, 15-minute freshness/future expiry, five exact capabilities and candidate/bundle/install/parity/adoption/entrypoint SHAs. The canonical toolchain contract remains blocked_install_pending with execution_authority_granted=false because the fresh analysis credential/composite gate is not ready; no source execution occurred.",
+      "post_coding_review": "post_coding_review_d017_bundle_v2_receipt_toolchain_candidate_20260715.md",
+      "evidence": [
+        "bridge/mac-skill-bundles/niannian-mac-production-skills-v2/niannian-mac-production-skills-v2.zip sha256 61e30dbb1e36509d1bb61ccdf3d48df4d5bacd6a8ed0b7bd2aaeafde78ea9f0d",
+        "bridge/mac-skill-bundles/niannian-mac-production-skills-v2/niannian-mac-production-skills-v2.manifest.json sha256 8870cf1ca95e1703b1944df06f226135ef2a2fd07786d9a27e9461d5a322a3d9; 127 Skill files / 13 Skills / source snapshot 1e4035ea9ecb871edebb9860e51b52aa22d8e71426aeb747382df198c580bcec",
+        "bridge/mac-skill-bundles/niannian-mac-production-skills-v2/niannian-mac-production-skills-v2.sensitive-scan.json sha256 95f40d74880b9ff55b13e36c5bfa76cfb09199196a6ccee8efd64de4c4d39bf2",
+        "bridge/mac_skill_bundle_shared_root_contract.js sha256 59712dda94bb25fb2c07d3ef1316f392420cfa4a7043f8c1aa68a790e88f22be; exact 13 managed versus four fixed unmanaged names with case-fold disjoint guard",
+        "bridge/install_mac_skill_bundle.js sha256 e8b31153591a2475b11737f6cddae62fb107fd2601f0e2e129e4fb6c8332b783; canonical Skill-root and previous-receipt realpaths, shared-root preservation, CLI path verified",
+        "bridge/verify_skill_bundle_parity.js sha256 40602c1de46520a62d8b21dcf5f117608e8985b1a3fc2f6e86fc09fce78bff6a; managed 127 exact plus fixed unmanaged lstat-only receipt",
+        "bridge/mac-employee-training/execute_step01_hq_full.py sha256 6d7dafabc7c744f39d2a4759409a141e18d42a210913027468c219135416d103",
+        "bridge/mac-employee-training/execute_redraw_step01_hq_full.js sha256 c5c09637258444b8cbf2448f5786067406bd66694bc7ac5c32af5c9650ca68bd; install/parity shared-root receipt fields required",
+        "bridge/mac-employee-training/step01_hq_full_toolchain_contract.json sha256 69f16ecb3efda0ae77f615be2c3059afcd400c184ac00d6fcc600759eacd4b58; status blocked_install_pending; execution_authority_granted false",
+        "test_mac_skill_bundle_install.js sha256 603e42f7b724b09ef89fa987d65b96508cb0dfc724a0cc0cf0087fc2136e9910; PASS 19.4s in Windows temp including shared-root sentinel rollback, conflict/casefold/root-alias/unknown/symlink/special negatives",
+        "npm run test:redraw-step01-hq-toolchain PASS",
+        "test_niannian_redraw_step01_hq_full_executor.js sha256 ce2711b4def73286c61de6d86a3a6cc6e3d8ac1e3d1cb2a57e5d0234217e6783; PASS including invalid install/parity shared-root and existing zero-runner negatives",
+        "first real Mac v2 install attempt failed before swap on prior shared-root assumption; journal preparation_failed_cleaned, swaps 0, transaction/backup residue 0, no successful install receipt",
+        "output/mac-employee-training/mac-skill-bundle-v2-install-receipt.json sha256 13fb95b9d9152ff7c5a501dfabf00c65a6f19c41f40f3093fe5e586e8334363a; real Mac installed_verified, 13 managed/127 files/exact four unmanaged preserved/previous v1 bound",
+        "output/mac-employee-training/mac-skill-bundle-v2-parity-receipt.json sha256 8b38ebbd2905a81463c10f2596cd9e9c4d4f8e661f9a16f01bec6ce9214cc243; exact_parity_verified, extras 0, symlinks 0",
+        "output/mac-employee-training/mac-v2-preinstall-idle-audit.json sha256 f697c8fb96e19b8755c6a08c2b7f3b027aa1d0143c662d0b6134f6863bf73767; five fixed tasks latest turn completed before install",
+        "protected v1 receipt and canonical v1 receipt both dd128fa98322febe8426a51cd152091088efde70259928ec7ccdfa72d2ab10d0; pre-install/backup tree both 89d74041ead4de18df71d2151a79006b361b5efc589cf00a7d3e989e04a1b38a; transaction/temp residue 0",
+        "bridge/mac-employee-training/adopt_step01_skill_bundle_v2.js sha256 af2fc7cc7383edc412a80237b21e5659dba14d2b0c5fbf398295d35bbaaa92cb; response text/SHA/bytes/parsed ack, turn counts, strict receipt+manifest local_image_editing_requested false, durable resume and fixed-set replay",
+        "test_mac_step01_skill_bundle_v2_adoption.js sha256 23f9bfbf82980787a89e47d9632b1c3799a95362cf7bf7dae495188fc5da3c37; manifest local-image-edit true/missing, duplicate/nonfixed, active/partial/tamper/wrong-response/turn-error/static-secret negatives PASS",
+        "first live adoption attempt produced one exact completed employee-01 response then stopped on immediate thread/read hydration race; zero employee receipts written and employees 02-05 not started; strengthened runner recovers this exact turn without duplication",
+        "second partial adoption run recovered employee 01, durably wrote employee 02, and stopped on employee 03 harmless prose plus exact JSON; parser hardened to accept exactly one JSON object while employees 04-05 remained untouched",
+        "output/mac-employee-training/v2-adoption/adoption-manifest.json sha256 6f936ec11d58f46fa8088a64d6018278f37c8ac00a65566d769859e21306df10; exact five fixed receipts, response/turn-count evidence complete, manifest and receipts explicitly local_image_editing_requested false, replay true and zero duplicate turn",
+        "bridge/niannian_step01_hq_full_gate_v2.js sha256 35643d3f28e3561f9b379d9d2382ac20247325779df90a2c59cb9c11d3faf52a; receipt-backed five-capability fresh HQ builder",
+        "test_step01_hq_full_gate_v2.js sha256 6266d7bd563b45867e05fa8b343dd1933514a24c05ea8adef11ca302f4ae54b8; ready/stale/cross-binding PASS",
+        "Mac analysis credential presence-only returned step01_worker_secret_presence_failed; no value read/output, fresh HQ and accepted contract remain blocked",
+        "Step01 phase/dispatcher/transport/carrier/return-reducer/website focused tests all PASS",
+        "no 001 source read, no Step01 App turn, final manifest normalization added zero adoption turn, no analysis/media Provider, no upload/submit/spend/package/send/deploy, real_delivery false"
+      ]
+    },
+    {
+      "type": "d017_source_step02_controller_acceptance_guard",
+      "date": "2026-07-15",
+      "status": "superseded_narrow_literal_guard",
+      "scope": "source-redraw Step02 generic controller status boundary",
+      "result": "Historical guard closed literal step02_accepted only. Independent review found downstream controller statuses and generic completed-to-qa normalization could still imply Step02 completion. Its PASS verdict is withdrawn and superseded by d017_source_step02_no_provider_vertical_slice.",
+      "post_coding_review": "post_coding_review_d017_step02_controller_acceptance_guard_20260715.md",
+      "evidence": [
+        "server.js sha256 a41532fc931c3e45af9bca73b9dea1fd8dc7427898103841f85a541bf3332ea0; step02_accepted removed from controllerStatuses and typed 409 guard runs before mutation",
+        "bridge/niannian_controller_bridge.js sha256 ae37a64b0b4638627de4ccd297f92cb99a208969ed797b63aa39dff3e4451a15; legacy local step02_accepted fails closed instead of syncing",
+        "test_step02_controller_acceptance_guard.js sha256 276ce08a77496a49b21cb2f552b1341be57e72f9d115cae3f3a34ed5707070d2; direct 409 plus complete DATA_DIR projects/status/events byte+mtime zero-mutation and return-ready positive",
+        "package.json sha256 20151f7636e036836513560356a0500186234e6224ddf07f86447b2036bf26c6; test:step02-controller-guard added, dependencies unchanged",
+        "node test_step02_controller_acceptance_guard.js PASS",
+        "npm run test:step02-controller-guard PASS",
+        "npm run test:controller PASS",
+        "node test_redraw_step01_flow.js PASS",
+        "Mac launcher presence-only: regular, executable, sha256 eb2e4fbdf2f9430cea6cc9d479853dbdbda36332e04fdbfc282909c15387b947; launcher not run and no Keychain/credential read",
+        "superseded by post_coding_review_d017_step02_vertical_slice_20260715.md"
+      ]
+    },
+    {
+      "type": "d017_source_step02_no_provider_vertical_slice",
+      "date": "2026-07-15",
+      "status": "candidate_vertical_integrated_real_mac_carrier_and_acceptance_blocked",
+      "scope": "source Step02 exact authority transaction, fixed-App dispatch contract, candidate return/import, events-first reducer, owner API and Stage02 projection",
+      "result": "Current-project Step02 can prepare exact source/rights/settings/Step01 authority, prepare one fixed-existing-App candidate-only dispatch contract, reconcile atomic candidate return bundles, replay stable evidence events, and render real candidate sections in Stage02. Every test-only/fake/signed-fixture return is non-promotable and accept returns typed 409 with zero disk mutation. All Step02-completing controller statuses reread the exact acceptance/reducer/ledger/current authority and remain 409 without real evidence. The real fixed Mac App carrier/turn/readback is not connected, so no acceptance manifest or Step04 readiness exists.",
+      "post_coding_review": "post_coding_review_d017_step02_vertical_slice_20260715.md",
+      "evidence": [
+        "bridge/niannian_redraw_step02_vertical.js sha256 75d4b18ba4bb5096cf8f79cdc1e33a1188470afd2ee4bdd3240d9c3c66ff138d; exact authority reread, fixed-thread contract, candidate import, non-promotable fixtures, event reducer and acceptance verifier",
+        "server.js sha256 72ef61e0400840b29b87e9efed014ae898449f33636d97c9b29fa742f8001ad2; owner Step02 API plus comprehensive controller downstream acceptance readback",
+        "bridge/niannian_controller_bridge.js sha256 5fea35968ccde7eee77f7cfc766c94a5875af4ea8049f026160bb472e512f66e; generic completed no longer maps qa_running",
+        "mvp.js sha256 51a03944dad4c2a460e2e19f45b1cbdb93e6fc9f9af43e852ebdec3adc767f92; Stage02 current-project rows/dialogue/assets/actions and acceptance-SHA Step04 gate",
+        "index.html sha256 63a30bd5751b661453982857cf47b38070fb73eb69b8aca396f8c89b351a5b6f; mvp r52",
+        "sw.js sha256 a56bf858c5c5cbdc2fcb2a70e4b5df5c35240de9511490d74540909a99a189f7; app shell r44",
+        "test_niannian_redraw_step02_vertical.js sha256 1673d123a6d31ba5ab59ec5fa0ccf7bc596e93aa42a370419500a789b5f79fa7 PASS",
+        "test_redraw_step02_flow.js sha256 3d14445dcd63c00dee6ede182b534dacba21c5db50b9f8f0b51b72c541f7a5ef PASS",
+        "test_redraw_step02_ui_contract.js sha256 c2b18b1d489ae979601eec45e7a94f1e8ab75963652686e8f36f2f5ccfb5e64e PASS",
+        "test_step02_controller_acceptance_guard.js sha256 3c7a8913879f1efc86d62ad5575d6ff485f538e41dc980fa0e0e73ccf4cf1ba0 PASS",
+        "npm run test:redraw-step02-vertical / flow / ui / test:step02-controller-guard / test:controller / test:pwa-shell / test:redraw-step01 / test:redraw-project-isolation all exit 0 individually",
+        "Mac credentials launcher presence-only remains regular/executable sha256 eb2e4fbdf2f9430cea6cc9d479853dbdbda36332e04fdbfc282909c15387b947; not executed and no Keychain read",
+        "no 001 read, no real Step02 Mac turn/carrier, no acceptance/Step04 unlock, no analysis/media Provider, no spend/send/deploy/local edit, real_delivery false"
+      ]
+    },
+    {
+      "type": "d017_source_step02_fixed_mac_app_carrier_contract",
+      "date": "2026-07-15",
+      "status": "synthetic_fixed_app_carrier_contract_pass_production_off",
+      "scope": "source Step02 full Step01 evidence closure, fixed-five AppServer dispatcher, resumable Mac phase worker, Windows trusted carrier receipt, owner website projection",
+      "result": "The website-to-fixed-Mac-App-to-website Step02 carrier contract now extends beyond dispatch preparation: exact manifest-declared Step01 evidence, Bundle v2/install/parity/five-adoption, two exact Skill files and the Krill employee-channel boundary are exported and revalidated; the fixed-five dispatcher is double-read/CAS guarded and crash resumable; candidate/control/audit/response returns are atomically imported and independently hashed by a Windows carrier receipt. Synthetic/fake evidence remains non-promotable, candidate return never auto-accepts, and production carrier execution remains disabled until a real current NN project, verified Step01 closure and owner action exist.",
+      "post_coding_review": "post_coding_review_d017_step02_fixed_app_carrier_20260715.md",
+      "evidence": [
+        "post_coding_review_d017_step02_fixed_app_carrier_20260715.md sha256 ca22588d432375c81b5a83fa64259b4939897176a8cbfeecd8f3725db2551506; PASS_SYNTHETIC_FIXED_APP_CARRIER_CONTRACT",
+        "bridge/niannian_redraw_step02_vertical.js sha256 6e16f2f8b6ab388aa8f4364dbc509dd7686552735a498920e6882b82a287664d",
+        "bridge/niannian_redraw_step02_mac_app_dispatcher.js sha256 938a32b695a2beea550359a4e23d3972b9749e21d71fb4037e97f74b90c7e7d0; double five-thread read/CAS, atomic lease, exact-turn crash recovery, full replay bindings",
+        "bridge/niannian_redraw_step02_mac_app_phase_transport.js sha256 191d291a49459d23fea869d8190ad91e7b1fc854ab66f343e01aa205cdf17ce2; deterministic full Step01 evidence/runtime governance closure and atomic import",
+        "bridge/niannian_redraw_step02_mac_app_phase_worker.js sha256 1159a226231979cc9f1b2ca4a38f0dd5498ff480a03f9931f3f270afbb696032",
+        "bridge/niannian_redraw_step02_mac_app_phase_worker_launcher.js sha256 bb4194300081a2d976f09eea1c3b21167fc584307339078b4220127a7dd6d0df; minimal environment and Krill-only secret source",
+        "bridge/niannian_redraw_step02_mac_app_phase_worker_cli.js sha256 8cc11a7dbf00cb0562571354401065fc4db9d78b13b18e7165ac86f646f6194e",
+        "bridge/niannian_redraw_step02_windows_mac_phase_carrier.js sha256 9d3c79e0b46b53de1b7c5265ba9deb2833ac6917fae1034ba496492911eaf287; stable trusted receipt/checkpoint, typed blockers and timeout/abort tree cleanup",
+        "server.js sha256 de8684218542a2ca79c8cacbee8af64e12ab18eec846dc60f23604b2c204d5c8; authenticated owner action, carrier_running and production-off gate",
+        "mvp.js sha256 988fb794633077cd459d7d8c53a6d2b8f7e4a1974f39ebef81c8c557a3380371; dispatch_prepared/carrier_running/candidate_return_ready/accepted UI distinction",
+        "package.json sha256 ce921e14472ddcb0e1988ba357cd6710a613d1e04f6bedf7848f4d9e2beb27ea; three focused scripts added",
+        "test_niannian_redraw_step02_mac_app_dispatcher.js sha256 ca3072554463bcd3f2e9b5216d74413ecb426fc6a51a61a51f0768356921e6f7 PASS",
+        "test_niannian_redraw_step02_mac_app_phase_transport.js sha256 135a6cc056fc530431fe1cd82a181f4b5908e20d505996047fce9832602a8578 PASS",
+        "test_niannian_redraw_step02_windows_mac_phase_carrier.js sha256 20de22bd19b238312d42c867d87da3ab01a3e13285a88d68ab53514ac882d3fb PASS",
+        "test_redraw_step02_flow.js sha256 a377681befc7bafe3023211a99937da4b655c448a4e600941d96a2b51ec14a30 PASS including production-off 409 and zero disk mutation",
+        "npm run test:redraw-step02-app-dispatcher / phase-transport / carrier / vertical / flow / ui / test:step02-controller-guard / test:controller / test:pwa-shell / test:redraw-step01 / test:redraw-project-isolation all exit 0 individually on final code snapshot",
+        "highest evidence is Windows synthetic AppServer + isolated filesystem + process-tree failure injection; no real Mac Step02 turn, 001 read, provider, spend, local edit, acceptance or Step04 unlock"
+      ]
+    },
+    {
+      "type": "d017_source_video_provider_core_mimo_p0",
+      "date": "2026-07-15",
+      "status": "pass_non_promotable_common_core_real_submit_disabled",
+      "scope": "source-redraw immutable video task spec, common adapter/state/retry/reducer contracts, owner-scoped server mutation, and Mimo NAS 8001 fake transport seam",
+      "result": "The source-redraw website now has a non-promotable common execution core: one immutable prepare-only spec binds the trusted source root and exact source/ffprobe/QA contract, exact Step02/04 and group-specific Step05 acceptance, prompt and confirmed references. A future submit uses a separate exact one-time execution authority without mutating the spec. Transaction lease/CAS, chained events, legal state edges, durable submit-unknown reconciliation, 10-second poll clock, protected opaque-ID boundary, exact media/probe/independent visual-QA receipts, and server-owned projection are enforced. Mimo is bound to nas.mimo.fashion:8001 and audioVid. Current execution remains deterministic fake transport only; projection is test-only, unverified and non-consumable, fake media has no website download route, and website real-submit count remains zero.",
+      "post_coding_review": "post_coding_review_d017_source_video_provider_core_mimo_p0_20260715.md",
+      "evidence": [
+        "post_coding_review_d017_source_video_provider_core_mimo_p0_20260715.md sha256 f3f988c46ece887f841d107b10ebe8fc3d19c9fbb6007558c8230f862d46e9e9; PASS_NON_PROMOTABLE_COMMON_CORE",
+        "bridge/niannian_source_video_task_spec.js sha256 514e5e8b181218ce177d8b0a35456767c8a52928ea0f4fd2a9a8584d40df549c; trusted source and exact group-specific acceptance/prompt/reference plus separate one-time authority",
+        "bridge/niannian_source_video_adapter_contract.js sha256 5d2e70ab175a20b1a73cf4ef70ae05cc058f6536fc36d774615415f580cda163; ten-method interface, state machine and typed blockers",
+        "bridge/niannian_source_video_execution_store.js sha256 bc84ca29e7c733a50eada915ca1656d6cb0c6b43503b1afa31e5515ac955cc02; lease/CAS and chained event bindings",
+        "bridge/niannian_source_mimo_execution_adapter.js sha256 993a55c75932246d7881a9b470d25461941ff7fbc86c04f10a67062330767d11; opaque-ID boundary, audioVid, strict probe/visual QA, statuses and no cancel",
+        "bridge/niannian_source_video_execution_reducer.js sha256 52e62aa2c64fe94c8585639eb72ba0b1982193f04eb65c1ae62aa836c19960be; legal events-first reducer, 10-second clock, recovered blocker, receipt reread",
+        "bridge/niannian_source_video_execution.js sha256 6bd41ee698b4e61b6be75f899aead48d9ff4a9fb377f63f6d58c50450d4b007d; leased prepare/review/fake-run entrypoints",
+        "bridge/niannian_source_video_http_guard.js sha256 f4cc37b47dd92ad50c3e57210fb4b4318324fd6fb4c6d0a859cd1bd4cdb94e57; future paid POST same-origin gate",
+        "bridge/niannian_video_channel_registry.js sha256 b80581d0817f0679a522ec6f821ad33f0df63a850ecd869af6398ecaaed75454 and bridge/video_channel_evidence_registry.json sha256 5a4e0963713eb9484a1e3afcb27b230bbfb5e01c5d21660985da97360e94cc92; Mimo exact identity and unpromoted capability",
+        "server.js sha256 f3b195cea8a35cfecdf6dd6ef67403b745b6a2103829a8623327ae37f7d8c998; owner prepare/status/fake-resume, guarded production-off submit and fake media invisible",
+        "test_niannian_source_video_execution.js sha256 5b6d0d53df78791c279aee99c045070b706a919145e9afb5bae8d6bfb0647fb5 and test_source_video_execution_flow.js sha256 0d2187b9b108d4565e2d10175eb58d4f222761da4ff6153f99635a438b5f5fb5 PASS",
+        "test_video_channel_registry.js sha256 e1a59811298066b72cfbaf1ead30ab86bedbf7c7d8ed5344f2da9f9bbedb82fa PASS",
+        "package.json sha256 e8f6b1e2b8b592a07083460a60f2c1d8b6eaf856501552478bcf8bec483402d3; focused core and HTTP scripts",
+        "npm run test:source-video-execution / test:source-video-execution-flow / test:video-channels / test:redraw-step02-flow / test:controller / test:pwa-shell / test:redraw-project-isolation all exit 0 on the final pre-manifest code snapshot",
+        "no 001 read, no real Mac App turn, Keychain read, provider auth/upload/submit/poll/download, spend, local edit, package/send or deployment"
+      ]
+    },
+    {
+      "type": "d017_step01_keychain_writer_reconcile",
+      "date": "2026-07-15",
+      "status": "structural_writer_repair_pass_real_presence_external_health_pending",
+      "scope": "Step01 Mimo ASR and Paddle OCR Mac login-Keychain writer plus presence-only capability reconciliation",
+      "result": "The canonical Node Keychain writer now supplies both macOS security password-data confirmations over child stdin while keeping the secret out of argv, logs and receipts. A new reconcile-presence mode checks only the two exact allowlisted Keychain identities, atomically records configured_unverified or missing, preserves the distinction between separately reported prior Mimo auth evidence and Paddle health-unverified/no-job state, and forces runtime:hq to missing. Real Mac presence for both entries was reported externally before this repair; this coding stage did not read secrets, call either Provider, or start an employee turn.",
+      "post_coding_review": "post_coding_review_d017_step01_keychain_reconcile_20260715.md",
+      "evidence": [
+        "post_coding_review_d017_step01_keychain_reconcile_20260715.md sha256 791d7debf16e4477c9bb630645e1643acb8970956047affe309d8f8ca6914a18; PASS_STRUCTURAL_KEYCHAIN_WRITER_REPAIR_REAL_PRESENCE_EXTERNALLY_CONFIRMED",
+        "bridge/niannian_step01_keychain_credentials.js sha256 e81fd7538e4c884a69c86a39acf4996277e9821aec9419718198b78f8b421bfc; two stdin confirmations, presence-only reconciliation and fail-closed HQ",
+        "bridge/NianNian-Step01-Credentials.command sha256 eb2e4fbdf2f9430cea6cc9d479853dbdbda36332e04fdbfc282909c15387b947; unchanged hidden-dialog launcher",
+        "test_niannian_step01_keychain_credentials.js sha256 580508270b11a2e7a6923f0fd99d29c61105d6b2638d8194065f7d475edec0b7 PASS",
+        "package.json sha256 a58822347116cd3f6180c042804bad399610aad900588d9a9fb94cff5b51e64b; focused test script added",
+        "npm run test:step01-keychain-credentials / test:runtime-capabilities / test:redraw-step01-hq-toolchain / test:redraw-step01-hq-executor / test:redraw-step01-python-imports all exit 0",
+        "external Mac operation report: credential:mimo_asr present true, credential:paddle_ocr present true, MIMO_DONE=0, PADDLE_DONE=0, no App employee turn, OCR/ASR job or fee; secrets not read by this review",
+        "presence remains configured_unverified; runtime:hq missing; no 001, Provider network/job/upload/submit/spend or local edit"
+      ]
+    },
+    {
+      "type": "d026_step01_controller_auth_projection",
+      "date": "2026-07-16",
+      "status": "integrated_fix_live_activation_blocked",
+      "scope": "exact project Step01 controller credential binding, typed terminal-failure reducer, website projection, and fixed Mac employee audit sequencing",
+      "result": "Controller auth now supports the protected hash-only file when an explicit environment hash is absent, passes only credential paths to the Step01 child, persists typed missing/invalid auth failures, and reduces the newest terminal receipt over the historical lease blocker. The sole project now projects blocked/infra_failed/STEP01_CONTROLLER_CREDENTIAL_INVALID consistently on disk and through the authenticated 4188 API. Employee01 exact fixed-thread execution is user-confirmed visible after reopen; employee02 first request remains failed history while the latest short retry completed with exact clean completion/readback and awaits Desktop reopen visibility. Employees03-05 remain undispatched. The live 4188 process predates this source fix and still returns controller HTTP 401, so no Step01 resume occurred.",
+      "post_coding_review": "post_coding_review_d026_step01_controller_auth_projection_20260716.md",
+      "evidence": [
+        "post_coding_review_d026_step01_controller_auth_projection_20260716.md sha256 fe794e6e0c0a0d530f3fda946a2468bd9303076a9848a5ed1dda78467313d6a6",
+        "server.js sha256 2ecc7c9308f0534ee983395bbdc39453c8904f7b7fa15e0fea6a6e55be4fd07b",
+        "bridge/niannian_controller_auth.js sha256 3d3aa635109a03b7d651f0c2b279e4cbacd5610692fd0ee45bd04c3c037f6594",
+        "bridge/niannian_controller_bridge.js sha256 e013f295a791fb918a51b9d55d8d63a50ffb9852c57024b6ba399253c91a9f5a",
+        "bridge/niannian_step01_orchestrator.js sha256 7547792ee3cac367b5fc5d3dd5d18860892ffd809f5ec754e116f24b8de15a7c",
+        "bridge/niannian_step01_orchestrator_failure_reducer.js sha256 21983b3650b3f1de9edf20b2941694a7e4449c8e7c60a438cd3e667b9c43d150",
+        "test_niannian_controller_auth.js sha256 8929e5995b6bb01f12191eaae808683361af42b307757e361272d2e3e10f471a",
+        "test_niannian_step01_orchestrator_auth_failure.js sha256 c41bf9e749ff5b233606501abcd45c0a8c992884f6da0571d8bf790f6a7ae3b4",
+        "test_niannian_step01_orchestrator_failure_reducer.js sha256 fcf013336831adcc6c960ad24d65c33f20c16236f5d91140380f4c888c559bc6",
+        "canonical project API and disk: blocked / infra_failed / STEP01_CONTROLLER_CREDENTIAL_INVALID / step01_controller_auth_failed",
+        "employee01 visibility audit sha256 29b918af8d26b5bb1a322e4193f0fa1993911258bbc153854856dae144defe16; user-confirmed visible after reopen",
+        "employee02 bridge/auth audit sha256 8396b21ec4d61190881cc8785c516507f5936922e6718431dde6943fb2cc3d67; first request failed history, latest request employee02-retry-short-20260716-1000 clean completed/readback, Desktop reopen visibility pending",
+        "test:controller-auth / test:step01-orchestrator-auth-failure / failure reducer / test:controller / test:redraw-step01 / Step01 dispatcher / phase transport / phase carrier all exit 0",
+        "win-mac-codex-bridge and master-control-router quick_validate PASS",
+        "no 4188 restart, DATA_DIR switch, data-local access, duplicate project, Step01 resume, Step02 dispatch, Provider/spend, deployment or local image edit"
+      ]
+    }
+  ],
+  "quality_gates": {
+    "source_application_gate": "pass",
+    "responsive_gate": "pass for homepage, project library, creation guide, and team/workspace at desktop and 390x844 mobile",
+    "function_gate": "pass for navigation, local health endpoint, empty-session state, workbench CTAs, script-only N00 intake plus deterministic N01 source ingest and AI-screenwriter worker preparation, five-step guide, and local team route",
+    "source_preflight_recovery_gate": "pass for invalid-media blocking, guarded recheck, source replacement, contract reset, and polling-safe file selection",
+    "codex_worker_gateway_gate": "pass for contract validation, route allowlist, isolated fake-worker receipt validation, cost-gate preservation, thread-ID capture, and website status projection; real Windows workspace-write execution is infrastructure-blocked",
+    "script_only_workbench_gate": "pass for local pasted-text and DOCX intake through N00 into deterministic N01 source ingest, automatic idempotent N01 AI-screenwriter queueing, owner-bound reconciliation of real job-local N00-N07 progress, and N04 owner review/N05 candidate-only authorization; the owner-facing surface is now a four-stage dedicated production studio; real image generation, reference confirmation, video provider submit, package/send, and registry promotion remain separately gated",
+    "playwright_visual_gate": "pass for the checked public flows, project/guide/team desktop and 390x844 screenshots, the two-product workbench entrance, the four-stage novel studio, legacy N04 deep-link canonicalization, and a gated N04 review panel",
+    "website_quality_gate": "in_progress",
+    "aesthetic_gate": "pass for the frozen homepage plus project library, creation guide, and team/workspace first screens",
+    "visual_hierarchy_gate": "pass for factual project cards, guide stage/checklist separation, and account/workspace/action grouping",
+    "ux_flow_gate": "pass for signed-out project/workspace access, guide flow/stage switching, and signed-in team next actions",
+    "mac_employee_training_gate": "Bundle v2 real Mac install, exact 127-file parity, and five fixed-task adoption are verified. Employee01 fixed-thread AppServer completion/readback is user-confirmed visible in Desktop App after reopen, proving the same thread store while showing that external turns have no real-time UI running indicator. Employee02 latest short retry completed with exact clean completion/readback and awaits Desktop reopen visibility; employees03-05 remain undispatched. Fresh runtime:hq credentials/composite, live controller auth, real exact-source Step01 and a real Step02 Mac turn/readback remain blocked.",
+    "seo_gate": "pending",
+    "accessibility_gate": "pending",
+    "performance_gate": "pending",
+    "deployment_gate": "pass for active workbench-entry-r10 origin, Windows forward, and Windows public raw-static/API readback with rollback preserved; mature private-beta acceptance remains pending"
+  },
+  "not_done": [
+    "The immutable workbench-entry-r10 candidate is active on ai.cauai.fun. This is not evidence of mature private-beta acceptance or a completed real production workflow.",
+    "Novel-to-short-drama currently completes N00 intake, deterministic source extraction/indexing, and automatic N01 AI-screenwriter task queueing. The AI-authored N01 canon ledger plus N02-N07 execution, Image2 assets, video generation, package/send, and registry promotion are not completed by this website release.",
+    "No retained local user project or production controller/worker task was executed; all controller and worker executions used temporary synthetic fixtures, and no external provider task was performed.",
+    "Legacy Windows Codex workspace-write/CLI execution is retired for Step01. Bundle v2 Mac install/parity/five-adoption are verified, but fresh HQ credentials/composite, accepted execution authority, and a real exact-source Step01 turn/return do not exist; current hq_full readiness remains false.",
+    "Source Step02 now has an exact-authority vertical plus a production-off fixed Mac App carrier/worker/return provenance contract. It has passed only fake AppServer/isolated-filesystem/failure-injection tests; no real Mac Step02 turn/readback or real acceptance manifest exists, and fake/fixture/carrier-test evidence cannot unlock Step04.",
+    "The verified reference interaction architecture is implemented for the two production studios, but this is not a pixel-for-pixel or branding copy of the reference site; its assets and brand have not been copied.",
+    "No local redraw project existed in the current authenticated account, so the redraw studio has only syntax/regression coverage and no customer-project browser walkthrough in this revision.",
+    "SEO, accessibility, performance, and broad real-user acceptance verification remain pending.",
+    "Five Mac Codex Desktop App employee tasks are app-server-listed, have integrated read-only readiness output, and are user-confirmed visible in the sidebar; supported pinned=true readback and an authorized real exact-job delivery remain pending.",
+    "Strict Step01 remains ready:false: TransNetV2, FFmpeg/ffprobe, and pinned Qwen3 ForcedAligner pass local synthetic self-tests; only Mimo ASR/Paddle OCR secure credential health and hq_full composite validation remain blocked and are not simulated.",
+    "Mimo login/auth-verify still needs a fresh successful Mac-local receipt. No provider upload, generation, task, spend, package/send, registry, or deployment has occurred.",
+    "The authoritative source D:\\BaiduNetdiskDownload\\001.mp4 (SHA-256 a46f74392e2b3f7ec813b4eba5a0cd9756a7c30225e0033fd671d2cab21cd30c, 145897161 bytes, container duration 96.640s, video duration 96.560s, 1080x1920 25fps, AAC-LC 48kHz stereo) is bound to the sole authenticated website project NN-20260715083045-8120F5 with verified stored copy, rights and media probe. Step01 is blocked on live controller hash activation, fresh HQ credentials/composite, and employee02 completion evidence; no Step02/04/05, provider receipt, QA or delivery state from old projects may be reused.",
+    "The source video common execution core and Mimo NAS 8001 adapter seam are verified only with deterministic fake transport and isolated website APIs. Real Mimo credential read, quota/cost/submit authority, upload/generate/poll/download/probe/content QA, and all ArtFlash/Dola/Hi-light/TMLab/DJPSD/Freebeat adapters remain unverified; synthetic projection is not downstream consumable."
+  ],
+  "current_production_release": {
+    "release_id": "niannian-web-20260804-step04-abcd-r2",
+    "remote_release_path": "/opt/niannian-ai-releases/niannian-web-20260804-step04-abcd-r2/package",
+    "remote_symlink_targets": {
+      "/opt/niannian-ai": "/opt/niannian-ai-releases/niannian-web-20260804-step04-abcd-r2/package",
+      "/var/www/niannian-ai": "/opt/niannian-ai-releases/niannian-web-20260804-step04-abcd-r2/package",
+      "/opt/niannian-ai-current": "/opt/niannian-ai-releases/niannian-web-20260804-step04-abcd-r2/package"
+    },
+    "parity_with_current_canonical": "diverged_requires_new_staged_release",
+    "deployed_shared_file_sha256": {
+      "server.js": "147d0dc303dbe1b451ee9a95fea87fbd5f63455e82a716525e7e2c6ce492e27f",
+      "index.html": "61701dbe9c194190b016ff9277056489fdca37005dfa0a61f6c9642b62d1bc41",
+      "app.js": "3ccf6ad0d6abe23e7986f2ddf7dee26a583b5f38c57a74c652a869f402b3c11c",
+      "mvp.js": "714033c2a051d43ef09957a83f414cf2cf7f537927254360a8ee21f5b25a7315",
+      "product.css": "d5d3ed62e0a650a6597d82669b46896c5fe9d6d7c79ac2c7862a04b466903b42",
+      "product-system.css": "86836318ae20e3eda006d1a6aee23a3fe199f31b3893376a9ae2c04d66864875",
+      "styles.css": "d8254de1de1b0cddeee13301ee64a0e5605294980a9c8de384ea76625822a489",
+      "sw.js": "cbfd1d820123f9fed70a9aa64ee9a851fe08e748b5df69df1b64ae1f5071d3a8"
+    },
+    "verified_at": "2026-08-04T19:31:00+08:00",
+    "step04_abcd": {
+      "runtime_contract": "mx_shortdrama_step04_abcd_contract_v2",
+      "provider_calls": {
+        "image": false,
+        "video": false
+      },
+      "release_manifest": "E:\\codex\\aisp\\aidaihuo\\.codex_tmp\\niannian-step04-abcd-r2-release-manifest.json",
+      "release_manifest_sha256": "8a8a35ccd97c18077d7d4ba20d8d3c04d39fff5ccbcb2f971d09000ffbcf04f7",
+      "package_manifest": "E:\\codex\\aisp\\aidaihuo\\.codex_tmp\\niannian-step04-abcd-r2-package-manifest.json",
+      "package_manifest_sha256": "4fb779b98f363bc896d785a77c5b142d12a4c32e5c43c155104b293bf3d026f7",
+      "activation_manifest": "E:\\codex\\aisp\\aidaihuo\\.codex_tmp\\niannian-step04-abcd-r2-activation.json",
+      "activation_manifest_sha256": "afa7f2c33146e896755da4dd70c3e014b121cf0053ec420d45b3aa6705af4425",
+      "rollback_target": "/opt/niannian-ai-releases/niannian-web-20260804-studio-router-fix-r1/package"
+    }
+  }
+}

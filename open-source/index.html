@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="index,follow" />
+    <title>念念 AI 开放源码</title>
+    <style>
+      :root { color-scheme: light; font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; background: #f7f7f5; color: #191919; }
+      body { margin: 0; }
+      main { box-sizing: border-box; width: min(760px, 100%); margin: 0 auto; padding: 48px 24px 72px; }
+      h1 { margin: 0 0 12px; font-size: clamp(28px, 6vw, 42px); letter-spacing: -0.04em; }
+      p { line-height: 1.75; }
+      .card { margin-top: 20px; padding: 22px; border: 1px solid #deded8; border-radius: 16px; background: #fff; }
+      .card h2 { margin: 0 0 10px; font-size: 19px; }
+      a { color: #754d24; font-weight: 650; }
+      code { padding: 2px 5px; border-radius: 5px; background: #f0eee9; }
+      .muted { color: #686761; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>念念 AI 开放源码</h1>
+      <p>念念 AI 的在线 Nomi 画布及“智能剪辑”节点基于 <a href="https://github.com/aqm857886159/Nomi">Nomi</a> 修改并以 GNU Affero General Public License v3.0（<code>AGPL-3.0-only</code>）提供。</p>
+
+      <section class="card">
+        <h2>Nomi 画布对应源码</h2>
+        <p>含运行在 <code>/studio/</code> 的完整前端源码、智能剪辑节点、锁定依赖、构建说明和 AGPL 许可证。</p>
+        <p><a href="./downloads/niannian-nomi-smart-cut-source-20260806.zip">下载画布源码包</a></p>
+      </section>
+
+      <section class="card">
+        <h2>念念智剪桥接源码</h2>
+        <p>含主站任务桥、编辑器导入/导出回调插件、接口契约、构建与配置说明。包内不含用户媒体、项目数据、环境变量、密钥、Cookie 或签名 URL。</p>
+        <p><a href="./downloads/niannian-smart-cut-bridge-source-20260806.zip">下载桥接源码包</a></p>
+      </section>
+
+      <section class="card">
+        <h2>许可证与对应关系</h2>
+        <p><a href="./AGPL-3.0.txt">阅读完整 AGPL-3.0 许可证</a>。本页每次发布会与 <code>/studio/</code> 的静态构建及上述源码包一起更新；对应版本、文件清单与构建哈希见两个源码包中的 <code>RELEASE_MANIFEST.json</code>。</p>
+      </section>
+
+      <p class="muted">上游项目保留其版权与许可证声明。本服务的公开源码不包含用户或供应商的私有数据。</p>
+    </main>
+  </body>
+</html>

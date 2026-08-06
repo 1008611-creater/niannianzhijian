@@ -1,0 +1,22 @@
+[Unit]
+Description=NianNian AI redraw project API
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/niannian-ai
+Environment=NODE_ENV=production
+Environment=PORT=18083
+Environment=DATA_DIR=/var/lib/niannian-ai
+Environment=MAX_UPLOAD_BYTES=1073741824
+EnvironmentFile=-/etc/niannian-ai/bridge.env
+ExecStart=/usr/bin/node /opt/niannian-ai/server.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

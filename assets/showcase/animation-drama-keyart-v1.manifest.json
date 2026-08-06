@@ -1,0 +1,21 @@
+{
+  "asset_id": "showcase_animation_drama_keyart_v1",
+  "artifact_type": "public_website_visual",
+  "status": "reviewed_for_public_showcase",
+  "file": "animation-drama-keyart-v1.png",
+  "sha256": "0F42484B6015CFC9A5DC7F71734BE1890E03FA29A6292A925EACAE613F0C2B6B",
+  "origin": {
+    "method": "remote_image_generation",
+    "channel": "RunningHub Image G 2.0 low-price text-to-image",
+    "model": "Image G 2.0",
+    "operation": "generate",
+    "task_id": "2076694022893998081",
+    "local_raster_editing": false
+  },
+  "creative_contract": {
+    "use": "original key art for the NianNian AI public animation-drama showcase",
+    "public_claims": ["original generated website visual", "not a customer project, production candidate, first frame, or provider input"],
+    "reviewed_constraints": ["clearly adult characters", "coherent upper-left practical key light", "natural hand and document interaction", "no text, logo, watermark, or copied external brand asset"]
+  },
+  "consumers": ["../../index.html#showcase"]
+}

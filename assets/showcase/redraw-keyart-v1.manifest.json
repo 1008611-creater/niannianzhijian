@@ -1,0 +1,21 @@
+{
+  "asset_id": "showcase_redraw_keyart_v1",
+  "artifact_type": "public_website_visual",
+  "status": "reviewed_for_public_showcase",
+  "file": "redraw-keyart-v1.png",
+  "sha256": "5D18DE969FEDADD985E9C1CA578B990F838EE1F6F109FD419562FF237EF30519",
+  "origin": {
+    "method": "remote_image_generation",
+    "channel": "RunningHub Image G 2.0 low-price text-to-image",
+    "model": "Image G 2.0",
+    "operation": "generate",
+    "task_id": "2076699224715960321",
+    "local_raster_editing": false
+  },
+  "creative_contract": {
+    "use": "original key art for the NianNian AI public reference-video redraw showcase",
+    "public_claims": ["original generated website visual", "not a source video, customer project, production candidate, first frame, or provider input"],
+    "reviewed_constraints": ["clearly adult characters", "natural hand-held blank phone", "coherent vehicle-headlight-led night lighting", "no text, logo, watermark, or copied external brand asset"]
+  },
+  "consumers": ["../../index.html#showcase"]
+}

@@ -1,0 +1,91 @@
+{
+  "schema_version": "niannian.ai.online_release_baseline.v1",
+  "recorded_at": "2026-08-05T00:00:00+08:00",
+  "product": {
+    "domain": "https://ai.cauai.fun",
+    "source_boundary": "niannian-ai-canonical-local",
+    "invalid_release_sources": [
+      "niannian-ai-web",
+      "sd2.cauai.fun",
+      "localhost",
+      "Electron"
+    ]
+  },
+  "host": {
+    "ssh_alias": "haika-niannian",
+    "hostname": "ser087508269396",
+    "role": "authoritative ai.cauai.fun production host"
+  },
+  "active_release": {
+    "release_id": "niannian-web-20260804-workbench-clarity-r2-short-drama-modal-fix1",
+    "parent_release_id": "niannian-web-20260804-workbench-clarity-r2",
+    "package_path": "/opt/niannian-ai-releases/niannian-web-20260804-workbench-clarity-r2-short-drama-modal-fix1/package",
+    "static_link": "/var/www/niannian-ai",
+    "application_links": [
+      "/opt/niannian-ai",
+      "/opt/niannian-ai-current"
+    ],
+    "service": "niannian-ai.service",
+    "service_state": "active",
+    "package_file_count": 3021,
+    "package_size_mib": 769,
+    "public_html_sha256": "234cb54c4278d0f7dad70af6bf504042e4210344ae871198f51e9b8764f59dba",
+    "active_index_html_sha256": "234cb54c4278d0f7dad70af6bf504042e4210344ae871198f51e9b8764f59dba"
+  },
+  "release_manifest": {
+    "schema_version": "niannian_main_site_release_package_v1",
+    "declared_scope": "restore the existing one-click short-drama dialog DOM only",
+    "entrypoints": {
+      "index.html": "234cb54c4278d0f7dad70af6bf504042e4210344ae871198f51e9b8764f59dba",
+      "app.js": "4c512e50f7687468aa4916da87dd8244b3d3b796b5415d7ecd72bb5cabf702ae",
+      "mvp-step02-r13.js": "d355cd3c502f0e734d22de3f33d87ebfc81a66662fd229392bff6cdc612e5726",
+      "product.css": "4d090191c1dc9da0c8aa06df0b4b9d6f946a061aac71e391873f78434fc85f72"
+    },
+    "protected_surfaces": [
+      "homepage composition and shared header",
+      "workbench three-card layout",
+      "director desk",
+      "Step01 and Step04",
+      "API, provider, queue, canonical-local production logic"
+    ],
+    "inherited_studio": {
+      "source_release": "niannian-web-20260804-workbench-clarity-r2",
+      "file_count": 234,
+      "entry_path": "studio/assets/index-M-8MrEH2.js",
+      "entry_sha256": "3dfce2a98f69d1024363cc81e0f99b9e49cf2cfb1026e813d0406f4be95148c1"
+    }
+  },
+  "github_source_status": {
+    "repository": "https://github.com/1008611-creater/niannian-ai-canonical-local",
+    "branch": "main",
+    "sanitized_source_commit": "1b8d3f99270c4a90d954382bb8ea29ad42f5b502",
+    "aligned_source_commit": "3dfaf5f34b9b5447255a2d223ab3c6e4f7d3198c",
+    "aligned_source_tag": "online-baseline-20260804-workbench-clarity-r2-short-drama-modal-fix1",
+    "aligned_safe_file_count": 482,
+    "excluded_mutable_runtime_config_files": [
+      "bridge/mimo_n06_capability_status.template.json",
+      "bridge/runtime_capability_status.template.json",
+      "bridge/runtime_profiles.json",
+      "bridge/video_channel_evidence_registry.json"
+    ],
+    "safe_payload_sha256_alignment": true,
+    "deployment_eligible": false,
+    "matching_files": {
+      "server.js": "147d0dc303dbe1b451ee9a95fea87fbd5f63455e82a716525e7e2c6ce492e27f"
+    },
+    "initial_mismatched_active_entrypoints": [
+      "index.html",
+      "app.js",
+      "product.css",
+      "mvp-step02-r13.js"
+    ],
+    "current_mismatched_active_entrypoints": [],
+    "reason": "The sanitized source now matches the active release's safe payload, but a deterministic complete-package build is not yet established; candidates must continue to originate from the active Haika package."
+  },
+  "rollback": {
+    "release_id": "niannian-web-20260804-workbench-clarity-r2",
+    "package_path": "/opt/niannian-ai-releases/niannian-web-20260804-workbench-clarity-r2/package",
+    "rollback_link": "/srv/niannian-data/releases/rollback-20260804-workbench-clarity-r2-short-drama-modal-fix1"
+  },
+  "candidate_rule": "Before source reconciliation completes, create each candidate by copying the active Haika package into a new versioned Haika candidate. Never promote GitHub main or a local worktree directly."
+}

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>念念 AI · 第一批视频确认</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="/video-batch-gate/video-batch-panel.css" />
+  <style>html,body{min-height:100%;margin:0;background:#101116}body{display:grid;place-items:center;padding:24px}@media(max-width:520px){body{display:block;padding:0}}</style>
+</head>
+<body>
+  <main id="video-batch-candidate" aria-live="polite"></main>
+  <script src="/video-batch-gate/video-batch-panel.js"></script>
+  <script>
+    window.videoBatchController=window.NiannianVideoBatchPanel.createController({target:document.getElementById('video-batch-candidate'),endpoint:'/api/projects/project-001/video-batches/current'});
+    window.videoBatchController.load().catch(function(error){document.getElementById('video-batch-candidate').innerHTML='<section class="video-batch-panel is-empty" role="alert"><h2>方案暂不可用</h2><p>'+String(error.message||'请稍后重试')+'</p></section>';});
+  </script>
+</body>
+</html>

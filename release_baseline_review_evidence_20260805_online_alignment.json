@@ -1,0 +1,23 @@
+{
+  "schema_version": "niannian_shared_file_handoff_baseline_evidence_v1",
+  "review_id": "release-baseline-20260805-online-alignment",
+  "captured_at": "2026-08-05T00:00:00+08:00",
+  "reason": "Replace the stale local Step04 staging baseline with the verified active Haika ai.cauai.fun source alignment; the retired legacy mvp.js client is excluded from the current shared-file baseline. This records no deployment and no production-state write.",
+  "online_baseline_record": "release-baselines/ai.cauai.fun/20260804-workbench-clarity-r2-short-drama-modal-fix1.json",
+  "source_alignment": {
+    "git_commit": "3dfaf5f34b9b5447255a2d223ab3c6e4f7d3198c",
+    "git_tag": "online-baseline-20260804-workbench-clarity-r2-short-drama-modal-fix1",
+    "safe_payload_alignment": "verified"
+  },
+  "files": {
+    "server.js": "147d0dc303dbe1b451ee9a95fea87fbd5f63455e82a716525e7e2c6ce492e27f",
+    "index.html": "234cb54c4278d0f7dad70af6bf504042e4210344ae871198f51e9b8764f59dba",
+    "app.js": "4c512e50f7687468aa4916da87dd8244b3d3b796b5415d7ecd72bb5cabf702ae",
+    "product.css": "4d090191c1dc9da0c8aa06df0b4b9d6f946a061aac71e391873f78434fc85f72",
+    "styles.css": "d8254de1de1b0cddeee13301ee64a0e5605294980a9c8de384ea76625822a489",
+    "product-system.css": "86836318ae20e3eda006d1a6aee23a3fe199f31b3893376a9ae2c04d66864875",
+    "hero-oil-paint.css": "0fcba9536da02a0f8843331f986f01dbb670e0d2c1b1ccd2226046ffc0f60cdd",
+    "sw.js": "cbfd1d820123f9fed70a9aa64ee9a851fe08e748b5df69df1b64ae1f5071d3a8",
+    "bridge/niannian_controller_bridge.js": "64157f96db7f48c33dfe028263cd15138a109e15a194e0375a18ee0f89e427cc"
+  }
+}

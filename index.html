@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="念念 AI，一站式 AI 短剧与漫剧创作平台。" />
+    <meta name="theme-color" content="#111111" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <title>念念 AI - AI短剧创作平台</title>
+    <link rel="icon" href="./assets/brand/niannian-ai-authority-gold.svg" type="image/svg+xml" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css?v=20260802-home-header-recovery-r2" />
+    <link rel="stylesheet" href="./product.css?v=20260804-workbench-clarity-r2" />
+      <link rel="stylesheet" href="./director-desk.css?v=20260805-owned-canvas-director-import-r2" />
+    <link rel="stylesheet" href="./step04-delivery.css?v=20260802-step04-word-delivery-r3" />
+    <link rel="stylesheet" href="./product-system.css?v=20260727-step02-public-projection-r1" />
+    <link rel="stylesheet" href="./hero-oil-paint.css?v=20260727-step02-public-projection-r1" />
+    <link rel="stylesheet" href="./amber-authority.css?v=20260802-unified-header-r3" />
+  </head>
+  <body>
+    <a class="skip-link" href="#mainContent">跳到主要内容</a>
+    <div class="connection-status" id="connectionStatus" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+
+    <header class="topbar">
+      <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="打开导航" aria-controls="primaryNavigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <a class="brand" href="#home" aria-label="念念 AI 首页">
+        <span class="brand-mark" aria-hidden="true">
+          <img class="brand-monogram" src="./assets/brand/niannian-ai-authority-gold.svg" alt="" />
+        </span>
+        <span class="brand-name">念念 AI</span>
+      </a>
+
+      <nav class="main-nav" id="primaryNavigation" aria-label="主导航">
+        <button class="nav-item is-active" data-view="home">首页</button>
+        <button class="nav-item" data-view="projects">项目管理</button>
+        <button class="nav-item" data-view="workbench">工作台</button>
+        <button class="nav-item" data-view="director-desk">导演台</button>
+        <div class="mobile-account-actions" aria-label="账户操作">
+          <button type="button" data-modal="register">注册</button>
+          <button type="button" data-modal="enterprise">企业方案</button>
+        </div>
+      </nav>
+
+      <div class="top-actions">
+        <button class="command-trigger" type="button" data-command-palette-open aria-label="打开快速导航" title="快速导航"></button>
+        <button class="enterprise-link" data-modal="enterprise">企业方案</button>
+        <button class="account-button" data-modal="register">注册</button>
+        <div class="account-control">
+          <button class="account-button account-session-button" data-modal="login" id="accountButton" aria-haspopup="menu" aria-expanded="false">
+            <span class="account-avatar" data-account-avatar aria-hidden="true">念</span>
+            <span class="account-label" data-account-label>登录</span>
+            <span class="account-caret" aria-hidden="true"></span>
+          </button>
+          <div class="account-menu" id="accountMenu" role="menu" hidden>
+            <p data-account-email></p>
+            <button type="button" data-account-logout role="menuitem">退出登录</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="mainContent">
+      <section class="hero view is-visible" data-view-panel="home">
+        <canvas id="fluidCanvas" aria-hidden="true"></canvas>
+        <div class="hero-shade" aria-hidden="true"></div>
+
+        <div class="hero-copy">
+          <img class="hero-logo" src="./assets/brand/niannian-ai-authority-gold.svg" alt="念念 AI" />
+          <div class="hero-title-row" aria-label="用念念 AI 做高燃短剧">
+            <span class="hero-prefix">用念念 AI</span>
+            <span class="verb-card" id="heroVerb" aria-live="polite">做高燃短剧</span>
+          </div>
+          <h1 aria-label="全品类爆款AI视频一键创作"><span>全品类爆款AI视频</span><span>一键创作</span></h1>
+          <div class="hero-actions">
+            <button class="create-button" data-view="workbench">开始创作</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace view" data-view-panel="projects">
+        <div class="product-shell">
+          <header class="product-heading">
+            <div>
+              <span class="eyebrow">PROJECT LIBRARY</span>
+              <h2>项目管理</h2>
+              <p>在同一处查看当前账户的短剧项目与真实制作状态。</p>
+            </div>
+          </header>
+
+          <div class="project-summary" id="projectSummary">
+            <article><span>全部项目</span><strong data-summary="total">0</strong></article>
+            <article><span>制作中</span><strong data-summary="active">0</strong></article>
+            <article><span>等待处理</span><strong data-summary="queued">0</strong></article>
+            <article><span>已交付</span><strong data-summary="completed">0</strong></article>
+          </div>
+
+          <div class="project-toolbar">
+            <label class="project-search"><span>搜索</span><input id="projectSearch" type="search" placeholder="项目名称或任务编号"></label>
+            <label class="project-filter"><span>状态</span><select id="projectStatusFilter"><option value="all">全部状态</option><option value="queued">等待处理</option><option value="running">制作中</option><option value="completed">已完成</option><option value="blocked">已阻塞</option></select></label>
+          </div>
+
+          <div class="project-grid project-grid-live" id="projectList" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="workspace view studio-workbench" data-view-panel="workbench">
+        <div class="workbench-shell">
+          <div id="workbenchContent" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="workspace view workspace-tool-view" data-view-panel="redraw-intake" aria-label="一键转绘">
+        <div class="workspace-tool-shell" id="redrawIntakeContent" aria-live="polite"></div>
+      </section>
+
+      <section class="workspace view workspace-tool-view" data-view-panel="deliveries" aria-label="项目交付">
+        <div class="workspace-tool-shell" id="workspaceDeliveriesContent" aria-live="polite"></div>
+      </section>
+
+      <section class="workspace view director-desk-view" data-view-panel="director-desk" aria-label="3D导演台">
+        <div class="director-desk-shell">
+          <button
+            id="directorDeskHostClose"
+            class="director-desk-host-close"
+            type="button"
+            aria-label="返回工作台"
+            title="返回工作台"
+          ><span aria-hidden="true">&larr;</span></button>
+          <iframe
+            id="directorDeskFrame"
+            class="director-desk-frame"
+            title="3D导演台"
+            src="/director-desk/?theme=dark&v=20260803-workbench-director-preview-r2"
+            allow="fullscreen"
+          ></iframe>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="site-footer">
+      <span>念念 AI · AI短剧创作平台</span>
+      <a href="/open-source/">开放源码</a>
+      <span>© 2026 念念智能影像</span>
+    </footer>
+
+  <div class="project-wizard-backdrop" id="scriptDramaWizard" hidden>
+    <section class="project-wizard script-drama-wizard" role="dialog" aria-modal="true" aria-labelledby="scriptDramaWizardTitle">
+      <button class="wizard-close" type="button" data-close-script-drama-wizard aria-label="关闭">×</button>
+      <div class="wizard-intro">
+        <span class="eyebrow">SHORT DRAMA</span>
+        <h2 id="scriptDramaWizardTitle">一键短剧</h2>
+      </div>
+      <form id="scriptDramaCreateForm" class="project-create-form">
+        <label class="form-field form-field-wide"><span>项目名称</span><input name="name" required maxlength="80" placeholder="例如：离婚当天，被白月光拐进民政局"></label>
+        <label class="form-field"><span>题材</span><select name="genre"><option>都市情感</option><option>豪门逆袭</option><option>悬疑反转</option><option>古风言情</option><option>奇幻冒险</option></select></label>
+        <label class="form-field"><span>目标受众</span><input name="audience" required maxlength="80" value="短剧用户"></label>
+        <label class="form-field"><span>单集时长</span><select name="episodeDuration"><option value="60">60 秒</option><option value="90">90 秒</option></select></label>
+        <label class="form-field"><span>画面比例</span><select name="aspectRatio"><option value="9:16">竖屏 9:16</option><option value="16:9">横屏 16:9</option></select></label>
+        <label class="form-field form-field-wide upload-field script-document-field"><span>Word 剧本文档（可选）</span><input name="sourceDocument" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><small>支持 .docx，最大 25MB。</small></label>
+        <label class="form-field form-field-wide"><span>剧本正文（可选）</span><textarea name="sourceText" rows="10" placeholder="粘贴剧本正文、故事梗概或小说章节"></textarea></label>
+        <label class="rights-check form-field-wide"><input name="rightsConfirmed" type="checkbox" required><span>我确认拥有该剧本的使用、改编权限。</span></label>
+        <div class="wizard-status form-field-wide" id="scriptDramaWizardStatus" aria-live="polite"></div>
+        <div class="wizard-actions form-field-wide"><button class="wizard-secondary" type="button" data-close-script-drama-wizard>取消</button><button class="wizard-primary" type="submit">创建短剧项目</button></div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <button class="modal-close" id="modalClose" aria-label="关闭">×</button>
+        <span class="modal-kicker" id="modalKicker">NIANNIAN AI</span>
+        <h2 id="modalTitle">创建项目</h2>
+        <p id="modalCopy">给你的新故事一个名字。</p>
+        <form id="modalForm">
+          <label>
+            <span id="fieldLabel">项目名称</span>
+            <input id="modalInput" type="text" autocomplete="off" placeholder="例如：月光便利店" />
+          </label>
+          <label id="modalPasswordField" hidden>
+            <span>密码</span>
+            <input id="modalPassword" type="password" autocomplete="current-password" minlength="8" maxlength="128" placeholder="至少 8 位密码" />
+          </label>
+          <div class="modal-status" id="modalStatus" aria-live="polite"></div>
+          <button type="submit" id="modalSubmit">继续</button>
+        </form>
+      </section>
+    </div>
+
+  <div class="asset-viewer-backdrop" id="assetViewer" hidden></div>
+
+  <div class="command-palette-backdrop" id="commandPalette" hidden>
+    <section class="command-palette" role="dialog" aria-modal="true" aria-labelledby="commandPaletteTitle">
+      <header class="command-palette-header">
+        <span id="commandPaletteTitle">快速导航</span>
+        <button class="command-palette-close" type="button" data-command-palette-close aria-label="关闭快速导航" title="关闭"></button>
+      </header>
+      <label class="command-palette-search" for="commandPaletteInput">
+        <span class="sr-only">搜索项目或页面</span>
+        <input id="commandPaletteInput" type="search" autocomplete="off" placeholder="搜索页面或项目" aria-controls="commandPaletteResults" />
+      </label>
+      <div class="command-palette-results" id="commandPaletteResults" role="list" aria-live="polite"></div>
+    </section>
+  </div>
+
+    <script src="./vendor/gsap-3.13.0.min.js?v=3.13.0"></script>
+    <script src="./vendor/gsap-flip-3.13.0.min.js?v=3.13.0"></script>
+    <script src="./app.js?v=20260807-local-auth-r1"></script>
+    <script src="./mvp-step02-r13.js?v=20260804-workbench-clarity-r2" defer></script>
+    <script src="./mvp-step03-r1.js?v=20260727-step02-public-projection-r1" defer></script>
+    <script src="./mvp-step01-ledger-r1.js?v=20260727-step02-public-projection-r1" defer></script>
+    <script src="./mvp-step01-story-r1.js?v=20260727-step02-public-projection-r1" defer></script>
+    <script src="./mvp-source-truth-r1.js?v=20260727-step02-public-projection-r1" defer></script>
+    <script src="./director-desk-host.js?v=20260805-owned-canvas-director-import-r2"></script>
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"2676a1532aaa40c29343645e5dec9b68","r":1}' crossorigin="anonymous"></script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+/* User-approved amber control layer. Keep the existing layout and motion intact. */
+:root {
+  --amber-authority: #d7b36a;
+  --amber-bright: #f0c96a;
+  --amber-soft: rgba(215, 179, 106, .18);
+  --amber-line: rgba(215, 179, 106, .52);
+  --amber-ink: #15110a;
+  --pink: var(--amber-authority);
+  --nn-accent: var(--amber-authority);
+}
+
+.brand-monogram,
+.hero-logo,
+.brand-logo-image {
+  object-fit: contain;
+  mix-blend-mode: normal;
+}
+
+.nav-item::after,
+.nav-item.is-active::after {
+  background: var(--amber-bright);
+}
+
+.nav-item:hover,
+.nav-item:focus-visible,
+.nav-item.is-active,
+.enterprise-link:hover,
+.enterprise-link:focus-visible,
+.account-button:hover,
+.account-button:focus-visible {
+  color: var(--amber-bright);
+}
+
+.account-button:hover,
+.account-button:focus-visible,
+.command-trigger:hover,
+.command-trigger:focus-visible {
+  border-color: var(--amber-line);
+  box-shadow: 0 0 0 2px rgba(215, 179, 106, .1);
+}
+
+.account-avatar {
+  background: var(--amber-bright);
+  color: var(--amber-ink);
+}
+
+.verb-card {
+  background: linear-gradient(102deg, rgba(10, 10, 12, .92) 0%, rgba(22, 20, 16, .94) 72%, rgba(215, 179, 106, .18) 100%);
+  color: #fff;
+  border-color: rgba(215, 179, 106, .48);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .28);
+}
+
+.verb-card::before {
+  background: var(--amber-bright);
+  box-shadow: 0 0 0 4px rgba(240, 201, 106, .16), 0 0 14px rgba(240, 201, 106, .42);
+}
+
+.create-button,
+.hero-actions .create-button,
+.wizard-primary,
+.workbench-enter-action,
+.workbench-production-route button,
+.workbench-app-nav-footer button:hover,
+.workbench-app-nav-footer button:focus-visible,
+.redraw-project-actions button.is-accent,
+.showcase-enter:hover,
+.showcase-enter:focus-visible,
+.showcase-film-enter:hover,
+.showcase-film-enter:focus-visible {
+  border-color: var(--amber-bright) !important;
+  background: var(--amber-authority) !important;
+  color: var(--amber-ink) !important;
+  box-shadow: 0 8px 24px rgba(126, 91, 25, .22);
+}
+
+.create-button:hover,
+.create-button:focus-visible,
+.hero-actions .create-button:hover,
+.hero-actions .create-button:focus-visible,
+.workbench-enter-action:hover,
+.workbench-enter-action:focus-visible {
+  border-color: #fff !important;
+  background: #fff !important;
+  color: #111 !important;
+}
+
+.project-toolbar input:focus,
+.project-toolbar select:focus,
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus,
+.pipeline-node.is-active,
+.step02-shot-card.is-active,
+.source-review-shot.is-active {
+  border-color: var(--amber-authority) !important;
+  box-shadow: inset 0 0 0 1px rgba(215, 179, 106, .22);
+}
+
+.project-progress span,
+.workbench-production-route li::before,
+.workbench-path-mark-script::before,
+.workbench-project-card::before {
+  background: linear-gradient(90deg, var(--amber-authority), var(--amber-bright)) !important;
+}
+
+.workbench-breadcrumb,
+.workbench-section-index,
+.workbench-production-route span,
+.workbench-attention-rail header > span,
+.workbench-start-action em,
+.workbench-project-card footer i,
+.workbench-all-projects b,
+.workbench-path-mark-script,
+.workbench-nav-icon,
+.showcase-film-credit span:first-child,
+.showcase-film-nav button.is-active span,
+.showcase-case-nav button.is-active span {
+  color: var(--amber-bright) !important;
+  border-color: var(--amber-authority) !important;
+}
+
+.workbench-app-navigation span.is-active {
+  background: var(--amber-soft) !important;
+  color: #fff !important;
+}
+
+.workbench-app-navigation span.is-active i,
+.workbench-app-navigation button:hover i,
+.workbench-app-navigation button:focus-visible i {
+  border-color: var(--amber-bright) !important;
+  color: var(--amber-bright) !important;
+}
+
+.workbench-nav-icon {
+  border-color: var(--amber-authority) !important;
+}
+
+.showcase-nav-button:hover,
+.showcase-nav-button:focus-visible,
+.showcase-film-nav button.is-active,
+.showcase-film-nav button:hover,
+.showcase-film-nav button:focus-visible {
+  border-bottom-color: var(--amber-bright) !important;
+}
+
+.hero-actions .create-button:focus-visible,
+.account-button:focus-visible,
+.nav-item:focus-visible,
+.workbench-app-navigation button:focus-visible {
+  outline: 2px solid var(--amber-bright);
+  outline-offset: 2px;
+}
+
+/* Keep selected surfaces black while removing the old rose cast. */
+.step01-shot-chip.is-selected,
+.guide-mode-button.is-active,
+.script-storyboard-strip button.is-active,
+.project-library-status span,
+.live-project-card.is-script-project .project-card-visual,
+.live-project-card.is-redraw-project .project-card-visual {
+  background-color: #17181d !important;
+  color: #f4f4f5 !important;
+}
+
+.detail-status,
+.story-model-review li strong,
+.project-library-status span,
+.script-storyboard-strip button.is-active span {
+  color: var(--amber-bright) !important;
+}
+
+.detail-status,
+.step01-shot-chip.is-selected,
+.guide-mode-button.is-active,
+.script-storyboard-strip button.is-active,
+.project-library-status span,
+.live-project-card.is-script-project .project-card-visual,
+.live-project-card.is-redraw-project .project-card-visual {
+  background: #17181d !important;
+}
+
+.project-card-type,
+.showcase-action,
+.guide-mode-button.is-active,
+.project-library-status span {
+  color: #f5f5f5 !important;
+}
+
+.showcase-action:hover,
+.showcase-action:focus-visible,
+.project-library-continue:hover,
+.project-library-continue:focus-visible {
+  background: #1c1d22 !important;
+  border-color: var(--amber-bright) !important;
+}
+
+/* One site-wide header: navigation left, account controls right, no header logo. */
+.topbar {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 0 24px 0 16px;
+}
+
+.topbar > .brand {
+  display: none;
+}
+
+.topbar > .main-nav {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+}
+
+.topbar > .top-actions {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    grid-template-columns: 32px minmax(0, 1fr) 32px;
+    padding: 0 10px;
+  }
+
+  .topbar > .main-nav {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .topbar > .top-actions {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}

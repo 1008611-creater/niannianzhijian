@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "source": "DESIGN.md",
+  "mode": "operate",
+  "narrative": {
+    "northStar": "电影感留在首页，生产决策留给工具。",
+    "overview": "项目级视频生产工具：项目身份、当前动作、真实状态、下一动作和交付物构成固定阅读顺序。",
+    "keyCharacteristics": ["近黑工作区", "高密度", "真实状态", "克制动效", "项目优先"],
+    "dos": ["保护已批准首页和生产页面", "在 390px 保持主操作可见", "用服务端资产和任务作为事实"],
+    "donts": ["不使用紫色、玫红、渐变或玻璃拟态", "不添加第四个入口", "不显示内部任务或私有链接"]
+  },
+  "tokens": {
+    "colors": {
+      "workspace": "#000000",
+      "surface": "#18181B",
+      "surfaceRaised": "#27272A",
+      "foreground": "#FAFAFA",
+      "muted": "#A1A1AA",
+      "border": "#3F3F46",
+      "action": "#F8FAFC",
+      "destructive": "#EF4444"
+    },
+    "spacing": {"tight": "8px", "standard": "16px", "section": "24px"},
+    "rounded": {"control": "4px", "panel": "6px"}
+  },
+  "components": ["button-primary", "button-secondary", "tool-panel", "canvas-node", "delivery-item"]
+}

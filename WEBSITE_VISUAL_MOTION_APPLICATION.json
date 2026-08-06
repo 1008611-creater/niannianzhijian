@@ -1,0 +1,182 @@
+{
+  "schema_version": "niannian_website_visual_motion_application_v1",
+  "product": "念念 AI",
+  "authority": {
+    "skill": "web-visual-motion-planner",
+    "skill_path": "C:\\Users\\lsb\\.codex\\skills\\web-visual-motion-planner\\SKILL.md",
+    "contract": "WEBSITE_EXPERIENCE_CONTRACT.md"
+  },
+  "source_repositories": [
+    {
+      "source_id": "web_visual_motion_planner",
+      "role": "视觉层级、动效选择、资产边界、移动端和无障碍的权威规则",
+      "application_status": "applied"
+    },
+    {
+      "source_id": "website_product_router",
+      "role": "现有网站代码与验证交付路径",
+      "application_status": "applied"
+    }
+  ],
+  "source_application_records": [
+    {
+      "rule_id": "motion_is_functional_and_triggered",
+      "applied_to": ["app.js", "mvp.js", "product.css"],
+      "implementation": "顶层导航、制作阶段、资产选择和指引步骤都有明确用户或路由触发；数据同步不触发动效。",
+      "verification": "test_web_visual_motion_system.js"
+    },
+    {
+      "rule_id": "one_scroll_owner_native_scroll",
+      "applied_to": ["app.js", "mvp.js", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "内部 Hash 与制作台路由保留原生滚动位置；仅顶层导航主动换页可回到顶部。",
+      "verification": "test_web_visual_motion_system.js"
+    },
+    {
+      "rule_id": "reduced_motion_and_resource_lifecycle",
+      "applied_to": ["index.html", "app.js", "mvp.js", "product.css", "hero-oil-paint.css"],
+      "implementation": "GSAP/Flip 缺失或减少动态时静态可用；首页真实视频只在首页可见且未请求减少动态时播放，离页、隐藏标签或减少动态时暂停，减少动态显示原油画静帧。",
+      "verification": "test_web_visual_motion_system.js + test_web_visual_motion_browser.spec.js"
+    },
+    {
+      "rule_id": "homepage_provider_video_is_qualified_and_bounded",
+      "applied_to": ["assets/home/niannian-hero-oil-vortex-loop-v2.mp4", "index.html", "app.js", "hero-oil-paint.css"],
+      "implementation": "首页使用已通过 Dola 无水印下载、ffprobe、逐秒联系表、逆时针运动和首尾衔接 QA 的 16:9 油画循环视频。视频为纯背景媒体，标题、CTA 和导航保持真实 DOM；静态原图继续作为 poster、减少动态和失败回退。",
+      "verification": "output/dola-home-oil-loop-20260717/evidence_v2_watermark_free_contact_sheet.jpg + output/dola-home-oil-loop-20260717/evidence_v2_first_last.jpg + output/playwright/hero-oil-video-desktop.png + output/playwright/hero-oil-video-mobile.png + test_web_visual_motion_browser.spec.js"
+    },
+    {
+      "rule_id": "workbench_frame_workspace_is_functional_and_interruptible",
+      "applied_to": ["index.html", "mvp.js", "product.css", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "工作台以 Frame.io 的面板式创作工作区为参考，使用真实 DOM 左侧导航、中部项目画布、右侧待处理上下文和项目卡。仅在明确进入或首次渲染时对三个面板顺序显现；项目 hover/focus 只标示当前项目，不改变项目、输入或滚动。",
+      "verification": "test_web_visual_motion_system.js + test_workbench_view_transition.js + test_web_visual_motion_browser.spec.js"
+    },
+    {
+      "rule_id": "workbench_project_selection_uses_real_review_media_only",
+      "applied_to": ["mvp.js", "product.css", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "项目卡先在工作台内选中，再将真实当前节点、质量门、下一步和已确认 N04/N05 候选投影到右侧检查器。仅对当前用户所属小说项目作只读审核包请求；没有精确 imageUrl 时不显示虚构缩略图。",
+      "verification": "test_script_project_flow.js + test_web_visual_motion_system.js"
+    },
+    {
+      "rule_id": "workbench_view_transition_is_explicit_and_interruptible",
+      "applied_to": ["mvp.js", "product.css", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "支持时，用户主动切换工作台项目或概览/候选/视频标签会以原生 View Transitions API 承接右侧检查器；同一次同步 DOM 更新中写入历史路由。减少动态、后台页、无 API、自动同步或连续切换时直接使用原有 GSAP/静态 DOM 路径，不改变焦点、滚动或生产状态。",
+      "verification": "test_web_visual_motion_system.js + test_web_visual_motion_browser.spec.js"
+    },
+    {
+      "rule_id": "production_stage_navigation_preserves_keyboard_context",
+      "applied_to": ["mvp.js", "test_script_project_flow.js", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "制作阶段按钮使用 aria-current=step 表明当前阶段。用户通过点击或键盘在已放行的历史阶段间切换时，路由和焦点都回到新的当前阶段；N04/N06 等异步只读审核包再次渲染时，只保留已有阶段按钮焦点，不抢占其他编辑焦点，也不改变生产门。",
+      "verification": "npm run test:script-project + test_web_visual_motion_system.js"
+    },
+    {
+      "rule_id": "workbench_selection_is_url_recoverable",
+      "applied_to": ["app.js", "mvp.js", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "工作台使用 #workbench/project/{projectKind}:{projectId}/tab/{overview|assets|video|activity} 记录用户选择；应用路由将该深链接继续映射到 workbench 面板，而不是当成未知顶层页面。",
+      "verification": "test_web_visual_motion_system.js + test_workbench_view_transition.js"
+    },
+    {
+      "rule_id": "workbench_activity_is_owner_scoped_fact_projection",
+      "applied_to": ["server.js", "mvp.js", "product.css", "test_workbench_view_transition.js", "test_script_project_flow.js", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "工作台动态仅在用户主动选择标签时读取所属小说项目的只读活动投影。服务端从项目、审核决定和质量门合同提取可读事实，并且不返回路径、SHA、渠道、worker/thread、原始任务标识或测试回执；前端只在项目同步或会改变事实的用户动作后失效缓存。测试 worker 的 qa_passed 状态不会被投影成真实视频通过。",
+      "verification": "test_workbench_view_transition.js + test_script_project_flow.js + test_web_visual_motion_system.js"
+    },
+    {
+      "rule_id": "script_document_upload_is_resumable_and_truthful",
+      "applied_to": ["server.js", "mvp.js", "index.html", "test_script_project_flow.js", "test_workspace_draft_recovery.js", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "Word 文档创建改用所属用户的上传会话：浏览器先计算整文件/分片校验值，服务器只接受连续且哈希一致的分片，重复分片保持幂等，重新选择同一文件可复用未完成会话；整文件校验、文件固定与 Mammoth 解析都通过后才从上传会话创建 N00/N01 项目。上传会话、文件选择、版权确认和生产授权不进入浏览器草稿，上传不会触发图片或视频生产。",
+      "verification": "test_script_project_flow.js + test_workspace_draft_recovery.js + test_web_visual_motion_system.js"
+    },
+    {
+      "rule_id": "n06_media_review_requires_real_verified_media",
+      "applied_to": ["server.js", "mvp.js", "product.css", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "N06 视频组由用户显式切换。只有项目所属用户可读取、收据合同匹配、文件 SHA 与字节数一致并且媒体/视觉校验均通过的真实媒体才会显示原生 video 播放器；测试回执、无收据、漂移或未完成 QA 都显示稳定空状态。",
+      "verification": "test_script_project_flow.js + test_web_visual_motion_system.js"
+    },
+    {
+      "rule_id": "draft_recovery_never_replaces_user_decisions",
+      "applied_to": ["mvp.js", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "创建项目文字字段和 N05 问题说明仅写入当前浏览器会话草稿；文件、版权确认、候选决定、授权和生产状态不进入草稿。项目同步不在候选编辑期间重绘制作台。",
+      "verification": "test_web_visual_motion_system.js + existing candidate-editor refresh guard"
+    },
+    {
+      "rule_id": "wizard_focus_never_interrupts_active_typing",
+      "applied_to": ["mvp.js", "test_workspace_draft_recovery.js", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "新建小说/转绘项目弹窗会记录真实触发按钮，并只在下一帧焦点仍停留在该按钮或页面根节点时进入项目名称；一旦用户或自动化已聚焦其他字段，不再用延时回调抢回焦点。Esc、取消和背景关闭会回到该触发按钮；成功创建保持真实后续流程。焦点使用 preventScroll，不改变滚动位置或草稿范围。",
+      "verification": "npm run test:workspace-draft-recovery + test_web_visual_motion_system.js"
+    },
+    {
+      "rule_id": "n06_readback_is_change_driven_and_editor_safe",
+      "applied_to": ["mvp.js", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "Stage 04 对项目同步中的 N06 回读使用受限签名比较；只有媒体、回执、QA、质量策略或阻塞状态变化时才重绘。质量策略控件获得焦点时延后读取，避免同步打断用户。",
+      "verification": "test_web_visual_motion_system.js + N06 API contract in test_script_project_flow.js"
+    },
+    {
+      "rule_id": "user_status_copy_hides_internal_execution_identifiers",
+      "applied_to": ["mvp.js", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "工作台项目卡/提醒/检查器、转绘编辑页、Stage 01 原文合同、N05 资产审核、Stage 03 分镜和项目详情通过统一状态投影显示用户可行动的语言；项目详情在渲染时移除内部技能、任务合同和线程标识，原文合同与候选审核不显示 SHA、资产键或文件名，工作台不显示原始 next_action，并将执行、阻塞、N06 参考状态与质量门映射为产品状态，不展示渠道、技能、路径、下划线结果码或 dry-run/typed-provider/confirmed-exact-SHA 内部术语。",
+      "verification": "test_web_visual_motion_system.js + test_script_project_flow.js + real EP001 Stage 01/02/03/04 and workbench read-only browser verification"
+    },
+    {
+      "rule_id": "shared_production_status_language_and_tokens",
+      "applied_to": ["mvp.js", "product.css", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "项目卡、当前项目检查器、项目详情、N05 候选审核与 N06 审片质量门共用 productionStatusPill 与 ready/working/blocked/neutral 四个状态语义；CSS 变量统一工作区表面、边界、文本、强调色和状态色。状态徽记只读取既有项目投影，不创建任务、不改变门禁，也不包含机器任务标识。",
+      "verification": "test_web_visual_motion_system.js + test_workbench_view_transition.js + test_web_visual_motion_browser.spec.js"
+    },
+    {
+      "rule_id": "real_dom_and_asset_truth",
+      "applied_to": ["mvp.js", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "所有控制为真实 DOM；候选、证据与质量门只读取项目事实，不生成或提升素材。",
+      "verification": "test_script_project_flow.js"
+    },
+    {
+      "rule_id": "storyboard_selection_has_visible_state_continuity",
+      "applied_to": ["mvp.js", "product.css"],
+      "implementation": "小说 Stage 03 的底部镜头组在显式点击时用 Flip 承接首帧、事实卡、两段式提示词和资产架；当前组同时在预览头、元数据和条带内以真实 DOM 状态标明。",
+      "verification": "test_web_visual_motion_system.js + authenticated EP001 Stage 03 browser check"
+    },
+    {
+      "rule_id": "two_route_product_system",
+      "applied_to": ["index.html", "mvp.js", "product.css", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "首页、项目管理、工作台与创作指引统一将小说/剧本和参考视频作为两条明确输入路线；项目库以真实项目类型渲染并分别进入小说或转绘制作台。",
+      "verification": "test_web_visual_motion_system.js + authenticated project-library browser check"
+    },
+    {
+      "rule_id": "pwa_offline_shell_never_caches_production_facts",
+      "applied_to": ["index.html", "app.js", "mvp.js", "server.js", "sw.js", "manifest.webmanifest", "styles.css", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "PWA 只预缓存应用外壳；Service Worker 明确绕过所有 API 与项目媒体请求，离线时只回退 HTML 壳。页面使用非抢焦点提示说明本地草稿保留、项目状态将在恢复连接后更新；在线恢复后仅由既有所属用户的真实项目读取路径同步状态。",
+      "verification": "npm run test:pwa-shell + npm run test:visual-motion-browser"
+    },
+    {
+      "rule_id": "project_event_refresh_is_revision_safe_and_non_interrupting",
+      "applied_to": ["mvp.js", "test_workbench_view_transition.js", "test_web_visual_motion_system.js", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "项目事件流把服务端修订号保留为待处理状态；页面正在读取、隐藏或 EventSource 重连时，最新事件会在可安全读取时合并成一次刷新。已经消费的修订不会再次刷新；事件同步保持当前路由、页面滚动、输入和审核决定，不播放 View Transition 或制作台入场动效。",
+      "verification": "npm run test:workbench-view-transition + npm run test:visual-motion"
+    },
+    {
+      "rule_id": "workbench_candidate_catalog_is_read_only_and_inspectable",
+      "applied_to": ["index.html", "mvp.js", "product.css", "test_script_project_flow.js", "WEBSITE_EXPERIENCE_CONTRACT.md"],
+      "implementation": "工作台候选标签读取当前小说项目审核包的全部可查看候选，显示当前选中资产、确认比例、使用范围、自动评分和可读版本状态；用户可主动在独立对话框打开大图，Esc 或关闭按钮回到原触发项。资产浏览器不读取路径/SHA/provider，不写入任何候选决定，也不创建图片或视频任务。",
+      "verification": "npm run test:script-project + npm run test:visual-motion"
+    }
+  ],
+  "global_invariants": {
+    "motion_budget": "guided",
+    "forbidden": ["Lenis", "ScrollSmoother", "ScrollTrigger", "long_pin", "scroll_scrub", "automatic_page_scroll", "decorative_particles", "workbench_background_video", "workbench_3d"],
+    "allowed_runtime": ["local_gsap_core", "local_gsap_flip", "native_view_transitions_for_explicit_workbench_selection", "home_qualified_oil_loop_video", "home_shader_failure_fallback", "workbench_frame_workspace_entry"],
+    "input_protection": "project polling and internal route changes must not move scroll or focus",
+    "asset_policy": "production images and video are never made by local UI visual effects"
+  },
+  "route_coverage": [
+    {"route": "#home", "page_role": "产品入口", "visual_protagonist": "创作价值与首页逆时针油画循环视频", "primary_action": "创建项目", "motion": "home_qualified_oil_loop_video_and_top_level_entry", "mobile_fallback": "中心裁切保留标题暗区；低动态为同一静态油画、标题和真实按钮", "verification": "test_web_visual_motion_browser.spec.js + output/playwright/hero-oil-video-desktop.png + output/playwright/hero-oil-video-mobile.png + output/playwright/hero-oil-video-reduced-motion.png"},
+    {"route": "#projects", "page_role": "转绘项目管理", "visual_protagonist": "项目状态和筛选", "primary_action": "直接进入对应独立制作台", "motion": "top_level_entry_only", "mobile_fallback": "单列筛选与项目卡", "verification": "test_workbench_view_transition.js"},
+    {"route": "#workbench", "page_role": "项目制作中枢", "visual_protagonist": "左侧工作区导航、中部项目画布、右侧待处理动作与项目动态", "primary_action": "创建或进入对应制作台，按需查看真实项目动态", "motion": "frame_workspace_entry_once", "mobile_fallback": "静态单列工作区、项目画布、真实按钮与无横向溢出的活动时间线", "verification": "test_web_visual_motion_system.js + test_web_visual_motion_browser.spec.js + test_workbench_view_transition.js"},
+    {"route": "#script/:id/stage/:id", "page_role": "小说短剧制作", "visual_protagonist": "当前阶段和受控质量门", "primary_action": "完成当前唯一允许操作", "motion": "stage_entry_source_contract_asset_flip", "mobile_fallback": "静态单列与真实 DOM；390 x 844 下 Stage 03 保留镜头审核/提示词/资产架，Stage 04 保留 V001/720p/真实媒体空状态且无横向溢出", "verification": "test_script_project_flow.js + authenticated EP001 Stage 01/02 browser visual check 2026-07-13 + isolated 390x844 Stage 03/04 Playwright regression"},
+    {"route": "#redraw/:id/stage/:id", "page_role": "转绘制作", "visual_protagonist": "源片事实与节点状态", "primary_action": "按已放行节点推进", "motion": "stage_entry_without_scroll_reset", "mobile_fallback": "静态单列与原生滚动", "verification": "test_redraw_step01_flow.js"},
+    {"route": "#redraw-evidence/:id/shot/:id", "page_role": "只读原始证据", "visual_protagonist": "起中末帧和镜头账本", "primary_action": "核验 Step01 证据", "motion": "static_on_shot_change", "mobile_fallback": "证据顺序列表", "verification": "test_redraw_step01_flow.js"},
+    {"route": "#showcase", "page_role": "创作类型概览", "visual_protagonist": "参考视频转绘、小说短剧与审核交付三条真实能力", "primary_action": "进入工作台或创作指引", "motion": "top_level_entry_only", "mobile_fallback": "单列能力卡和真实入口", "verification": "test_web_visual_motion_system.js"},
+    {"route": "#guide", "page_role": "流程指引", "visual_protagonist": "当前步骤交付物", "primary_action": "选择步骤或创建项目", "motion": "explicit_guide_step_focus", "mobile_fallback": "单列步骤和说明", "verification": "visual_motion_guide_mobile_20260713_evidence.png"},
+    {"route": "#team", "page_role": "账户与协作边界", "visual_protagonist": "当前拥有者和权限范围", "primary_action": "登录或进入项目管理", "motion": "top_level_entry_only", "mobile_fallback": "单列成员面板", "verification": "test_auth_ui_contract.js"}
+  ],
+  "open_verification": [
+    "候选反馈编辑跨 15 秒同步的已登录现场验证"
+  ]
+}

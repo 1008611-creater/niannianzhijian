@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.niannian.ai.user-action-bridge</string>
+  <key>ProgramArguments</key><array>
+    <string>/Users/lsb/.local/bin/node</string>
+    <string>/Users/lsb/AI-Brain/niannian-ai-canonical-local/bridge/niannian_mac_user_action_bridge.js</string>
+    <string>--requests</string><string>/Users/lsb/.config/ai-brain/user-action-requests.json</string>
+    <string>--receipt</string><string>/Users/lsb/.config/ai-brain/mac-gui-bridge-receipt.json</string>
+    <string>--state</string><string>/Users/lsb/.local/state/ai-brain/mac-user-action-bridge-state.json</string>
+    <string>--action-card</string><string>/Users/lsb/.local/share/niannian-ai/mac-user-actions.html</string>
+    <string>--notifier</string><string>/Users/lsb/AI-Brain/niannian-ai-canonical-local/bridge/niannian_mac_user_action_notify.sh</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>StartInterval</key><integer>60</integer>
+  <key>ProcessType</key><string>Background</string>
+  <key>StandardOutPath</key><string>/Users/lsb/.local/state/ai-brain/mac-user-action-bridge.stdout.log</string>
+  <key>StandardErrorPath</key><string>/Users/lsb/.local/state/ai-brain/mac-user-action-bridge.stderr.log</string>
+</dict></plist>

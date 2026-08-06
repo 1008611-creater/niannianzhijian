@@ -1,0 +1,1 @@
+import{w as n}from"./proxy-B50diLEI.js";import{Y as a}from"./index-M-8MrEH2.js";const c=5e3;function i({message:o,onUndo:s,durationMs:e=c}){let t=!1;n.getState().push({message:o,type:"success",ttl:e,actionLabel:a.t("common.undo"),onAction:()=>{if(!t){t=!0;try{s()}catch{}}}})}export{i as s};

@@ -1,0 +1,27 @@
+tunnel: 560ab706-4798-4d0f-95b6-92eb1e2978f6
+credentials-file: /etc/cloudflared/560ab706-4798-4d0f-95b6-92eb1e2978f6.json
+protocol: http2
+edge-ip-version: "4"
+
+ingress:
+  - hostname: api.cauai.fun
+    service: http://127.0.0.1:18080
+  - hostname: kidswear.cauai.fun
+    service: http://103.236.92.199:8767
+  - hostname: tzdh.lsb0713.online
+    service: http://103.236.92.199:8767
+  - hostname: api.lsb0713.online
+    service: http://127.0.0.1:18081
+  - hostname: origin-api.lsb0713.online
+    service: http://127.0.0.1:18080
+  - hostname: static-api.lsb0713.online
+    service: http://127.0.0.1:18080
+  - hostname: origin-api.cauai.fun
+    service: http://127.0.0.1:18080
+  - hostname: static-api.cauai.fun
+    service: http://127.0.0.1:18081
+  - hostname: obsidian.lsb0713.online
+    service: http://127.0.0.1:9000
+  - hostname: ai.cauai.fun
+    service: http://127.0.0.1:18082
+  - service: http_status:404

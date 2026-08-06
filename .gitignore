@@ -1,0 +1,74 @@
+# Runtime state, user data, generated deliveries, and provider receipts.
+data/
+data-local/
+output/
+outputs/
+runtime/
+release-staging/
+_deploy/
+
+# Local dependencies, caches, and test artifacts.
+node_modules/
+__pycache__/
+.playwright-cli/
+.code-review-graph/
+test-results/
+coverage/
+logs/
+tmp/
+tmp_role_evidence/
+verification_frontend/
+
+# Historical evidence, generated review records, and old release receipts.
+docs/
+release_baseline_attestation_*.json
+release_baseline_review_evidence_*.md
+post_coding_review_*.md
+online_gate_latest.log
+tmp-preview-*
+tmp_*.json
+x.webp.tmp-*
+
+# Superseded local explorations and release governance material.
+brand-exploration/
+release-governance-archive/
+
+# Historical open-source packages and local build outputs.
+open-source/downloads/
+open-source/.build/
+
+# Generated Mac bridge bundles, training records, and mutable bridge state.
+bridge/mac-employee-training/
+bridge/mac-skill-bundles/
+bridge/mac-gui-bridge-bootstrap/
+bridge/bridge_events.jsonl
+bridge/bridge_state.json
+bridge/transaction_intent.json
+bridge/video_channel_evidence_registry.json
+bridge/runtime_profiles.json
+bridge/runtime_capability_status.template.json
+bridge/mimo_n06_capability_status.template.json
+
+# Local tool configuration and command-session artifacts.
+.mcp.json
+*.command
+*.log
+*.out.log
+*.err.log
+
+# Credentials and local environment configuration.
+.env
+.env.*
+!.env.example
+!*.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# OS and editor artifacts.
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

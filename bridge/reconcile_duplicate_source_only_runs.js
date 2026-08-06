@@ -1,0 +1,17 @@
+'use strict';
+
+const crypto=require('crypto');
+const fs=require('fs');
+const fsp=fs.promises;
+const path=require('path');
+
+const PROJECT_ID='NN-20260715083045-8120F5';
+const SOURCE_SHA256='a46f74392e2b3f7ec813b4eba5a0cd9756a7c30225e0033fd671d2cab21cd30c';
+const SOURCE_REVISION=1;
+const EXPECTED_KEY=crypto.createHash('sha256').update([PROJECT_ID,SOURCE_REVISION,SOURCE_SHA256,'hq_full'].join('|')).digest('hex');
+
+async function writeJson(file,value){const temporary=file+'.tmp-'+process.pid;await fsp.writeFile(temporary,JSON.stringify(value,null,2)+'\n',{flag:'wx'});await fsp.rename(temporary,file);}
+function eventId(value){return 'step01event-'+crypto.createHash('sha256').update(['analysis_run_superseded',value.project_id,value.analysis_run_id,value.source_sha256,'','','',value.status].join('|')).digest('hex');}
+async function appendEvent(file,value){const row={...value,schema_version:'niannian_step01_evidence_event_v1',event_id:eventId(value),at:new Date().toISOString()};const existing=await fsp.readFile(file,'utf8').catch(error=>error.code==='ENOENT'?'':Promise.reject(error));if(existing.split(/\r?\n/).filter(Boolean).some(line=>JSON.parse(line).event_id===row.event_id))return row;await fsp.appendFile(file,JSON.stringify(row)+'\n','utf8');return row;}
+async function main(){const root=path.resolve(__dirname,'..','data','jobs',PROJECT_ID),runsRoot=path.join(root,'analysis_runs'),entries=await fsp.readdir(runsRoot,{withFileTypes:true});const runs=[];for(const entry of entries){if(!entry.isDirectory())continue;const runPath=path.join(runsRoot,entry.name,'analysis_run.json');const run=JSON.parse(await fsp.readFile(runPath,'utf8'));if(run.schema_version==='niannian_step01_source_analysis_run_v1'&&run.source_sha256===SOURCE_SHA256&&Number(run.source_revision)===SOURCE_REVISION&&run.idempotency_key===EXPECTED_KEY&&run.analysis_scope==='source_evidence_only')runs.push({run,root:path.dirname(runPath)});}runs.sort((a,b)=>Date.parse(a.run.created_at)-Date.parse(b.run.created_at)||a.run.id.localeCompare(b.run.id));if(runs.length<1)throw new Error('step01_duplicate_recovery_no_matching_run');const selected=runs.at(-1);for(const prior of runs.slice(0,-1)){const state={schema_version:'niannian_step01_analysis_run_recovery_state_v1',status:'superseded_invalidated',project_id:PROJECT_ID,analysis_run_id:prior.run.id,superseded_by:selected.run.id,reason:'duplicate_source_only_idempotency_key_before_dispatch',source_sha256:SOURCE_SHA256,source_revision:SOURCE_REVISION,recorded_at:new Date().toISOString()};await writeJson(path.join(prior.root,'recovery_state.json'),state);await appendEvent(path.join(root,'evidence_events.jsonl'),{type:'analysis_run_superseded',project_id:PROJECT_ID,analysis_run_id:prior.run.id,source_revision:SOURCE_REVISION,source_sha256:SOURCE_SHA256,status:'superseded_invalidated',evidence_sha256:EXPECTED_KEY});}await writeJson(path.join(selected.root,'recovery_state.json'),{schema_version:'niannian_step01_analysis_run_recovery_state_v1',status:'selected_for_recovery',project_id:PROJECT_ID,analysis_run_id:selected.run.id,reason:'latest_duplicate_source_only_run_reused_without_new_run',source_sha256:SOURCE_SHA256,source_revision:SOURCE_REVISION,recorded_at:new Date().toISOString()});process.stdout.write(JSON.stringify({status:'reconciled',selected_analysis_run_id:selected.run.id,superseded_analysis_run_ids:runs.slice(0,-1).map(item=>item.run.id),idempotency_key:EXPECTED_KEY})+'\n');}
+main().catch(error=>{process.stderr.write(String(error.stack||error)+'\n');process.exitCode=1});

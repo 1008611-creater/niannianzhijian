@@ -1,0 +1,96 @@
+{
+  "schema_version": "niannian_skill_registry_v2",
+  "default_policy": "deny",
+  "skills": {
+    "ai-video-production-router": {
+      "kind": "production_router",
+      "compatibility": [
+        {"task_kinds":["source_video","source_script","commerce_reference","original_narrative","confirmed_image_i2v"],"phases":["classify"],"profiles":["mac-video-analysis-v1","mac-step01-strict-evidence-v1","mac-n06-mimo-preflight-v1"],"execution_enabled":true,"provider_submit_enabled":false}
+      ]
+    },
+    "ai-video-fundamentals-skill": {
+      "kind": "quality_contract",
+      "compatibility": [
+        {"task_kinds":["source_video","source_script","commerce_reference","original_narrative","confirmed_image_i2v"],"phases":["analysis","compile","qa"],"profiles":["mac-video-analysis-v1","mac-step01-strict-evidence-v1","mac-n06-mimo-preflight-v1"],"execution_enabled":true,"provider_submit_enabled":false}
+      ]
+    },
+    "prompt-skill-router": {
+      "kind": "prompt_compiler",
+      "compatibility": [
+        {"task_kinds":["source_video","source_script","commerce_reference","original_narrative","confirmed_image_i2v"],"phases":["compile"],"profiles":["mac-video-analysis-v1","mac-step01-strict-evidence-v1","mac-n06-mimo-preflight-v1"],"execution_enabled":true,"provider_submit_enabled":false}
+      ]
+    },
+    "mx-shortdrama-00-router": {
+      "kind": "workflow_router",
+      "compatibility": [
+        {"task_kinds":["source_video","source_script"],"phases":["classify","analysis"],"profiles":["mac-video-analysis-v1","mac-step01-strict-evidence-v1","haika-step01-direct-v1","mac-n06-mimo-preflight-v1"],"execution_enabled":true,"provider_submit_enabled":false}
+      ]
+    },
+    "mx-shortdrama-01-frame-extract": {
+      "kind": "analysis_step",
+      "compatibility": [
+        {"task_kinds":["source_video"],"phases":["analysis"],"profiles":["mac-video-analysis-v1","mac-step01-strict-evidence-v1","haika-step01-direct-v1"],"execution_enabled":true,"provider_submit_enabled":false}
+      ]
+    },
+    "mx-shortdrama-02-source-timeline": {
+      "kind": "analysis_step",
+      "compatibility": [
+        {"task_kinds":["source_video"],"phases":["analysis"],"profiles":["mac-step01-strict-evidence-v1"],"execution_enabled":true,"provider_submit_enabled":false}
+      ]
+    },
+    "mx-shortdrama-03-mexico-localize": {
+      "kind": "review_export_step",
+      "compatibility": [
+        {"task_kinds":["source_video"],"phases":["review"],"profiles":["mac-step01-strict-evidence-v1"],"execution_enabled":true,"provider_submit_enabled":false}
+      ]
+    },
+    "mx-shortdrama-04-asset-prompts": {
+      "kind": "asset_prompt_step",
+      "compatibility": [
+        {"task_kinds":["source_video"],"phases":["compile"],"profiles":["mac-step01-strict-evidence-v1"],"execution_enabled":true,"provider_submit_enabled":false}
+      ]
+    },
+    "mx-shortdrama-05-asset-images": {
+      "kind": "gated_image_execution",
+      "compatibility": [
+        {"task_kinds":["source_video","source_script"],"phases":["preflight"],"profiles":["mac-step01-strict-evidence-v1","mac-n06-mimo-preflight-v1"],"execution_enabled":true,"provider_submit_enabled":false},
+        {"task_kinds":["source_video","source_script"],"phases":["image_execute"],"profiles":["provider-authorized-only"],"execution_enabled":false,"provider_submit_enabled":false}
+      ]
+    },
+    "ai-video-firstframe-workflow": {
+      "kind": "first_frame_contract",
+      "compatibility": [
+        {"task_kinds":["source_video","source_script","confirmed_image_i2v"],"phases":["compile","review"],"profiles":["mac-step01-strict-evidence-v1","mac-n06-mimo-preflight-v1"],"execution_enabled":true,"provider_submit_enabled":false}
+      ]
+    },
+    "mx-shortdrama-script-only-production": {
+      "kind": "script_only_specialist",
+      "compatibility": [
+        {"task_kinds":["source_script"],"phases":["analysis","compile","review","preflight"],"profiles":["mac-n06-mimo-preflight-v1"],"execution_enabled":true,"provider_submit_enabled":false}
+      ]
+    },
+    "ai-video-channel-router": {
+      "kind": "channel_router",
+      "compatibility": [
+        {"task_kinds":["source_video","source_script","commerce_reference","original_narrative","confirmed_image_i2v"],"phases":["preflight"],"profiles":["mac-n06-mimo-preflight-v1"],"execution_enabled":true,"provider_submit_enabled":false},
+        {"task_kinds":["source_video","source_script","commerce_reference","original_narrative","confirmed_image_i2v"],"phases":["provider_submit"],"profiles":["provider-authorized-only"],"execution_enabled":false,"provider_submit_enabled":false}
+      ]
+    },
+    "mimo-8001-video-channel": {
+      "kind": "provider_channel",
+      "adapter_identity": "mimo_n06_ai_fashion_v1",
+      "compatibility": [
+        {"task_kinds":["source_script"],"phases":["preflight"],"profiles":["mac-n06-mimo-preflight-v1"],"execution_enabled":true,"provider_submit_enabled":false},
+        {"task_kinds":["source_script"],"phases":["provider_submit"],"profiles":["provider-authorized-only"],"execution_enabled":false,"provider_submit_enabled":false}
+      ]
+    },
+    "dola-video-channel": {
+      "kind": "provider_channel",
+      "adapter_identity": "dola2api_local_bridge_v1",
+      "compatibility": [
+        {"task_kinds":["source_video","source_script","confirmed_image_i2v"],"phases":["preflight","prepare"],"profiles":["windows-dola-bridge-v1"],"execution_enabled":true,"provider_submit_enabled":false},
+        {"task_kinds":["source_video","source_script","confirmed_image_i2v"],"phases":["provider_submit"],"profiles":["provider-authorized-only"],"execution_enabled":false,"provider_submit_enabled":false}
+      ]
+    }
+  }
+}

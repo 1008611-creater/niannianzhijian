@@ -1,0 +1,1 @@
+const t="nomi-browser-asset-import-to-canvas";function r(s){window.dispatchEvent(new CustomEvent(t,{detail:{assets:[...s]}}))}function i(s){const e=a=>{const n=a.detail,o=Array.isArray(n?.assets)?n.assets:[];s(o,{assets:o})};return window.addEventListener(t,e),()=>window.removeEventListener(t,e)}export{r as d,i as s};

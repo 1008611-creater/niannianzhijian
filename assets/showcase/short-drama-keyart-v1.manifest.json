@@ -1,0 +1,32 @@
+{
+  "asset_id": "showcase_short_drama_keyart_v1",
+  "artifact_type": "public_website_visual",
+  "status": "reviewed_for_public_showcase",
+  "file": "short-drama-keyart-v1.png",
+  "sha256": "22B3252CC1B257FBBE5CE7002420F155E08A1A41E5DF04889BD574B046B5116C",
+  "bytes": 1761650,
+  "origin": {
+    "method": "remote_image_generation",
+    "channel": "Krill Image2",
+    "model": "gpt-image-2",
+    "operation": "generate",
+    "local_raster_editing": false
+  },
+  "creative_contract": {
+    "use": "original key art for the NianNian AI public showcase page",
+    "scene": "fictional modern Chinese emotional short-drama scene in a rain-swept city corridor",
+    "public_claims": [
+      "original generated website visual",
+      "not a customer project, production candidate, first frame, or provider input"
+    ],
+    "reviewed_constraints": [
+      "two clearly adult people",
+      "coherent upper-left practical key light",
+      "natural anatomy and hands",
+      "no text, logo, watermark, UI, or copied external brand asset"
+    ]
+  },
+  "consumers": [
+    "../../index.html#showcase"
+  ]
+}

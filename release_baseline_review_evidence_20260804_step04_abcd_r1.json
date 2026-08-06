@@ -1,0 +1,18 @@
+{
+  "schema_version": "niannian_shared_file_handoff_baseline_evidence_v1",
+  "review_id": "release-baseline-20260804-step04-abcd-r2",
+  "captured_at": "2026-08-04T18:33:25+08:00",
+  "reason": "Step04 A/B/C/D bridge and runtime changes require a fresh canonical source attestation before isolated release staging.",
+  "files": {
+    "server.js": "2d47e9a8f3497a36d368c5831009455e77c23280ca70063fe60811bff9c67d48",
+    "index.html": "f05d8efb8e887fcaf663e785998e7c9daca5eeafc83d1c02d67d96b1e3e40d65",
+    "app.js": "15d83498a1ff4700287b74063b5220a37e5eaa9c267fb37c7540dfdd6f98b09a",
+    "mvp.js": "714033c2a051d43ef09957a83f414cf2cf7f537927254360a8ee21f5b25a7315",
+    "product.css": "347254a9da68acfb6d38bb1262d8fcb8c19ed2ba7ea9be42c80ebb4ce391ba4e",
+    "styles.css": "5f2289b61a2529d684454bf2639161d0e7951b3cfb883af91568c55611995409",
+    "product-system.css": "a030c1ea513d9a4ef7054af1a8bc4ac6f0e62dff826491fea2a1b6e7c37914f6",
+    "hero-oil-paint.css": "0fcba9536da02a0f8843331f986f01dbb670e0d2c1b1ccd2226046ffc0f60cdd",
+    "sw.js": "d15ebbaeb12a423cecaceb69189a88520c11786873a5a95a813a45e616656764",
+    "bridge/niannian_controller_bridge.js": "64157f96db7f48c33dfe028263cd15138a109e15a194e0375a18ee0f89e427cc"
+  }
+}

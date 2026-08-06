@@ -1,0 +1,61 @@
+.step04-word-delivery {
+  margin: 0 0 18px;
+  padding: 18px 20px;
+  border: 1px solid rgba(196, 162, 92, .28);
+  border-radius: 12px;
+  background: rgba(14, 14, 14, .86);
+}
+
+.step04-word-delivery > header,
+.step04-word-ready {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.step04-word-delivery > header strong,
+.step04-word-ready strong,
+.step04-word-pending strong {
+  display: block;
+  color: #f5f3ef;
+}
+
+.step04-word-delivery > header em {
+  color: #d7b66d;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.step04-word-ready {
+  margin-top: 14px;
+}
+
+.step04-word-ready span,
+.step04-word-pending span {
+  display: block;
+  margin-top: 5px;
+  color: rgba(245, 243, 239, .62);
+  font-size: .82rem;
+}
+
+.step04-word-ready .redraw-primary-action {
+  flex: 0 0 auto;
+  text-decoration: none;
+}
+
+.step04-word-pending {
+  margin-top: 14px;
+}
+
+@media (max-width: 640px) {
+  .step04-word-ready {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .step04-word-ready .redraw-primary-action {
+    width: 100%;
+    text-align: center;
+  }
+}

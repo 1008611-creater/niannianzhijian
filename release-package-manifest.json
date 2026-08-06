@@ -1,0 +1,30 @@
+{
+  "schema_version": "niannian_main_site_release_package_v1",
+  "release_id": "niannian-web-20260804-workbench-clarity-r2-short-drama-modal-fix1",
+  "parent_release": "niannian-web-20260804-workbench-clarity-r2",
+  "target": "https://ai.cauai.fun",
+  "scope": "restore the existing one-click short-drama dialog DOM only",
+  "entrypoints": {
+    "index.html": "234cb54c4278d0f7dad70af6bf504042e4210344ae871198f51e9b8764f59dba",
+    "app.js": "4c512e50f7687468aa4916da87dd8244b3d3b796b5415d7ecd72bb5cabf702ae",
+    "mvp-step02-r13.js": "d355cd3c502f0e734d22de3f33d87ebfc81a66662fd229392bff6cdc612e5726",
+    "product.css": "4d090191c1dc9da0c8aa06df0b4b9d6f946a061aac71e391873f78434fc85f72"
+  },
+  "inherited_studio": {
+    "source_release": "niannian-web-20260804-workbench-clarity-r2",
+    "file_count": 234,
+    "index.html": "e3d21446a442dc42a613f497df24f6d2148fdb8a8ca11e658412fe0047b6baf8",
+    "entry": {
+      "path": "studio/assets/index-M-8MrEH2.js",
+      "sha256": "3dfce2a98f69d1024363cc81e0f99b9e49cf2cfb1026e813d0406f4be95148c1"
+    },
+    "verification": "The complete studio tree was copied from the active Haika release and compared file-by-file by relative path and SHA-256."
+  },
+  "excluded": [
+    "homepage composition and shared header",
+    "workbench three-card layout",
+    "director desk",
+    "Step01 and Step04",
+    "API, provider, queue, canonical-local production logic"
+  ]
+}

@@ -1,0 +1,33 @@
+[Unit]
+Description=NianNian Step03 Visual Asset Worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/niannian-ai
+EnvironmentFile=/etc/niannian-ai/step03-worker.env
+Environment=NODE_ENV=production
+Environment=DATA_DIR=/var/lib/niannian-ai
+Environment=NIANNIAN_STEP03_RUNTIME_ROOT=/var/lib/niannian-ai/step03-runtime
+Environment=NIANNIAN_STEP03_SKILL_BUNDLE_ROOT=/opt/niannian-ai/runtime/skill-bundles/shortdrama-visual-assets-runtime-1
+ExecStart=/opt/node24/bin/node scripts/run_step03_worker.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/niannian-ai
+ReadOnlyPaths=/opt/niannian-ai /etc/niannian-ai
+RestrictSUIDSGID=true
+LockPersonality=true
+# Node/V8 needs executable JIT pages; the worker is still isolated by the
+# remaining filesystem, privilege, network, and writable-path restrictions.
+MemoryDenyWriteExecute=false
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

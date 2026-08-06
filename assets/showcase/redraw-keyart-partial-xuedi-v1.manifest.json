@@ -1,0 +1,45 @@
+{
+  "asset_id": "showcase_redraw_keyart_partial_xuedi_v1",
+  "artifact_type": "public_website_visual",
+  "status": "reviewed_for_public_showcase",
+  "file": "redraw-keyart-partial-xuedi-v1.png",
+  "sha256": "E3EBDD5B5B0C7ABD82B0C631ED3596EB9659D31F3CBD187F5A4CD5E12A40E618",
+  "origin": {
+    "method": "remote_reference_guided_image_generation",
+    "channel": "RunningHub Image G 2.0 low-price image-to-image",
+    "model": "Image G 2.0",
+    "operation": "image_to_image",
+    "task_id": "2076710971984187393",
+    "local_raster_editing": false,
+    "reference_inputs": [
+      {
+        "role": "male_identity_anchor",
+        "project": "partial_xuedi",
+        "name": "Qin Lang / Bruno Medina",
+        "source_status": "user_confirmed",
+        "sha256": "31E2FF92B582BAADF5911A6F386CD4CD1570F1FAC2B553F214FB8856BFBBBF26"
+      },
+      {
+        "role": "female_identity_anchor",
+        "project": "partial_xuedi",
+        "name": "Chi Xue / Valeria Solis",
+        "source_status": "user_confirmed",
+        "sha256": "B2DE6A4D44945DC9000181BC3FE9EB058A066BF2331E9565247CFE131C5CD130"
+      }
+    ]
+  },
+  "creative_contract": {
+    "use": "public website key art for the NianNian AI reference-video redraw showcase",
+    "public_claims": [
+      "reference-guided website visual based on user-approved project character anchors",
+      "not a source video, production first frame, provider input, or delivered customer footage"
+    ],
+    "reviewed_constraints": [
+      "clearly adult characters",
+      "two-user-approved character identity anchors",
+      "coherent left-rear cool daylight and right-side warm practical lighting",
+      "no text, logo, watermark, UI, copied brand asset, malformed anatomy, or extra limbs"
+    ]
+  },
+  "consumers": ["../../index.html#showcase"]
+}

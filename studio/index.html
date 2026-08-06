@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="./niannian-ai-authority-gold.svg?v=20260803-r2" />
+    <link rel="stylesheet" href="./tailwind.generated.css" />
+    <title>念念 AI</title>
+    <!-- overlay 旗（?nomiOverlay=browserAsset）由 src/main.tsx 在 React 渲染前设置——
+         别在这里加内联 <script>：打包态 CSP（script-src 'self'）会拦，dev 放行造成两态不一致。 -->
+    <style>
+      html,
+      body,
+      #root {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        background: #f7f4ed;
+      }
+
+      html[data-nomi-overlay="browserAsset"],
+      html[data-nomi-overlay="browserAsset"] body,
+      html[data-nomi-overlay="browserAsset"] #root {
+        background: transparent;
+      }
+
+      html[data-nomi-overlay="browserAsset"] #nomi-boot-shell {
+        display: none;
+        background: transparent;
+      }
+
+      #nomi-boot-shell {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        color: #2a2118;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      #nomi-boot-spinner {
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        border: 1px solid rgba(42, 33, 24, 0.14);
+        border-top-color: #9a6a3c;
+        animation: nomi-boot-spin 680ms linear infinite;
+      }
+
+      @keyframes nomi-boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-M-8MrEH2-logo-r1.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/runtime-vendor-BwexXt4y.js">
+    <link rel="modulepreload" crossorigin href="./assets/react-vendor-CRt0dbXk.js">
+    <link rel="modulepreload" crossorigin href="./assets/ui-vendor-pE9hUZy7.js">
+    <link rel="modulepreload" crossorigin href="./assets/app-api-BCudp21o.js">
+    <link rel="modulepreload" crossorigin href="./assets/router-vendor-6jLJPbXQ.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-Cc6_ivPv.css">
+  </head>
+  <body>
+    <div id="root">
+      <div id="nomi-boot-shell" aria-label="念念 AI 加载中">
+        <div id="nomi-boot-spinner"></div>
+      </div>
+    </div>
+  </body>
+  </html>

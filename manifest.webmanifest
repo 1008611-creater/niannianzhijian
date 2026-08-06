@@ -1,0 +1,19 @@
+{
+  "name": "念念 AI",
+  "short_name": "念念 AI",
+  "description": "AI 短剧与漫剧创作平台",
+  "lang": "zh-CN",
+  "start_url": "/#home",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#08080b",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "/assets/brand/niannian-ai-fused-monogram-v6-brand-pink.png",
+      "sizes": "3840x3840",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

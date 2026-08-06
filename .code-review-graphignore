@@ -1,0 +1,11 @@
+node_modules/
+.playwright-cli/
+logs/
+tmp/
+tmp_role_evidence/
+test-results/
+output/
+outputs/
+verification_frontend/
+video-batch-gate/
+__pycache__/

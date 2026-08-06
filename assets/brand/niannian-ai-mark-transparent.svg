@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">念念 AI</title>
+  <desc id="desc">念念 AI 白色线形品牌符号与粉色中轴</desc>
+  <g fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 50 48 12l29 38"/>
+    <path d="M29 40h38"/>
+    <path d="m25 57-7 9"/>
+    <path d="m71 57 7 9"/>
+    <path d="M31 71c0 9.4 7.6 17 17 17s17-7.6 17-17"/>
+  </g>
+  <path d="M48 56v13" fill="none" stroke="#ff2f7d" stroke-width="7" stroke-linecap="round"/>
+</svg>
