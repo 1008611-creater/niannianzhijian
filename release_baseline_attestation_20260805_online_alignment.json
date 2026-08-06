@@ -1,0 +1,37 @@
+{
+  "schema_version": "niannian_shared_file_handoff_attestation_v1",
+  "review_id": "release-baseline-20260805-online-alignment",
+  "reviewed_at": "2026-08-05T00:00:00+08:00",
+  "authoritative_source_path": "E:\\codex\\niannianai\\niannianai",
+  "files": {
+    "server.js": "147d0dc303dbe1b451ee9a95fea87fbd5f63455e82a716525e7e2c6ce492e27f",
+    "index.html": "234cb54c4278d0f7dad70af6bf504042e4210344ae871198f51e9b8764f59dba",
+    "app.js": "4c512e50f7687468aa4916da87dd8244b3d3b796b5415d7ecd72bb5cabf702ae",
+    "product.css": "4d090191c1dc9da0c8aa06df0b4b9d6f946a061aac71e391873f78434fc85f72",
+    "styles.css": "d8254de1de1b0cddeee13301ee64a0e5605294980a9c8de384ea76625822a489",
+    "product-system.css": "86836318ae20e3eda006d1a6aee23a3fe199f31b3893376a9ae2c04d66864875",
+    "hero-oil-paint.css": "0fcba9536da02a0f8843331f986f01dbb670e0d2c1b1ccd2226046ffc0f60cdd",
+    "sw.js": "cbfd1d820123f9fed70a9aa64ee9a851fe08e748b5df69df1b64ae1f5071d3a8",
+    "bridge/niannian_controller_bridge.js": "64157f96db7f48c33dfe028263cd15138a109e15a194e0375a18ee0f89e427cc"
+  },
+  "evidence": [
+    {
+      "path": "release_baseline_review_evidence_20260805_online_alignment.json",
+      "sha256": "deb2398ce90a74d4bcdda4f9f09e36f8c02ec2787434fdc90403943403146ea1",
+      "covers": [
+        "server.js",
+        "index.html",
+        "app.js",
+        "product.css",
+        "styles.css",
+        "product-system.css",
+        "hero-oil-paint.css",
+        "sw.js",
+        "bridge/niannian_controller_bridge.js"
+      ]
+    }
+  ],
+  "production_parity_claimed": true,
+  "deployment_authorized": false,
+  "note": "The source hashes are aligned to the active Haika safe payload record. Candidate construction remains local-only until a separately authorized Haika candidate and browser verification occur."
+}
