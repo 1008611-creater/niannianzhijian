@@ -79,6 +79,26 @@
     return response.providerStatus || {};
   }
 
+  async function health() {
+    var status = await providerStatus();
+    var textReady = status.text?.credentialConfigured === true
+      && status.text?.modelConfigured === true
+      && status.text?.submitEnabled === true;
+    var imageReady = status.credentialConfigured === true
+      && status.imageSubmitEnabled === true;
+    var videoReady = status.credentialConfigured === true
+      && status.videoSubmitEnabled === true;
+    var enabledKinds = [textReady, imageReady, videoReady].filter(Boolean).length;
+    return {
+      byKind: [
+        {kind: 'text', enabledModels: textReady ? 1 : 0},
+        {kind: 'image', enabledModels: imageReady ? 1 : 0},
+        {kind: 'video', enabledModels: videoReady ? 1 : 0}
+      ],
+      issues: enabledKinds > 0 ? [] : [{code: 'catalog_empty', severity: 'error'}]
+    };
+  }
+
   async function listVendors() {
     var status = await providerStatus();
     return [
@@ -215,7 +235,7 @@
 
   window.nomiDesktop = {
     platform: 'web',
-    modelCatalog: {listVendors: listVendors, listModels: listModels, listMappings: async function () { return []; }},
+    modelCatalog: {listVendors: listVendors, listModels: listModels, health: health, listMappings: async function () { return []; }},
     tasks: {run: runTask, result: result, grantSpend: grantSpend},
     agents: {},
     window: {},
