@@ -7550,7 +7550,7 @@ function canvasDocumentEnvelope(project, record) {
     schema_version:'niannian.canvas_document.v1',
     project_id:project.id,
     revision,
-    document:JSON.stringify(record?.document || {generationCanvas:{nodes:[],edges:[]}}),
+    document:record?.document || {generationCanvas:{nodes:[],edges:[]}},
     updated_at:record?.updatedAt || null
   };
 }
