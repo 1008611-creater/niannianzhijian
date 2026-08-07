@@ -2,7 +2,10 @@
   'use strict';
 
   if (typeof window === 'undefined') return;
-  if (window.nomiDesktop && window.nomiDesktop.platform && window.nomiDesktop.platform !== 'web') return;
+  var existingBridge = window.nomiDesktop;
+  if (existingBridge && existingBridge.platform
+    && existingBridge.tasks && typeof existingBridge.tasks.run === 'function'
+    && existingBridge.modelCatalog && typeof existingBridge.modelCatalog.listModels === 'function') return;
 
   function projectId() {
     var searches = [window.location.search];
