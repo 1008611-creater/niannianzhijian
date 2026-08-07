@@ -84,6 +84,41 @@
     return response.providerStatus || {};
   }
 
+  var catalogState = {vendors: [], models: []};
+
+  function catalogForStatus(status) {
+    var vendors = [
+      {
+        key: 'runninghub',
+        name: 'RunningHub',
+        enabled: true,
+        hasApiKey: status.credentialConfigured === true,
+        authType: 'bearer',
+        baseUrlHint: status.baseUrl || null
+      },
+      {
+        key: 'asxs',
+        name: 'ASXS',
+        enabled: true,
+        hasApiKey: status.text?.credentialConfigured === true,
+        authType: 'bearer',
+        baseUrlHint: status.text?.baseUrl || null
+      }
+    ];
+    var models = [];
+    if (status.credentialConfigured === true && status.imageSubmitEnabled === true) models.push(providerModel('image', status));
+    if (status.credentialConfigured === true && status.videoSubmitEnabled === true) models.push(providerModel('video', status));
+    if (status.text?.credentialConfigured === true && status.text?.modelConfigured === true && status.text?.submitEnabled === true) models.push(providerModel('text', status));
+    return {vendors: vendors, models: models};
+  }
+
+  async function refreshCatalog() {
+    var next = catalogForStatus(await providerStatus());
+    catalogState = next;
+    if (typeof window.dispatchEvent === 'function') window.dispatchEvent(new CustomEvent('nomi-model-catalog-changed'));
+    return next;
+  }
+
   async function health() {
     var status = await providerStatus();
     var textReady = status.text?.credentialConfigured === true
@@ -104,39 +139,14 @@
     };
   }
 
-  async function listVendors() {
-    var status = await providerStatus();
-    return [
-      {
-        key: 'runninghub',
-        name: 'RunningHub',
-        enabled: true,
-        hasApiKey: status.credentialConfigured === true,
-        authType: 'bearer',
-        baseUrlHint: status.baseUrl || null
-      },
-      {
-        key: 'asxs',
-        name: 'ASXS',
-        enabled: true,
-        hasApiKey: status.text?.credentialConfigured === true,
-        authType: 'bearer',
-        baseUrlHint: status.text?.baseUrl || null
-      }
-    ];
+  function listVendors() {
+    return catalogState.vendors.slice();
   }
 
-  async function listModels(params) {
-    var status = await providerStatus();
+  function listModels(params) {
     var requested = String(params && params.kind || '').trim();
-    var models = [];
-    if (!requested || requested === 'image' || requested === 'imageEdit') models.push(providerModel('image', status));
-    if (!requested || requested === 'video') models.push(providerModel('video', status));
-    if (!requested || requested === 'text' || requested === 'chat') models.push(providerModel('text', status));
-    return models.filter(function (model) {
-      return model.vendorKey === 'asxs'
-        ? status.text?.credentialConfigured === true && status.text?.modelConfigured === true
-        : status.credentialConfigured === true;
+    return catalogState.models.filter(function (model) {
+      return !requested || requested === model.kind || (requested === 'imageEdit' && model.kind === 'image') || (requested === 'chat' && model.kind === 'text');
     });
   }
 
@@ -246,4 +256,7 @@
     window: {},
     app: {}
   };
+  refreshCatalog().catch(function () {
+    catalogState = {vendors: [], models: []};
+  });
 }());
