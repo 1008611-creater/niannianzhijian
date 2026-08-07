@@ -19,6 +19,9 @@ try {
   for (const file of requiredStaticFiles) assert(fs.existsSync(path.join(candidate.stage_root, file)));
   assert(fs.existsSync(path.join(candidate.stage_root, 'assets/home/niannian-hero-oil-paint-quiet-v1.png')));
   assert(fs.existsSync(path.join(candidate.stage_root, 'assets/brand/niannian-ai-fused-monogram-v6-brand-pink.png')));
+  fs.mkdirSync(path.join(candidate.stage_root, 'node_modules', '.bin'), { recursive:true });
+  fs.writeFileSync(path.join(candidate.stage_root, 'node_modules', '.bin', 'runtime'), 'deployment-host dependency');
+  assert.equal(verifyStage(candidateRoot).ok, true);
   fs.appendFileSync(path.join(candidate.stage_root, 'product-system.css'), '\n/* tampered */\n');
   assert.throws(() => verifyStage(candidateRoot), /remote_release_manifest_hash_mismatch:product-system\.css/);
   process.stdout.write(JSON.stringify({ ok:true, verified:['remote manifest inventory', 'all SHA-256 values', 'static dependency completeness', 'tamper rejection'] }) + '\n');

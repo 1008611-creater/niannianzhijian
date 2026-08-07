@@ -25,6 +25,9 @@ function walkFiles(directory, prefix = '') {
   return fs.readdirSync(directory, { withFileTypes:true }).flatMap(entry => {
     const relativePath = prefix ? prefix + '/' + entry.name : entry.name;
     const absolutePath = path.join(directory, entry.name);
+    // Deployment hosts materialize native dependencies after package verification.
+    // They are intentionally outside the immutable release manifest.
+    if (entry.isDirectory() && relativePath === 'node_modules') return [];
     if (entry.isDirectory()) return walkFiles(absolutePath, relativePath);
     if (entry.isFile()) return [relativePath];
     fail('remote_release_entry_invalid:' + relativePath);
