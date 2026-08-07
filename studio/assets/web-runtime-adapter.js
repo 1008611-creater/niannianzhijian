@@ -181,6 +181,57 @@
     };
   }
 
+  var webProjectsStorageKey = 'niannian-web-projects-v1';
+  function readWebProjects() {
+    try {
+      var stored = window.localStorage.getItem(webProjectsStorageKey);
+      var parsed = stored ? JSON.parse(stored) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) { return []; }
+  }
+  function writeWebProjects(projects) {
+    try { window.localStorage.setItem(webProjectsStorageKey, JSON.stringify(projects.slice(0, 100))); } catch (_) {}
+  }
+  function newWebProjectId() {
+    var suffix = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, '')
+      : String(Date.now()) + Math.random().toString(16).slice(2);
+    return 'NN-web-' + suffix.slice(0, 64);
+  }
+  var webProjects = readWebProjects();
+  function projectSummary(record) {
+    return {
+      id: record.id,
+      name: record.name || '未命名项目',
+      createdAt: record.createdAt || Date.now(),
+      updatedAt: record.updatedAt || record.createdAt || Date.now(),
+      revision: Number(record.revision || 0),
+      savedAt: record.savedAt || record.updatedAt || record.createdAt || Date.now(),
+      canvasOnly: true
+    };
+  }
+  var projectsApi = {
+    list: function () { return webProjects.slice().sort(function (a, b) { return Number(b.updatedAt || 0) - Number(a.updatedAt || 0); }); },
+    create: function (record) {
+      var now = Date.now();
+      var created = Object.assign({}, record || {}, {id: newWebProjectId(), createdAt: now, updatedAt: now, revision: 0, savedAt: now, canvasOnly: true});
+      webProjects = [projectSummary(created)].concat(webProjects.filter(function (item) { return item.id !== created.id; }));
+      writeWebProjects(webProjects);
+      return created;
+    },
+    read: function (id) { return webProjects.find(function (item) { return item.id === id; }) || null; },
+    save: function (id, record) {
+      var next = projectSummary(Object.assign({}, record || {}, {id: id, updatedAt: Date.now()}));
+      webProjects = [next].concat(webProjects.filter(function (item) { return item.id !== id; }));
+      writeWebProjects(webProjects);
+      return record;
+    },
+    delete: function (id) {
+      webProjects = webProjects.filter(function (item) { return item.id !== id; });
+      writeWebProjects(webProjects);
+    }
+  };
+
   async function grantSpend(payload) {
     var project = projectId();
     if (!project) throw new Error('请从念念项目中打开画布后再生成');
@@ -250,6 +301,7 @@
 
   window.nomiDesktop = {
     platform: 'web',
+    projects: projectsApi,
     modelCatalog: {listVendors: listVendors, listModels: listModels, health: health, listMappings: async function () { return []; }},
     tasks: {run: runTask, result: result, grantSpend: grantSpend},
     agents: {},

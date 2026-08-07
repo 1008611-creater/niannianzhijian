@@ -120,6 +120,7 @@ const scriptProjectsPath = path.join(dataRoot, 'script-projects.json');
 const workspaceBindingsPath = path.join(dataRoot, 'workspace-bindings.json');
 const websiteIdempotencyPath = path.join(dataRoot, 'website-idempotency.json');
 const canvasDocumentsPath = path.join(dataRoot, 'canvas-documents.json');
+const canvasProjectsPath = path.join(dataRoot, 'canvas-projects.json');
 const directorDeskDocumentsPath = path.join(dataRoot, 'director-desk-documents.json');
 const canvasGenerationJobsPath = path.join(dataRoot, 'canvas-generation-jobs.json');
 const canvasTextJobsPath = path.join(dataRoot, 'canvas-text-jobs.json');
@@ -356,6 +357,7 @@ const redrawProjectEventSnapshots = new Map();
 const scriptProjectEventSnapshots = new Map();
 const projectSourceIntegrityCache = new Map();
 let redrawProjectsWriteTail = Promise.resolve();
+let canvasProjectsWriteTail = Promise.resolve();
 let canvasDocumentsWriteTail = Promise.resolve();
 let directorDeskDocumentsWriteTail = Promise.resolve();
 
@@ -371,6 +373,7 @@ async function ensureData() {
   try { await fsp.access(scriptProjectsPath); } catch { await fsp.writeFile(scriptProjectsPath, '[]\n'); }
   try { await fsp.access(workspaceBindingsPath); } catch { await fsp.writeFile(workspaceBindingsPath, '[]\n'); }
   try { await fsp.access(canvasDocumentsPath); } catch { await fsp.writeFile(canvasDocumentsPath, '{}\n'); }
+  try { await fsp.access(canvasProjectsPath); } catch { await fsp.writeFile(canvasProjectsPath, '[]\n'); }
   try { await fsp.access(directorDeskDocumentsPath); } catch { await fsp.writeFile(directorDeskDocumentsPath, '{}\n'); }
   try { await fsp.access(canvasGenerationJobsPath); } catch { await fsp.writeFile(canvasGenerationJobsPath, '[]\n'); }
   try { await fsp.access(canvasAssetsPath); } catch { await fsp.writeFile(canvasAssetsPath, '[]\n'); }
@@ -394,6 +397,28 @@ async function writeProjects(projects) {
     throw error;
   }
   broadcastProjectEvent('redraw_project_projection_changed', changedProjectIdsByOwner(projects, redrawProjectEventSnapshots, 'redrawProjectIds'));
+}
+
+async function readCanvasProjects() {
+  await ensureData();
+  const stored = await readJsonFile(canvasProjectsPath, []);
+  return Array.isArray(stored) ? stored : [];
+}
+
+async function writeCanvasProjects(projects) {
+  const temporary = canvasProjectsPath + '.tmp-' + process.pid + '-' + crypto.randomBytes(6).toString('hex');
+  await fsp.writeFile(temporary, JSON.stringify(Array.isArray(projects) ? projects : [], null, 2) + '\n', {encoding:'utf8',flag:'wx'});
+  try { await fsp.rename(temporary, canvasProjectsPath); }
+  catch (error) { await fsp.rm(temporary, {force:true}).catch(() => {}); throw error; }
+}
+
+async function withCanvasProjectsWriteLock(operation) {
+  const previous = canvasProjectsWriteTail;
+  let release;
+  canvasProjectsWriteTail = new Promise(resolve => { release = resolve; });
+  await previous;
+  try { return await operation(); }
+  finally { release(); }
 }
 
 async function readCanvasDocuments() {
@@ -6854,7 +6879,39 @@ function normalizeCanvasDocument(value, project) {
 async function canvasOwnedProject(user, projectKind, projectId) {
   if (!['redraw','script'].includes(projectKind)) return null;
   const projects = projectKind === 'redraw' ? await readProjects() : await readScriptProjects();
-  return projects.find(project => project.id === projectId && project.ownerId === user.id) || null;
+  const owned = projects.find(project => project.id === projectId && project.ownerId === user.id) || null;
+  if (owned) return owned;
+  const canvasProjects = await readCanvasProjects();
+  return canvasProjects.find(project => project.id === projectId && project.ownerId === user.id && project.projectKind === projectKind) || null;
+}
+
+function isWebCanvasProjectId(projectId) {
+  return /^NN-web-[A-Za-z0-9-]{4,100}$/.test(String(projectId || '').trim());
+}
+
+async function ensureWebCanvasProject(user, projectId, name = null) {
+  const id = String(projectId || '').trim();
+  if (!isWebCanvasProjectId(id)) return null;
+  return withCanvasProjectsWriteLock(async () => {
+    const projects = await readCanvasProjects();
+    const existing = projects.find(project => project.id === id);
+    if (existing) return existing.ownerId === user.id ? existing : null;
+    const now = new Date().toISOString();
+    const project = {
+      id,
+      ownerId:user.id,
+      canvasOnly:true,
+      name:canvasText(name, 160) || '未命名项目',
+      projectKind:'redraw',
+      status:'ready',
+      createdAt:now,
+      updatedAt:now,
+      runtime:{productionStatus:'ready',currentNode:'canvas',earliestIncompleteNode:null,nextSkill:null,blocker:null,nextAction:null,gateState:'canvas_ready'}
+    };
+    projects.unshift(project);
+    await writeCanvasProjects(projects);
+    return project;
+  });
 }
 
 function canvasDocumentKey(projectKind, projectId) {
@@ -7485,6 +7542,60 @@ function requestedNomiH3Model(request) {
 
 function nomiEtag(revision) {
   return '"nomi-rev-' + Number(revision || 0) + '"';
+}
+
+function canvasDocumentEnvelope(project, record) {
+  const revision = Number(record?.revision || 0);
+  return {
+    schema_version:'niannian.canvas_document.v1',
+    project_id:project.id,
+    revision,
+    document:JSON.stringify(record?.document || {generationCanvas:{nodes:[],edges:[]}}),
+    updated_at:record?.updatedAt || null
+  };
+}
+
+async function handleWorkbenchCanvasProjectApi(request, response, pathname, user) {
+  const match = pathname.match(/^\/api\/projects\/([^/]+)\/canvas$/);
+  if (!match) return false;
+  const projectId = decodeURIComponent(match[1]);
+  let project = await canvasOwnedProject(user, 'redraw', projectId);
+  if (!project) project = await ensureWebCanvasProject(user, projectId);
+  if (!project) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'}), true;
+  const key = nomiDocumentKey('redraw', project.id);
+  if (request.method === 'GET') {
+    let record = nomiRecordForProject((await readCanvasDocuments())[key], project, 'redraw');
+    if (!record) {
+      record = await withCanvasDocumentsWriteLock(async () => {
+        const documents = await readCanvasDocuments();
+        const current = nomiRecordForProject(documents[key], project, 'redraw');
+        if (current) return current;
+        const created = {schemaVersion:'niannian.nomi-project-document.v1',projectId:project.id,projectKind:'redraw',ownerId:user.id,revision:0,document:{generationCanvas:{nodes:[],edges:[]}},updatedAt:new Date().toISOString()};
+        documents[key] = created;
+        await writeCanvasDocuments(documents);
+        return created;
+      });
+    }
+    return json(response, 200, {canvas:canvasDocumentEnvelope(project, record),project:{id:project.id,name:project.name,status:project.status}}, {'Cache-Control':'no-store'}), true;
+  }
+  if (request.method !== 'PUT') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'}), true;
+  try {
+    const body = await readBodyJson(request, 8 * 1024 * 1024);
+    const saved = await withCanvasDocumentsWriteLock(async () => {
+      const documents = await readCanvasDocuments();
+      const current = nomiRecordForProject(documents[key], project, 'redraw');
+      const currentRevision = Number(current?.revision || 0);
+      if (Number(body.revision) !== currentRevision) throw Object.assign(new Error('画布已在其他页面更新，请先重新载入。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:409});
+      const document = normalizeNomiProjectDocument(body.document);
+      const record = {schemaVersion:'niannian.nomi-project-document.v1',projectId:project.id,projectKind:'redraw',ownerId:user.id,revision:currentRevision + 1,document,updatedAt:new Date().toISOString()};
+      documents[key] = record;
+      await writeCanvasDocuments(documents);
+      return record;
+    });
+    return json(response, 200, {canvas:canvasDocumentEnvelope(project, saved),project:{id:project.id,name:project.name,status:project.status}}, {'Cache-Control':'no-store'}), true;
+  } catch (error) {
+    return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_DOCUMENT_SAVE_FAILED',error:error.message || '画布保存失败'}), true;
+  }
 }
 
 function nomiSafeDocumentValue(value, depth = 0) {
@@ -8165,6 +8276,10 @@ async function handleApi(request, response, pathname) {
     const handled = await handleCanvasDocumentApi(request, response, pathname, user);
     if (handled) return;
   }
+  if (pathname.match(/^\/api\/projects\/[^/]+\/canvas$/)) {
+    const handled = await handleWorkbenchCanvasProjectApi(request, response, pathname, user);
+    if (handled) return;
+  }
   if (request.method === 'GET' && pathname === '/api/video-channels') {
     try {
       let registry;
@@ -8813,8 +8928,10 @@ async function handleApi(request, response, pathname) {
   const projectPrefix = '/api/projects/';
   const projectId = pathname.startsWith(projectPrefix) ? pathname.slice(projectPrefix.length) : '';
   if (request.method === 'GET' && projectId && !projectId.includes('/')) {
-    const project = (await readOwnedProjects(user.id)).find(item => item.id === projectId);
-    return project ? json(response, 200, {project:publicProject(project)}) : json(response, 404, {error:'项目不存在'});
+    const project = (await readOwnedProjects(user.id)).find(item => item.id === projectId) || await ensureWebCanvasProject(user, projectId);
+    if (!project) return json(response, 404, {error:'项目不存在'});
+    if (project.canvasOnly === true) return json(response, 200, {project:{id:project.id,name:project.name,status:project.status,createdAt:project.createdAt,updatedAt:project.updatedAt,workspaceProjectId:project.id,source:null,runtime:project.runtime || {}}});
+    return json(response, 200, {project:publicProject(project)});
   }
   return json(response, 404, {error:'API 不存在'});
 }
