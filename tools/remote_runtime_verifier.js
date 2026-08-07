@@ -13,7 +13,10 @@ if (!fs.existsSync(studioIndex)) throw new Error('studio_index_missing');
 const index = fs.readFileSync(studioIndex, 'utf8');
 const assetsRoot = path.join(packageRoot, 'studio', 'assets');
 const assets = fs.readdirSync(assetsRoot);
-if (!index.includes('web-runtime-adapter.js?v=20260807-r18')) throw new Error('web_adapter_cache_bust_missing');
+// The adapter cache version is intentionally release-specific. Require a
+// cache-busted adapter reference without coupling candidate activation to a
+// retired release identifier.
+if (!/web-runtime-adapter\.js\?v=[A-Za-z0-9._-]+/.test(index)) throw new Error('web_adapter_cache_bust_missing');
 if (!assets.some(name => /^NomiStudioApp-.*\.js$/.test(name))) throw new Error('studio_bundle_entry_missing');
 if (!assets.includes('web-runtime-adapter.js')) throw new Error('web_runtime_adapter_missing');
 process.stdout.write(JSON.stringify({ok:true,verified:['server entry','studio bundle entry','web runtime adapter cache bust']}) + '\n');
