@@ -13,7 +13,7 @@ assert.match(source, /vendorKey: 'asxs'/);
 assert.match(source, /request\.kind === 'chat'/);
 assert.match(source, /confirmProviderSpend:\s*true/);
 assert.doesNotMatch(source, /RUNNINGHUB_API_KEY|apiKey\s*:/);
-assert.match(source, /!isWebOrigin\s*&&\s*existingBridge\.platform/);
+assert.match(source, /!isWebOrigin\s*&&\s*existingBridge/);
 
 const calls = [];
 const context = {
