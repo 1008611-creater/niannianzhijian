@@ -1,7 +1,8 @@
 (function () {
   'use strict';
 
-  if (typeof window === 'undefined' || window.nomiDesktop) return;
+  if (typeof window === 'undefined') return;
+  if (window.nomiDesktop && window.nomiDesktop.platform && window.nomiDesktop.platform !== 'web') return;
 
   function projectId() {
     var searches = [window.location.search];
