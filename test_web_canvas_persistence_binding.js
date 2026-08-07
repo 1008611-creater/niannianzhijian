@@ -17,5 +17,8 @@ assert.match(
   /if\(h\)return;P\.current!==s\.id&&\(P\.current=s\.id\);const K=N\.bindProjectPersistence/,
 );
 assert.doesNotMatch(source, /if\(h\|\|P\.current!==s\.id\)return;const K=N\.bindProjectPersistence/);
+assert.match(source, /window\.dispatchEvent\(new Event\("nomi-canvas-mutated"\)\)/);
+assert.match(source, /window\.addEventListener\("nomi-canvas-mutated",q\)/);
+assert.match(source, /N\.persistProject\(s,ir\(\)\)/);
 
 console.log('WEB_CANVAS_PERSISTENCE_BINDING_CONTRACT_OK');
