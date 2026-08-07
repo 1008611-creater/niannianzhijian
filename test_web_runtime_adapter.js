@@ -37,6 +37,9 @@ const context = {
 };
 vm.runInNewContext(source, context, {filename:'web-runtime-adapter.js'});
 assert.ok(context.window.nomiDesktop);
+assert.equal(typeof context.window.nomiDesktop.tasks.runTextStream, 'function');
+assert.equal(typeof context.window.nomiDesktop.tasks.onTextEvent, 'function');
+assert.equal(typeof context.window.nomiDesktop.tasks.cancelTextStream, 'function');
 await new Promise((resolve) => setTimeout(resolve, 10));
 assert.equal((await context.window.nomiDesktop.modelCatalog.listModels({kind:'image'})).length, 0);
 const vendors = await context.window.nomiDesktop.modelCatalog.listVendors();

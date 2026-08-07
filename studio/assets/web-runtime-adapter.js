@@ -243,6 +243,97 @@
     return {grantId: result.grantId};
   }
 
+  // The Studio text runtime expects a stream-shaped bridge. The server currently
+  // completes text jobs synchronously, but keeping the small in-memory stream
+  // registry lets the browser use the same contract if a job remains running.
+  var textStreams = new Map();
+  var textStreamPollMs = 800;
+
+  async function runTextStream(payload) {
+    var envelope = payload && typeof payload === 'object' ? payload : {};
+    var request = envelope.request && typeof envelope.request === 'object' ? envelope.request : {};
+    var extras = request.extras && typeof request.extras === 'object' ? request.extras : {};
+    var project = String(extras.projectId || projectId()).trim();
+    if (!project) throw new Error('请从念念项目中打开画布后再生成');
+    var nodeId = String(extras.nodeId || '').trim();
+    if (!nodeId) throw new Error('画布节点尚未保存，请稍后重试');
+    var response = await api('/api/projects/' + encodeURIComponent(project) + '/text/jobs', {
+      method: 'POST',
+      headers: {'content-type': 'application/json', 'idempotency-key': extras.idempotencyKey || idempotency('nomi-text')},
+      body: JSON.stringify({
+        projectKind: extras.projectKind || canvasProjectKind(),
+        nodeId: nodeId,
+        model: extras.modelKey || extras.modelAlias || request.model || envelope.vendor || '',
+        prompt: request.prompt || ''
+      })
+    });
+    if (!response.job) throw new Error('服务器没有返回文本任务');
+    var streamId = String(response.job.id || '').trim();
+    if (!streamId) throw new Error('服务器没有返回文本任务编号');
+    textStreams.set(streamId, {
+      project: project,
+      projectKind: extras.projectKind || canvasProjectKind(),
+      job: response.job,
+      cancelled: false,
+      timer: null
+    });
+    return {streamId: streamId};
+  }
+
+  function onTextEvent(streamId, callback) {
+    var key = String(streamId || '').trim();
+    var stream = textStreams.get(key);
+    if (!stream || typeof callback !== 'function') return function () {};
+    var stopped = false;
+    var finish = function () {
+      if (stream.timer) { clearTimeout(stream.timer); stream.timer = null; }
+      textStreams.delete(key);
+    };
+    var poll = async function () {
+      if (stopped || stream.cancelled) { finish(); return; }
+      var job = stream.job;
+      try {
+        if (!job || !['succeeded', 'recoverable', 'failed'].includes(job.status)) {
+          var result = await api('/api/projects/' + encodeURIComponent(stream.project) + '/text/jobs/' + encodeURIComponent(key)
+            + '?projectKind=' + encodeURIComponent(stream.projectKind));
+          job = result.job;
+          stream.job = job;
+        }
+        if (stopped || stream.cancelled) { finish(); return; }
+        if (job && job.status === 'succeeded') {
+          callback({type: 'done', result: taskFromTextJob(job)});
+          finish();
+          return;
+        }
+        if (job && ['recoverable', 'failed'].includes(job.status)) {
+          callback({type: 'error', message: job.error || '文本生成失败'});
+          finish();
+          return;
+        }
+        stream.timer = setTimeout(poll, textStreamPollMs);
+      } catch (error) {
+        if (stopped || stream.cancelled) { finish(); return; }
+        callback({type: 'error', message: error instanceof Error && error.message ? error.message : '文本任务读取失败'});
+        finish();
+      }
+    };
+    poll();
+    return function () {
+      stopped = true;
+      stream.cancelled = true;
+      finish();
+    };
+  }
+
+  function cancelTextStream(streamId) {
+    var stream = textStreams.get(String(streamId || '').trim());
+    if (!stream) return;
+    stream.cancelled = true;
+    if (stream.timer) clearTimeout(stream.timer);
+    stream.timer = null;
+    textStreams.delete(String(streamId || '').trim());
+  }
+
   async function runTask(payload) {
     var request = payload && payload.request || {};
     var project = projectId();
@@ -303,7 +394,14 @@
     platform: 'web',
     projects: projectsApi,
     modelCatalog: {listVendors: listVendors, listModels: listModels, health: health, listMappings: async function () { return []; }},
-    tasks: {run: runTask, result: result, grantSpend: grantSpend},
+    tasks: {
+      run: runTask,
+      runTextStream: runTextStream,
+      onTextEvent: onTextEvent,
+      cancelTextStream: cancelTextStream,
+      result: result,
+      grantSpend: grantSpend
+    },
     agents: {},
     window: {},
     app: {}
