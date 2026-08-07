@@ -3,7 +3,8 @@
 
   if (typeof window === 'undefined') return;
   var existingBridge = window.nomiDesktop;
-  if (existingBridge && existingBridge.platform
+  var isWebOrigin = window.location && /^https?:$/.test(window.location.protocol);
+  if (!isWebOrigin && existingBridge && existingBridge.platform
     && existingBridge.tasks && typeof existingBridge.tasks.run === 'function'
     && existingBridge.modelCatalog && typeof existingBridge.modelCatalog.listModels === 'function') return;
 
