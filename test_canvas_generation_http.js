@@ -46,8 +46,8 @@ async function seed() {
       ownerId:userA.id,
       updatedAt:new Date().toISOString(),
       document:{generationCanvas:{nodes:[
-        {id:'web-image-node-001',kind:'image',type:'image',position:{x:100,y:100},data:{title:'网页产品图',prompt:'网页画布节点',status:'draft'}},
-        {id:'web-text-node-001',kind:'text',type:'text',position:{x:100,y:260},prompt:'网页文本节点',data:{title:'网页文案',prompt:'网页文本节点',status:'draft'}}
+        {id:'web-image-node-001',kind:'image',position:{x:100,y:100},data:{title:'网页产品图',prompt:'网页画布节点',status:'draft'}},
+        {id:'web-text-node-001',kind:'text',position:{x:100,y:260},prompt:'网页文本节点',data:{title:'网页文案',prompt:'网页文本节点',status:'draft'}}
       ],edges:[]}}
     }
   };

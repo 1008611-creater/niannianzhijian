@@ -7369,7 +7369,8 @@ async function handleCanvasTextApi(request, response, pathname, user) {
       const nodeId = canvasText(body.nodeId, 160);
       const node = await generationNodeForProject(owned.project, owned.projectKind, nodeId);
       if (!node) return json(response, 404, {code:'CANVAS_TEXT_NODE_NOT_FOUND',error:'文本节点不存在或尚未保存'});
-      if (node.type !== 'text') return json(response, 422, {code:'CANVAS_TEXT_NODE_REQUIRED',error:'当前节点不是文本节点'});
+      const nodeType = canvasText(node.type || node.kind, 40);
+      if (nodeType !== 'text') return json(response, 422, {code:'CANVAS_TEXT_NODE_REQUIRED',error:'当前节点不是文本节点'});
       const requestedModel = canvasText(body.model || node.meta?.modelKey || node.data?.modelKey || canvasTextRuntime.config.model, 200);
       const prompt = canvasText(body.prompt || node.prompt || node.data?.prompt, 12000);
       const idempotencyKey = request.headers['idempotency-key'];
@@ -7429,9 +7430,10 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       const nodeId = canvasText(body.nodeId, 80);
       const node = await generationNodeForProject(owned.project, owned.projectKind, nodeId);
       if (!node) return json(response, 404, {code:'CANVAS_NODE_NOT_FOUND',error:'画布节点不存在或尚未保存'});
-      if (!['image','video'].includes(node.type)) return json(response, 422, {code:'CANVAS_NODE_NOT_GENERATABLE',error:'该节点不能创建生成任务'});
+      const nodeType = canvasText(node.type || node.kind, 40);
+      if (!['image','video'].includes(nodeType)) return json(response, 422, {code:'CANVAS_NODE_NOT_GENERATABLE',error:'该节点不能创建生成任务'});
       const requestedModel = canvasText(body.model, 80);
-      const expectedModel = node.type === 'image' ? 'image2' : 'h3';
+      const expectedModel = nodeType === 'image' ? 'image2' : 'h3';
       if (requestedModel && requestedModel !== expectedModel) return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'模型与当前节点类型不匹配'});
       const inputAssetIds = [...new Set((Array.isArray(body.inputAssetIds) ? body.inputAssetIds : (node.data?.assetIds || [])).map(value => canvasText(value, 120)).filter(Boolean))].slice(0, 24);
       for (const assetId of inputAssetIds) {
@@ -7444,12 +7446,12 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         projectId,
         projectKind:owned.projectKind,
         nodeId,
-        nodeType:node.type,
+        nodeType,
         prompt:canvasText(body.prompt || node.data?.prompt, 4000),
         inputAssetIds,
         resolution:canvasText(body.resolution || node.data?.resolution || '2k', 8),
         aspectRatio:canvasText(body.aspectRatio || node.data?.aspectRatio || '1:1', 16),
-        durationSeconds:body.durationSeconds || body.duration_seconds || node.data?.durationSeconds || node.data?.duration_seconds || (node.type === 'video' ? 5 : 0),
+        durationSeconds:body.durationSeconds || body.duration_seconds || node.data?.durationSeconds || node.data?.duration_seconds || (nodeType === 'video' ? 5 : 0),
         idempotencyKey:request.headers['idempotency-key']
       });
       return json(response, created.created ? 201 : 200, {code:created.created ? 'CANVAS_GENERATION_JOB_PREPARED' : 'CANVAS_GENERATION_JOB_REUSED',idempotent:!created.created,...publicCanvasGenerationResponse(created.job)});
