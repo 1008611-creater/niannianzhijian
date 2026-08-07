@@ -22,12 +22,44 @@ async function seed() {
   const future = new Date(Date.now() + 60 * 60 * 1000).toISOString();
   const userA = {id:'USR-CANVAS-A',email:'canvas-a@example.test',status:'active'};
   const userB = {id:'USR-CANVAS-B',email:'canvas-b@example.test',status:'active'};
+  const canvasDocuments = {
+    'redraw:NN-CANVAS-A': {
+      revision:1,
+      projectId:'NN-CANVAS-A',
+      projectKind:'redraw',
+      ownerId:userA.id,
+      updatedAt:new Date().toISOString(),
+      document:{
+        version:1,
+        nodes:[
+          {id:'image-node-001',type:'image',position:{x:100,y:100},data:{title:'产品主图',prompt:'白色背景产品主视觉',assetIds:['asset-001'],status:'draft'}},
+          {id:'video-node-001',type:'video',position:{x:380,y:100},data:{title:'产品视频',prompt:'产品缓慢旋转，镜头轻微推进',assetIds:['asset-001'],aspectRatio:'16:9',durationSeconds:5,status:'draft'}}
+        ],
+        edges:[],
+        viewport:{x:0,y:0,zoom:1}
+      }
+    },
+    'nomi:redraw:NN-WEB-A': {
+      revision:1,
+      projectId:'NN-WEB-A',
+      projectKind:'redraw',
+      ownerId:userA.id,
+      updatedAt:new Date().toISOString(),
+      document:{generationCanvas:{nodes:[
+        {id:'web-image-node-001',kind:'image',type:'image',position:{x:100,y:100},data:{title:'网页产品图',prompt:'网页画布节点',status:'draft'}},
+        {id:'web-text-node-001',kind:'text',type:'text',position:{x:100,y:260},prompt:'网页文本节点',data:{title:'网页文案',prompt:'网页文本节点',status:'draft'}}
+      ],edges:[]}}
+    }
+  };
   await Promise.all([
     fsp.writeFile(path.join(dataRoot, 'users.json'), JSON.stringify([userA, userB])),
     fsp.writeFile(path.join(dataRoot, 'sessions.json'), JSON.stringify([{tokenHash:tokenHash('canvas-token-a'),userId:userA.id,expiresAt:future},{tokenHash:tokenHash('canvas-token-b'),userId:userB.id,expiresAt:future}])),
-    fsp.writeFile(path.join(dataRoot, 'projects.json'), JSON.stringify([{id:'NN-CANVAS-A',ownerId:userA.id,name:'画布项目 A',status:'draft'}])),
+    fsp.writeFile(path.join(dataRoot, 'projects.json'), JSON.stringify([
+      {id:'NN-CANVAS-A',ownerId:userA.id,name:'画布项目 A',status:'draft'},
+      {id:'NN-WEB-A',ownerId:userA.id,name:'网页画布项目',status:'draft'}
+    ])),
     fsp.writeFile(path.join(dataRoot, 'script-projects.json'), '[]'),
-    fsp.writeFile(path.join(dataRoot, 'canvas-documents.json'), JSON.stringify({'redraw:NN-CANVAS-A':{revision:1,projectId:'NN-CANVAS-A',projectKind:'redraw',ownerId:userA.id,updatedAt:new Date().toISOString(),document:{version:1,nodes:[{id:'image-node-001',type:'image',position:{x:100,y:100},data:{title:'产品主图',prompt:'白色背景产品主视觉',assetIds:['asset-001'],status:'draft'}},{id:'video-node-001',type:'video',position:{x:380,y:100},data:{title:'产品视频',prompt:'产品缓慢旋转，镜头轻微推进',assetIds:['asset-001'],aspectRatio:'16:9',durationSeconds:5,status:'draft'}}],edges:[],viewport:{x:0,y:0,zoom:1}}}})),
+    fsp.writeFile(path.join(dataRoot, 'canvas-documents.json'), JSON.stringify(canvasDocuments)),
     fsp.writeFile(path.join(dataRoot, 'canvas-generation-jobs.json'), '[]'),
     fsp.writeFile(path.join(dataRoot, 'workspace-bindings.json'), '[]'),
     fsp.writeFile(path.join(dataRoot, 'website-idempotency.json'), '[]')
@@ -53,7 +85,7 @@ async function request(pathname, options = {}) {
 
 async function run() {
   await seed();
-  child = spawn(process.execPath, ['server.js'], {cwd:root,env:{...process.env,PORT:String(port),DATA_DIR:dataRoot},stdio:['ignore','pipe','pipe']});
+  child = spawn(process.execPath, ['server.js'], {cwd:root,env:{...process.env,PORT:String(port),DATA_DIR:dataRoot,NIANNIAN_TEXT_API_KEY:'',NIANNIAN_TEXT_MODEL:'',NIANNIAN_TEXT_PROVIDER_SUBMIT:'off'},stdio:['ignore','pipe','pipe']});
   child.stdout.on('data', chunk => { childOutput += chunk.toString('utf8'); });
   child.stderr.on('data', chunk => { childOutput += chunk.toString('utf8'); });
   child.once('exit', (code, signal) => { childExit = {code, signal}; });
@@ -94,6 +126,15 @@ async function run() {
   const h3AuthorizationDisabled = await request(`/api/projects/NN-CANVAS-A/canvas/jobs/${encodeURIComponent(h3Job.body.job.id)}/authorize`, {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','x-niannian-project-kind':'redraw'}),body:JSON.stringify({projectKind:'redraw',confirmProviderSpend:true})});
   assert.equal(h3AuthorizationDisabled.response.status, 409);
   assert.equal(h3AuthorizationDisabled.body.code, 'CANVAS_PROVIDER_SUBMIT_DISABLED');
+
+  const webCanvasJob = await request('/api/projects/NN-WEB-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-web-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'web-image-node-001',model:'image2',prompt:'网页画布节点'})});
+  assert.equal(webCanvasJob.response.status, 201);
+  assert.equal(webCanvasJob.body.job.nodeId, 'web-image-node-001');
+  assert.equal(webCanvasJob.body.job.status, 'awaiting_authorization');
+
+  const webTextJob = await request('/api/projects/NN-WEB-A/text/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-web-text-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'web-text-node-001',model:'gpt-luna',prompt:'网页文本节点'})});
+  assert.equal(webTextJob.response.status, 409);
+  assert.equal(webTextJob.body.code, 'CANVAS_TEXT_PROVIDER_NOT_READY');
 
   const foreign = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {headers:headers('canvas-token-b',{'x-niannian-project-kind':'redraw'})});
   assert.equal(foreign.response.status, 404);

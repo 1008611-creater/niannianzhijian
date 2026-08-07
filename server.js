@@ -7336,6 +7336,13 @@ async function canvasGenerationNode(project, projectKind, nodeId) {
   return document.nodes.find(node => node.id === nodeId) || null;
 }
 
+async function generationNodeForProject(project, projectKind, nodeId) {
+  // Web Studio persists the Nomi document; the fallback keeps legacy redraw
+  // projects readable during the migration window.
+  return await nomiGenerationNode(project, projectKind, nodeId)
+    || await canvasGenerationNode(project, projectKind, nodeId);
+}
+
 function canvasGenerationSubmitEnabled(nodeType) {
   return nodeType === 'video' ? canvasH3Runtime.enabled : canvasImage2Runtime.enabled;
 }
@@ -7360,7 +7367,7 @@ async function handleCanvasTextApi(request, response, pathname, user) {
     if (!owned) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
     if (!jobId && request.method === 'POST') {
       const nodeId = canvasText(body.nodeId, 160);
-      const node = await canvasGenerationNode(owned.project, owned.projectKind, nodeId);
+      const node = await generationNodeForProject(owned.project, owned.projectKind, nodeId);
       if (!node) return json(response, 404, {code:'CANVAS_TEXT_NODE_NOT_FOUND',error:'文本节点不存在或尚未保存'});
       if (node.type !== 'text') return json(response, 422, {code:'CANVAS_TEXT_NODE_REQUIRED',error:'当前节点不是文本节点'});
       const requestedModel = canvasText(body.model || node.meta?.modelKey || node.data?.modelKey || canvasTextRuntime.config.model, 200);
@@ -7420,7 +7427,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
     }
     if (!jobId && !action && request.method === 'POST') {
       const nodeId = canvasText(body.nodeId, 80);
-      const node = await canvasGenerationNode(owned.project, owned.projectKind, nodeId);
+      const node = await generationNodeForProject(owned.project, owned.projectKind, nodeId);
       if (!node) return json(response, 404, {code:'CANVAS_NODE_NOT_FOUND',error:'画布节点不存在或尚未保存'});
       if (!['image','video'].includes(node.type)) return json(response, 422, {code:'CANVAS_NODE_NOT_GENERATABLE',error:'该节点不能创建生成任务'});
       const requestedModel = canvasText(body.model, 80);
