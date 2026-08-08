@@ -53,6 +53,7 @@ const canvasProviderConfig = require('./bridge/niannian_canvas_provider_config')
 const canvasTextRuntimeModule = require('./bridge/niannian_canvas_text_runtime');
 const canvasTextJobs = require('./bridge/niannian_canvas_text_jobs');
 const nomiRunningHubH3 = require('./bridge/niannian_nomi_runninghub_h3');
+const h3MediaValidation = require('./bridge/niannian_h3_media_validation');
 const nomiWebTaskStoreModule = require('./bridge/niannian_nomi_web_task_store');
 const smartCutJobs = require('./bridge/niannian_smart_cut_jobs');
 
@@ -7504,7 +7505,6 @@ function studioTaskResult(record) {
     kind:'text_to_video',
     status:record.status,
     assets:record.assets || [],
-    raw:{workflowId:record.workflowId,mode:record.mode},
     ...(record.error ? {error:record.error} : {})
   };
 }
@@ -7724,7 +7724,7 @@ async function resolveStudioProjectAssets(user, owned, values, kind) {
   return resolved;
 }
 
-async function downloadStudioGeneratedVideo(user, owned, providerUrl, taskId) {
+async function downloadStudioGeneratedVideo(user, owned, providerUrl, taskId, expected) {
   let source;
   try { source = new URL(String(providerUrl || '')); }
   catch { throw Object.assign(new Error('视频渠道返回了无效结果'), {code:'STUDIO_RESULT_URL_INVALID',httpStatus:502}); }
@@ -7738,6 +7738,12 @@ async function downloadStudioGeneratedVideo(user, owned, providerUrl, taskId) {
   if (!bytes.length || bytes.length > canvasAssetService.maxOutputBytes) throw Object.assign(new Error('视频结果大小无效'), {code:'STUDIO_RESULT_SIZE_INVALID',httpStatus:502});
   const format = canvasAssetFormatFromHeader(bytes.subarray(0, 64), 'generated_video');
   if (!format) throw Object.assign(new Error('视频结果格式无效'), {code:'STUDIO_RESULT_CONTENT_INVALID',httpStatus:502});
+  await h3MediaValidation.inspectH3Media(bytes, expected, {
+    extension:format,
+    ffprobePath,
+    timeoutMs:mediaPreflightTimeoutMs,
+    ...(process.env.NODE_ENV === 'test' ? {testMetadata:{width:Number(expected?.width || 832),height:Number(expected?.height || 480),durationSeconds:Number(expected?.durationSeconds || 5),codec:'test'}} : {})
+  });
   const registered = await canvasAssetService.registerBuffer({
     ownerId:user.id,
     projectId:owned.project.id,
@@ -8173,8 +8179,8 @@ async function handleStudioTaskApi(request, response, pathname, user) {
         prompt:canvasText(body.request?.prompt, 4000),
         aspectRatio:canvasText(input.aspect_ratio || body.request?.extras?.aspectRatio || '16:9', 16),
         durationSeconds:Number(input.duration_seconds || body.request?.extras?.durationSeconds || 5),
-        width:Number(input.width || body.request?.width || 832),
-        height:Number(input.height || body.request?.height || 480),
+        width:Number(input.width || body.request?.width) || undefined,
+        height:Number(input.height || body.request?.height) || undefined,
         images, audio, videos
       };
       const draft = nomiWebH3.dryRun(h3Input);
@@ -8186,7 +8192,7 @@ async function handleStudioTaskApi(request, response, pathname, user) {
           modelKey:canvasText(body.request?.extras?.modelKey, 160),
           prompt:h3Input.prompt,
           inputAssetIds:{images:images.map(asset => asset.id),audio:audio.map(asset => asset.id),videos:videos.map(asset => asset.id)},
-          parameters:{aspectRatio:h3Input.aspectRatio,durationSeconds:h3Input.durationSeconds,width:h3Input.width,height:h3Input.height}
+          parameters:{aspectRatio:draft.target.aspectRatio,durationSeconds:draft.target.durationSeconds,width:draft.target.width,height:draft.target.height}
         }
       });
       if (!claimed.created) return json(response, 202, {result:studioTaskResult(claimed.task),idempotent:true});
@@ -8212,7 +8218,8 @@ async function handleStudioTaskApi(request, response, pathname, user) {
       try {
         const current = await nomiWebH3.query(record.providerTaskId);
         if (current.status === 'succeeded') {
-          const asset = await downloadStudioGeneratedVideo(user, owned, current.videoUrls[0], record.id);
+          nomiRunningHubH3.verifyConsumerUsage(current.usage);
+          const asset = await downloadStudioGeneratedVideo(user, owned, current.videoUrls[0], record.id, record.parameters);
           await writeNomiGeneratedVideoResult(user, owned, record.nodeId, asset);
           record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, record.id, {status:'succeeded',outputAssetIds:[asset.id],assets:[{type:'video',assetId:asset.id,url:asset.downloadUrl}],completedAt:new Date().toISOString(),error:null});
         } else {
