@@ -33,14 +33,14 @@ export const ROUGH_CUT_TOOL_SCHEMAS: AgentToolSchema[] = [{
   input_schema: {
     type: 'object',
     properties: {
-      provider: { type: 'string', enum: ['mimo', 'openai-tts', 'elevenlabs', 'doubao', 'minimax'] },
-      voiceId: { type: 'string', description: 'Provider voice id, for example the configured MiMo voice name.' },
+      provider: { type: 'string', enum: ['mimo', 'openai-tts', 'elevenlabs', 'doubao', 'minimax'], description: 'TTS provider. Defaults to mimo for this narrated-short workflow.' },
+      voiceId: { type: 'string', description: 'Provider voice id. Defaults to MiMo built-in voice 冰糖 when provider is omitted or mimo.' },
       modelId: { type: 'string', description: 'Optional provider model override.' },
       speed: { type: 'number', minimum: 0.5, maximum: 2, description: 'Optional speaking speed.' },
       outputFormat: { type: 'string', description: 'Optional provider-supported output format.' },
       trackName: { type: 'string', description: 'Optional audio-track display name. Defaults to 旁白.' },
     },
-    required: ['provider', 'voiceId'],
+    required: [],
   },
 }, {
   name: 'prepare_rough_cut_captions',

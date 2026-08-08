@@ -1,8 +1,7 @@
 import type { ModelMessage } from 'ai';
 import type { AgentContext } from './context';
-import type { CodexAgentToolSpec } from '../../shared/codex-agent';
 import { TOOL_SCHEMAS } from './tools';
-import { buildAgentSystemPrompt } from './systemPrompt';
+import { buildAgentSystemPrompt, buildCompactAgentSystemPrompt } from './systemPrompt';
 import { normalizeLlmMessages } from './messages';
 import { loadAgentSettings } from './settings/agentSettings';
 import type { GuardDecision } from './skills/costGuard';
@@ -19,6 +18,8 @@ import { prepareAgentContext } from './context-management';
 import type { AgentContextUsage } from './context-compaction';
 import { runApiAgent } from './api-runtime';
 import type { ToolFailureTracker } from './toolFailure';
+import { toolSchemasForChoice, usesSmallContextMode } from './compact-tools';
+import type { AgentToolSchema } from './tool-schema';
 
 export {
   apiToolExecutionOutput,
@@ -57,12 +58,6 @@ export function initialMessages(): LLMMessage[] {
 }
 
 
-const CODEX_TOOL_SPECS: readonly CodexAgentToolSpec[] = TOOL_SCHEMAS.map((schema) => ({
-  name: schema.name,
-  description: schema.description,
-  inputSchema: schema.input_schema,
-}));
-
 async function runCodexBackend(
   messages: LLMMessage[],
   ctx: AgentContext,
@@ -74,9 +69,16 @@ async function runCodexBackend(
   contextWindowEstimated: boolean,
   maxOutputTokens: number,
   opts?: RunAgentOptions,
+  toolSchemas: readonly AgentToolSchema[] = TOOL_SCHEMAS,
 ): Promise<LLMMessage[]> {
   const settings = loadAgentSettings();
-  const tools = opts?.askOnly || !choice.capabilities.supportsTools.value ? [] : CODEX_TOOL_SPECS;
+  const tools = opts?.askOnly || !choice.capabilities.supportsTools.value
+    ? []
+    : toolSchemas.map((schema) => ({
+      name: schema.name,
+      description: schema.description,
+      inputSchema: schema.input_schema,
+    }));
   return runCodexAgent(messages, ctx, onEvent, {
     askOnly: opts?.askOnly,
     signal: opts?.signal,
@@ -119,15 +121,20 @@ export async function runAgent(
     onEvent({ type: 'error', message: 'No Agent model is available.' });
     return conv;
   }
-  const system = buildAgentSystemPrompt(ctx);
-  const toolSchemas = opts?.askOnly || !active.capabilities.supportsTools.value ? [] : TOOL_SCHEMAS;
+  const compact = usesSmallContextMode(active);
+  const system = compact
+    ? buildCompactAgentSystemPrompt(ctx)
+    : buildAgentSystemPrompt(ctx);
+  const availableToolSchemas = opts?.askOnly || !active.capabilities.supportsTools.value
+    ? []
+    : toolSchemasForChoice(active);
   try {
     const prepared = await prepareAgentContext({
       messages: conv,
       system,
       choice: active,
       ctx,
-      tools: toolSchemas,
+      tools: availableToolSchemas,
       previousUsage: opts?.previousContextUsage,
       signal: opts?.signal,
     });
@@ -144,6 +151,7 @@ export async function runAgent(
           prepared.usage.contextWindowEstimated,
           prepared.maxOutputTokens,
           opts,
+          availableToolSchemas,
         )
       : runApiAgent(
           prepared.messages,
@@ -154,6 +162,8 @@ export async function runAgent(
           prepared.usage.compacted,
           prepared.maxOutputTokens,
           opts,
+          undefined,
+          availableToolSchemas,
         );
   } catch (error) {
     if (opts?.signal?.aborted) return conv;

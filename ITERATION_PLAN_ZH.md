@@ -9,7 +9,7 @@
 | R0 运行底座 | 已完成 | Node 24、专属 npm 缓存、`npm ci`、构建和本地 `127.0.0.1:5199` 服务可重复运行；密钥只在服务端 keystore。 |
 | R1 统一供应商层 | 进行中 | MiMo 已可用；OpenAI 兼容 TTS 与 OpenAI 兼容 ASR 已接入设置页、服务端密钥库、连接探测和 Agent。ASR 强制要求 `/audio/transcriptions` 返回 `verbose_json` 词级时间戳，支持官方接口、自建网关和本地兼容服务；下一步是把现有能力收敛到统一适配器注册表，并补图片、视频、音乐适配器。 |
 | R2 素材与项目资产 | 进行中 | 已有批量导入、分片上传、代理/本地媒体、源版本、项目持久化、转写、镜头检测、抽帧和 CLIP 语义检索；本地 Tesseract OCR 与 OpenAI 兼容视觉分析已写入版本绑定素材智能数据，可检索商品/人物/品牌/场景标签。待补多帧聚合与本地视觉模型。 |
-| R3 脚本到粗剪 | 进行中 | 新增 `assemble_rough_cut`、`render_rough_cut_voiceover`、`prepare_rough_cut_captions`、`place_rough_cut_bgm` 和 `check_rough_cut_ready`：明确素材范围会装配为独立可编辑时间线；旁白生成后用真实词级转写建立可追溯字幕轨；已完成的音乐资产可自动铺满粗剪并在旁白下闪避；导出前可检查来源、字幕、BGM 和安全区结构。下一步是以真实项目进行合成画面质检与导出闭环。 |
+| R3 脚本到粗剪 | 进行中 | 新增 `assemble_rough_cut`、`render_rough_cut_voiceover`、`prepare_rough_cut_captions`、`place_rough_cut_bgm` 和 `check_rough_cut_ready`：明确素材范围会装配为独立可编辑时间线；旁白生成后用真实词级转写建立可追溯字幕轨；已完成的音乐资产可自动铺满粗剪并在旁白下闪避；导出前可检查来源、字幕、BGM 和安全区结构。无声视频的旁白粗剪工作流已默认使用 MiMo 内置音色“冰糖”，仍允许显式切换其他已配置供应商和音色。已用本地真实项目完成合成画面抽帧与导出闭环验收：规格、音频、黑帧、冻结帧、长静音和峰值检查通过，并保留可回读的成片证据。 |
 
 ## 阶段路线
 

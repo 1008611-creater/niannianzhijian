@@ -23,7 +23,7 @@ const previous = {
 };
 process.env.LOCAL_WSL_DEV = '1';
 process.env.NIANNIAN_EDITOR_SSO_SECRET = 'local-wsl-editor-sso-secret-20260807';
-process.env.NIANNIAN_EDITOR_STEP_PRICES = 'export:0';
+  process.env.NIANNIAN_EDITOR_STEP_PRICES = 'export:0,vision:0,ocr:0';
 
 try {
   const routes = new Map<string, Handler[]>();
@@ -46,6 +46,16 @@ try {
   await exportGuard({ method: 'POST', headers: {} }, exportProbe.res, () => { nextCalls += 1; });
   assert.equal(nextCalls, 1, 'zero-cost local export bypasses remote billing');
   assert.equal(exportProbe.read().status, 200);
+
+  for (const path of ['/api/asset-intelligence/vision', '/api/asset-intelligence/ocr']) {
+    let calls = 0;
+    const route = routes.get(path)?.[0];
+    assert.ok(route, `${path} is guarded`);
+    const probe = responseProbe();
+    await route({ method: 'POST', headers: {} }, probe.res, () => { calls += 1; });
+    assert.equal(calls, 1, `zero-cost local ${path} bypasses remote billing`);
+    assert.equal(probe.read().status, 200);
+  }
 
   console.log('niannian-account.verify: ok');
 } finally {

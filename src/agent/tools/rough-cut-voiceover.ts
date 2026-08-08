@@ -52,6 +52,21 @@ function provider(value: unknown): VoiceProvider | undefined {
     ? value : undefined;
 }
 
+/**
+ * The narrated-short workflow has a product default: MiMo with its built-in
+ * Chinese voice. Keep the default scoped to this workflow; generic submit_voice
+ * still requires an explicit provider and voice so provider catalogs cannot be
+ * mixed accidentally.
+ */
+function roughCutVoiceSelection(args: Args): { provider?: VoiceProvider; voiceId?: string; error?: string } {
+  const requestedProvider = args.provider === undefined ? 'mimo' : provider(args.provider);
+  if (!requestedProvider) return { error: 'provider must be mimo, openai-tts, elevenlabs, doubao, or minimax' };
+  const requestedVoice = typeof args.voiceId === 'string' ? args.voiceId.trim() : '';
+  const voiceId = requestedVoice || (requestedProvider === 'mimo' ? '冰糖' : '');
+  if (!voiceId) return { error: 'voiceId is required for the selected provider' };
+  return { provider: requestedProvider, voiceId };
+}
+
 function voiceLink(value: unknown): VoiceLink | undefined {
   const raw = record(value);
   const assetId = typeof raw?.assetId === 'string' ? raw.assetId : '';
@@ -343,9 +358,10 @@ export async function execRoughCutCaptionsTool(name: string, args: Args, ctx: Ag
 
 export async function execRoughCutVoiceoverTool(name: string, args: Args, ctx: AgentContext): Promise<unknown> {
   if (name !== 'render_rough_cut_voiceover') return undefined;
-  const selectedProvider = provider(args.provider);
-  const voiceId = typeof args.voiceId === 'string' ? args.voiceId.trim() : '';
-  if (!selectedProvider || !voiceId) return { error: 'provider and voiceId are required' };
+  const selection = roughCutVoiceSelection(args);
+  if (selection.error) return { error: selection.error };
+  const selectedProvider = selection.provider!;
+  const voiceId = selection.voiceId!;
   const speed = typeof args.speed === 'number' && Number.isFinite(args.speed) ? args.speed : undefined;
   if (speed !== undefined && (speed < 0.5 || speed > 2)) return { error: 'speed must be between 0.5 and 2' };
   const state = ctx.getState();

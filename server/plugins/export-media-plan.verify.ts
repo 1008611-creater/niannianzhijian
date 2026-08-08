@@ -63,6 +63,10 @@ try {
     items: [{ id: 'ready', kind: 'video', src: '/media/uploads/readable.mp4' }],
   }, options);
 
+  await validateServerExportMedia({
+    items: [{ id: 'bundled-audio', kind: 'audio', src: '/audio/track-1.mp3' }],
+  }, options);
+
   await assert.rejects(
     () => validateServerExportMedia({
       items: [{ id: 'missing', kind: 'video', src: '/media/uploads/missing.mp4' }],

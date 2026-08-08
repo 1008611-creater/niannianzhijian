@@ -38,6 +38,11 @@ const gpt56 = resolveModelCapabilities({ backend: 'api', provider: 'openai', mod
 assert.deepEqual(gpt56.contextWindowTokens, { value: 1_050_000, estimated: false, source: 'catalog' });
 assert.deepEqual(gpt56.maxInputTokens, { value: 922_000, estimated: false, source: 'catalog' });
 assert.deepEqual(gpt56.maxOutputTokens, { value: 128_000, estimated: false, source: 'catalog' });
+const tokenRhythmFlash = resolveModelCapabilities({
+  backend: 'api', provider: 'tokenrhythm', modelId: 'deepseek-v4-flash',
+});
+assert.deepEqual(tokenRhythmFlash.contextWindowTokens, { value: 1_000_000, estimated: false, source: 'catalog' });
+assert.equal(tokenRhythmFlash.supportsTools.value, true);
 
 assert.deepEqual(unknownCapabilities.contextWindowTokens, {
   value: 8_192, estimated: true, source: 'provider-fallback',

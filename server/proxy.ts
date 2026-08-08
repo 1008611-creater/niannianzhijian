@@ -37,9 +37,18 @@ const HOP_BY_HOP = new Set(['host', 'connection', 'keep-alive', 'proxy-authoriza
 // Browser-only headers that must never reach upstream. Cookies are shared across
 // every localhost port, so a large accumulated cookie jar on a dev machine would
 // otherwise be forwarded verbatim and rejected by provider gateways (431/400).
+// Origin/Referer/Sec-Fetch headers describe the local editor page, not the
+// provider request. Some OpenAI-compatible gateways treat those values as a
+// CSRF check and reject otherwise valid API keys.
 const NEVER_FORWARD: Record<string, true> = {
   'x-openchatcut-provider': true,
   cookie: true,
+  origin: true,
+  referer: true,
+  'sec-fetch-site': true,
+  'sec-fetch-mode': true,
+  'sec-fetch-dest': true,
+  'sec-fetch-user': true,
 };
 
 export interface ProxyRoute {

@@ -225,7 +225,11 @@ button, input, select { font: inherit; }
 @container composer (max-width:390px) {
   .cc-chat-composer-bar-tools { gap:2px; }
   .cc-chat-model-btn { flex:1 1 auto !important; max-width:none !important; }
-  .cc-composer-secondary { display:none; }
+  /* Keep the high-frequency asset reference action discoverable on narrow panels.
+     Other secondary actions remain behind More to preserve input width. */
+  .cc-composer-secondary { display:contents; }
+  .cc-composer-secondary > :not(.cc-composer-reference-btn) { display:none; }
+  .cc-composer-reference-btn { display:flex !important; }
   .cc-composer-more-btn { display:flex !important; }
 }
 .cc-chat-send-btn { flex:0 0 28px; }

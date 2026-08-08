@@ -69,7 +69,7 @@ export default defineConfig(({ mode }) => {
       // preventing $RefreshReg$ calls from reaching browsers without a preamble.
       hmr: false,
       // The public editor is exposed only through the existing Cloudflare Tunnel.
-      allowedHosts: ['edit.ai.cau.fun', 'edit.cau.fun'],
+      allowedHosts: ['edit.ai.cau.fun', 'edit.cau.fun', 'edit.ai.cauai.fun', 'edit.cauai.fun'],
       proxy: {
         // AssemblyAI transcription — key injected server-side (never in browser).
         '/assemblyai': {

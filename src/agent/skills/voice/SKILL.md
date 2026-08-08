@@ -51,6 +51,7 @@ Use `submit_voice` to create a TTS audio asset. The current MCP tool contract is
   natural pauses, sentence groups, or script beat boundaries when the workflow
   benefits from separately timed or placed voice clips, such as storyboard beats,
   scene-level ad segments, or a user request for separate assets.
+
 - For Doubao, `speedRatio`, `loudnessRatio`, `pitch`, `emotion`,
   `emotionScale`, `performancePrompt`, and `explicitDialect` are supported
   knobs, but not every Doubao voice supports every expressive control. Check
@@ -105,6 +106,16 @@ ElevenLabs control support for current curated voices:
 - For pauses and pacing in `eleven_v3`, use punctuation, text structure,
   shorter generated segments, or local audio tags such as `[short pause]` and
   `[slowly]` when needed.
+
+### Approved narrated-short default
+
+When the user explicitly approves automatic narration for a video without
+spoken audio and authorizes a MiMo built-in voice, use the rough-cut workflow's
+`render_rough_cut_voiceover` route with `provider: "mimo"`. If that workflow
+request omits the provider or voice, default to MiMo's built-in `冰糖` voice.
+This exception is limited to the approved narrated-short workflow; generic
+`submit_voice` still requires an explicit provider and provider-specific
+`voiceId`, with the normal audition rules below.
 
 ```ts
 // English / multilingual via ElevenLabs

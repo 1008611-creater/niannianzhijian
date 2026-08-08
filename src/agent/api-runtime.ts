@@ -54,6 +54,7 @@ import type {
   LLMMessage,
   RunAgentOptions,
 } from './runtime';
+import type { AgentToolSchema } from './tool-schema';
 
 const MAX_TOOL_TURNS = 30;
 type ToolResultOutput = ToolResultPart['output'];
@@ -99,8 +100,9 @@ function createAgentTools(
   settings: AgentSettings,
   onSkillGuard?: (info: RuntimeGuardRequest) => Promise<GuardDecision>,
   onFollowup?: () => void,
+  schemas: readonly AgentToolSchema[] = TOOL_SCHEMAS,
 ): ToolSet {
-  return Object.fromEntries(TOOL_SCHEMAS.map((schema) => [
+  return Object.fromEntries(schemas.map((schema) => [
     schema.name,
     tool({
       description: schema.description,
@@ -151,6 +153,7 @@ export async function runApiAgent(
   maxOutputTokens: number,
   opts?: RunAgentOptions,
   dependencies: ApiRuntimeDependencies = {},
+  toolSchemas: readonly AgentToolSchema[] = TOOL_SCHEMAS,
 ): Promise<LLMMessage[]> {
   let conv = normalizeLlmMessages(messages);
   const settings = loadAgentSettings();
@@ -197,6 +200,7 @@ export async function runApiAgent(
           settings,
           opts?.onSkillGuard,
           () => { askedFollowup = true; },
+          toolSchemas,
         );
 
     try {
