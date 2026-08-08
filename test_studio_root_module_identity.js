@@ -15,6 +15,7 @@ assert.equal(fs.existsSync(path.join(assetsRoot, 'NomiStudioApp-DDB0IgSO-r27.js'
 
 const html = fs.readFileSync(path.join(__dirname, 'studio', 'index.html'), 'utf8');
 assert.match(html, new RegExp('./assets/' + entry.replace(/[.]/g, '\\.')));
+assert.match(html, /\.\/assets\/service-worker-migration-r29\.js/);
 assert.doesNotMatch(html, /index-M-8MrEH2-r27\.js(?:\?|['"])/);
 
 for (const name of fs.readdirSync(assetsRoot)) {
