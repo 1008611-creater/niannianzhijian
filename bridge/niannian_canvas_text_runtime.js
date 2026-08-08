@@ -80,6 +80,13 @@ function createCanvasTextRuntime(options = {}) {
   const fetchImpl = options.fetchImpl || fetch;
 
   async function submit(input = {}) {
+    const startedAt = Date.now();
+    const failure = (code, message, httpStatus = 502, metadata = {}) => {
+      const error = runtimeError(code, message, httpStatus);
+      error.providerHttpStatus = Number.isInteger(metadata.providerHttpStatus) ? metadata.providerHttpStatus : null;
+      error.durationMs = Math.max(0, Date.now() - startedAt);
+      return error;
+    };
     const config = readCanvasTextConfig(env);
     if (!config.submitEnabled) throw runtimeError('CANVAS_TEXT_PROVIDER_NOT_READY', '文本模型尚未完成服务端配置', 409);
     const prompt = clean(input.prompt, 12000);
@@ -100,13 +107,13 @@ function createCanvasTextRuntime(options = {}) {
         signal: AbortSignal.timeout(Number(env.NIANNIAN_TEXT_PROVIDER_TIMEOUT_MS || 120000))
       });
     } catch {
-      throw runtimeError('CANVAS_TEXT_PROVIDER_NETWORK', '文本模型暂时无法连接，请稍后重试', 502);
+      throw failure('CANVAS_TEXT_PROVIDER_NETWORK', '文本模型暂时无法连接，请稍后重试');
     }
-    if (!response.ok) throw runtimeError('CANVAS_TEXT_PROVIDER_FAILED', '文本模型暂时不可用，请稍后重试', 502);
+    if (!response.ok) throw failure('CANVAS_TEXT_PROVIDER_FAILED', '文本模型暂时不可用，请稍后重试', 502, {providerHttpStatus: response.status});
     let upstream;
-    try { upstream = await response.json(); } catch { throw runtimeError('CANVAS_TEXT_PROVIDER_INVALID_RESPONSE', '文本模型返回了无法读取的结果', 502); }
+    try { upstream = await response.json(); } catch { throw failure('CANVAS_TEXT_PROVIDER_INVALID_RESPONSE', '文本模型返回了无法读取的结果'); }
     const text = extractText(upstream);
-    if (!text) throw runtimeError('CANVAS_TEXT_PROVIDER_EMPTY', '文本模型没有返回可用内容', 502);
+    if (!text) throw failure('CANVAS_TEXT_PROVIDER_EMPTY', '文本模型没有返回可用内容');
     return {model, text, raw: publicProviderResponse(text, model)};
   }
 
