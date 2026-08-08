@@ -55,3 +55,32 @@ This directory is the independent canonical project root for NianNian AI. Work f
 The former `niannian-ai-canonical-local` directory has been moved to `E:\codex\archive\niannian-ai-canonical-local-retired-20260807` as a read-only rollback/reference source. It must not be silently treated as the active development root after this project is verified. The `local-wsl-validation-*` directories are candidates only and never become the source of truth.
 
 When a task says `继续`, continue from the current approved scope and this directory. Do not change the canvas family, route, provider, or release baseline unless the user explicitly changes that decision.
+
+## Fixed Two-Person Git Collaboration
+
+- The personal private GitHub repository, once connected as `origin`, and its
+  `main` branch are the shared source authority. Offline source archives are
+  backup only and never a merge source.
+- The primary implementation owner is the only integrator and production
+  operator. Production deployment still requires explicit approval from the
+  product owner for that candidate.
+- Workstream A owns server/provider paths: `server.js`,
+  `bridge/niannian_canvas_*.js`, `bridge/niannian_runninghub_*.js`, `deploy/`,
+  and `test_canvas_*.js`. Workstream B owns Studio paths: `studio/**`, `sw.js`,
+  `test_studio_*.js`, `test_r3f_*.js`, `test_web_canvas_persistence_binding.js`,
+  and `test_web_runtime_adapter.js`. Do not cross these boundaries except in a
+  separately reviewed API-contract change.
+- Each work item starts from current `main` on an Issue-linked short-lived
+  branch, uses focused commits, and returns through a pull request. No direct
+  push or force push to `main`; rebase before review and let the owner of an
+  owned path resolve its conflict.
+- Merge Studio recovery before provider-runtime work, then build and verify a
+  release candidate only from the merged `main`. A clean browser must save and
+  refresh a canvas before any real provider generation is accepted as evidence.
+- Current beta scope is ASXS text with `gpt-5.6-luna`, RunningHub Image2, and
+  RunningHub H3 only. Audio, 3D, whiteboard, panorama, and scene-3D remain
+  edit/reference-only until a full server execution path exists.
+- Provider credentials, user media, runtime state, generated outputs, and raw
+  provider responses remain outside GitHub Issues, pull requests, commits, and
+  collaboration handovers. See `COLLABORATION_AND_HANDOVER.md` for the exact
+  handover and release procedure.
