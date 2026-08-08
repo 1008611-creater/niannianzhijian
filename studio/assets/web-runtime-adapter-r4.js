@@ -366,7 +366,9 @@
         prompt: request.prompt || '',
         inputAssetIds: assetIds(extras),
         resolution: extras.resolution || '2k',
-        aspectRatio: extras.aspectRatio || (video ? '9:16' : '1:1'),
+        aspectRatio: video
+          ? (extras.aspectRatio && extras.aspectRatio !== '1:1' ? extras.aspectRatio : '9:16')
+          : (extras.aspectRatio || '1:1'),
         durationSeconds: extras.durationSeconds || 5
       })
     });

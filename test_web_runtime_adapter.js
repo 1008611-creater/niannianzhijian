@@ -12,11 +12,12 @@ assert.match(source, /\/api\/projects\/.*\/text\/jobs/);
 assert.match(source, /vendorKey: 'asxs'/);
 assert.match(source, /request\.kind === 'chat'/);
 assert.match(source, /confirmProviderSpend:\s*true/);
-assert.match(source, /aspectRatio: extras\.aspectRatio \|\| \(video \? '9:16' : '1:1'\)/);
+assert.match(source, /aspectRatio: video\s*\n\s*\? \(extras\.aspectRatio && extras\.aspectRatio !== '1:1' \? extras\.aspectRatio : '9:16'\)/);
 assert.doesNotMatch(source, /RUNNINGHUB_API_KEY|apiKey\s*:/);
 assert.match(source, /!isWebOrigin\s*&&\s*existingBridge/);
 
 const calls = [];
+const requestBodies = [];
 const context = {
   window: {location: {search: '?step=generate', hash: '#/studio?projectId=NN-LOCAL-0001'}},
   URLSearchParams,
@@ -30,9 +31,17 @@ const context = {
   Promise,
   setTimeout,
   crypto: {randomUUID: () => '00000000-0000-0000-0000-000000000000'},
-  fetch: async (pathname) => {
+  fetch: async (pathname, options = {}) => {
     calls.push(pathname);
     if (pathname === '/api/canvas/provider-status') return {ok:true,json:async() => ({providerStatus:{credentialConfigured:false,imageSubmitEnabled:false,videoSubmitEnabled:false}})};
+    if (pathname.endsWith('/canvas/jobs')) {
+      requestBodies.push(JSON.parse(options.body));
+      return {ok:true,json:async() => ({job:{id:'CGJ-test',nodeType:'video',status:'awaiting_authorization',outputAssetIds:[]}})};
+    }
+    if (pathname.endsWith('/canvas/jobs/CGJ-test/authorize')) {
+      requestBodies.push(JSON.parse(options.body));
+      return {ok:true,json:async() => ({job:{id:'CGJ-test',nodeType:'video',status:'running',outputAssetIds:[]}})};
+    }
     throw new Error('unexpected request');
   }
 };
@@ -53,5 +62,10 @@ const health = await context.window.nomiDesktop.modelCatalog.health();
 assert.equal(Array.from(health.byKind, (entry) => entry.enabledModels).join(','), '0,0,0');
 assert.equal(health.issues[0].code, 'catalog_empty');
 assert.ok(calls.length >= 2);
+const task = await context.window.nomiDesktop.tasks.run({request:{kind:'image_to_video',prompt:'portrait regression',extras:{nodeId:'video-node-1',referenceImages:['CAS-123'],aspectRatio:'1:1',durationSeconds:5}}});
+assert.equal(task.id, 'CGJ-test');
+assert.equal(requestBodies[0].aspectRatio, '9:16');
+assert.equal(requestBodies[0].durationSeconds, 5);
+assert.equal(requestBodies[1].confirmProviderSpend, true);
 console.log('WEB_RUNTIME_ADAPTER_CONTRACT_OK');
 })().catch((error) => { console.error(error); process.exitCode = 1; });
