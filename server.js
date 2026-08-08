@@ -7382,6 +7382,14 @@ async function handleCanvasTextApi(request, response, pathname, user) {
         const completed = await canvasTextJobService.updateOwned(user.id, projectId, created.job.id, {status:'succeeded',text:result.text,error:null,completedAt:new Date().toISOString()});
         return json(response, 201, {code:'CANVAS_TEXT_GENERATED',...publicCanvasTextResponse(completed)});
       } catch (error) {
+        console.error('canvas_text_provider_failure', JSON.stringify({
+          job_id: created.job.id,
+          provider: 'asxs',
+          model: canvasTextRuntime.config.model || null,
+          code: typeof error?.code === 'string' ? error.code.slice(0, 80) : 'CANVAS_TEXT_GENERATION_FAILED',
+          http_status: Number.isInteger(error?.providerHttpStatus) ? error.providerHttpStatus : null,
+          duration_ms: Number.isFinite(error?.durationMs) ? Math.max(0, Math.round(error.durationMs)) : null
+        }));
         const failed = await canvasTextJobService.updateOwned(user.id, projectId, created.job.id, {status:'recoverable',error:'文本生成暂未完成，请稍后重试或重新读取当前项目。'});
         return json(response, error.httpStatus || 502, {code:error.code || 'CANVAS_TEXT_GENERATION_FAILED',error:error.message || '文本生成失败',...publicCanvasTextResponse(failed)});
       }

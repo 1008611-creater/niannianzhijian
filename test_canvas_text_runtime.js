@@ -29,6 +29,30 @@ async function run() {
   assert.match(calls[0].init.headers.Authorization, /^Bearer /);
   assert.match(calls[0].init.body, /synthetic-model/);
   assert.doesNotMatch(JSON.stringify(publicCanvasTextStatus({NIANNIAN_TEXT_API_KEY:'synthetic-test-key',NIANNIAN_TEXT_MODEL:'synthetic-model'})), /synthetic-test-key/);
+
+  const failedRuntime = createCanvasTextRuntime({
+    env:{NIANNIAN_TEXT_API_KEY:'synthetic-test-key',NIANNIAN_TEXT_MODEL:'synthetic-model',NIANNIAN_TEXT_PROVIDER_SUBMIT:'on'},
+    fetchImpl:async () => ({ok:false,status:429,json:async () => ({error:{message:'provider detail must not escape'}})})
+  });
+  await assert.rejects(() => failedRuntime.submit({model:'synthetic-model',prompt:'do not log this prompt'}), error => {
+    assert.equal(error.code, 'CANVAS_TEXT_PROVIDER_FAILED');
+    assert.equal(error.providerHttpStatus, 429);
+    assert.equal(typeof error.durationMs, 'number');
+    assert.doesNotMatch(JSON.stringify(error), /do not log this prompt|provider detail/);
+    return true;
+  });
+
+  const networkRuntime = createCanvasTextRuntime({
+    env:{NIANNIAN_TEXT_API_KEY:'synthetic-test-key',NIANNIAN_TEXT_MODEL:'synthetic-model',NIANNIAN_TEXT_PROVIDER_SUBMIT:'on'},
+    fetchImpl:async () => { throw new Error('network detail must not escape'); }
+  });
+  await assert.rejects(() => networkRuntime.submit({model:'synthetic-model',prompt:'another private prompt'}), error => {
+    assert.equal(error.code, 'CANVAS_TEXT_PROVIDER_NETWORK');
+    assert.equal(error.providerHttpStatus, null);
+    assert.equal(typeof error.durationMs, 'number');
+    assert.doesNotMatch(JSON.stringify(error), /another private prompt|network detail/);
+    return true;
+  });
   console.log('CANVAS_TEXT_RUNTIME_CONTRACT_OK');
 }
 
