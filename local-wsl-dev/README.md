@@ -62,4 +62,4 @@ cd /mnt/e/codex/niannianai/niannianzhijian
 bash local-wsl-dev/setup-qwen-forced-aligner.sh
 ```
 
-脚本只写入 `.work/qwen-forced-aligner`，下载公开模型和已固定版本的官方 Transformers 源码依赖；模型权重、缓存和用户媒体不会进入发行包。运行时会用 FFmpeg 将当前本地媒体临时解码为单声道 WAV，完成对齐后立即删除临时文件。
+脚本默认只写入 WSL 原生缓存 `$HOME/.cache/niannianzhijian/qwen-forced-aligner`（可用 `QWEN_FORCED_ALIGNER_NATIVE_ROOT` 覆盖），下载公开模型、固定版本的官方 Transformers 源码依赖，以及与本机 NVIDIA 560 驱动兼容的 CUDA 12.6 PyTorch 轮子；模型权重、缓存和用户媒体不会进入发行包。运行时会用 FFmpeg 将当前本地媒体临时解码为单声道 WAV，完成对齐后立即删除临时文件。
