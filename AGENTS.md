@@ -89,3 +89,13 @@ When a task says `继续`, continue from the current approved scope and this dir
   Issue #2. Workstream B remains reserved. On contributor readiness, invite
   them, assign Issue #1, protect `main` with pull requests, no force pushes,
   and one approving review, then resume both streams within their owned paths.
+
+## Professional Website Development Skill
+
+- Use the `niannian-web-development` Skill for any NianNian website change,
+  GitHub Issue/PR handoff, release candidate, production deployment, rollback,
+  beta-readiness, CI, observability, backup/recovery, or provider lifecycle
+  work. Its `Workflow` section is the default execution order and its
+  `references/quality-gates.md` selects the smallest sufficient proof.
+- The Skill supplements this project contract; it must not override its canvas
+  authority, credential boundaries, user approvals, or production constraints.
