@@ -17,6 +17,27 @@ This directory is the canonical source for NianNian AI's Haika server execution 
 - Escalate only when the next action changes the product goal, incurs material cost, accesses or rotates a credential, makes an irreversible external change, changes account permissions, publishes or deploys, or has an explicitly stated acceptance tradeoff. Preserve every existing hard boundary.
 - After acting, report the outcome first: what changed, how it was verified, any deviation from the stated goal, and the one real blocker or next action. Do not expose internal command-by-command narration unless it changes the product decision.
 
+## Value-First Execution And Test Authority
+
+- Before every continuation or new execution phase, identify the current
+  highest-value unfinished user path and its smallest executable action. Tell
+  the product owner that action, why it has the highest information or delivery
+  value, and the selected Skill route before executing it.
+- Route the action through the narrowest applicable local Skill or verified
+  GitHub method. State the Skill's exact section and only the direct
+  dependencies that affect the current result; do not stack unrelated routes.
+- The product owner grants standing authority for tests, simulations, browser
+  smoke checks, and real provider test submissions within the already approved
+  NianNian beta scope. Execute those tests directly without asking for another
+  permission step, while respecting the existing H3 test limit of 5 seconds per
+  run and 10,000 seconds total.
+- This standing test authority does not authorize production deployment,
+  account or permission changes, credential access or rotation, public release,
+  destructive data operations, or a provider/model/route change that alters
+  the product goal or cost boundary.
+- After each test, report only the verified result, its practical value, actual
+  provider spend when known, and the earliest remaining blocker or next action.
+
 ## User-facing behavior
 
 - Never expose internal error codes, token/controller/lease terminology, paths, hashes, or recovery mechanics in the product UI.
