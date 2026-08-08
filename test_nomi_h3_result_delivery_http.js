@@ -72,7 +72,7 @@ async function run() {
     if (request.url === '/openapi/v2/query' && request.method === 'POST') {
       queryCalls += 1;
       response.writeHead(200, {'content-type':'application/json'});
-      return response.end(JSON.stringify({data:{status:'SUCCESS',resultUrl:`${providerUrl}/result.mp4`}}));
+      return response.end(JSON.stringify({data:{status:'SUCCESS',resultUrl:`${providerUrl}/result.mp4`,usage:{consumeCoins:12,consumeMoney:0}}}));
     }
     if (request.url === '/result.mp4' && request.method === 'GET') {
       videoReads += 1;
@@ -82,7 +82,7 @@ async function run() {
     response.writeHead(404); response.end();
   });
   await listen(provider, providerPort);
-  app = spawn(process.execPath, ['server.js'], {cwd:root,env:{...process.env,PORT:String(appPort),DATA_DIR:dataRoot,NIANNIAN_LOCAL_PREVIEW_INSECURE_SESSION:'on',NODE_ENV:'test',NOMI_RUNNINGHUB_H3_BASE_URL:providerUrl,RUNNINGHUB_API_KEY:'test-only-key'},stdio:['ignore','pipe','pipe']});
+  app = spawn(process.execPath, ['server.js'], {cwd:root,env:{...process.env,PORT:String(appPort),DATA_DIR:dataRoot,NIANNIAN_LOCAL_PREVIEW_INSECURE_SESSION:'on',NODE_ENV:'test',NOMI_RUNNINGHUB_H3_BASE_URL:providerUrl,NOMI_RUNNINGHUB_H3_API_KEY:'test-only-key',RUNNINGHUB_API_KEY:'enterprise-key-must-not-be-used'},stdio:['ignore','pipe','pipe']});
   app.stdout.on('data', chunk => { output += chunk.toString('utf8'); });
   app.stderr.on('data', chunk => { output += chunk.toString('utf8'); });
   await waitForApp();

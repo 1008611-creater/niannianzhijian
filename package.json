@@ -52,6 +52,7 @@
     "test:canvas-assets-http": "node test_canvas_assets_http.js",
     "test:canvas-image2-runtime": "node test_canvas_image2_runtime.js",
     "test:canvas-h3-runtime": "node test_canvas_h3_runtime.js",
+    "test:nomi-h3-multiref": "node test_nomi_h3_multiref_contract.js",
     "test:browser-smoke": "playwright test test_studio_clean_browser.spec.js --reporter=line",
     "test:quality-gate": "node scripts/run_quality_gate.js",
     "test:pwa-shell": "node test_pwa_shell.js",
