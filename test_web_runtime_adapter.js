@@ -5,7 +5,7 @@ const fs = require('fs');
 const vm = require('vm');
 
 (async () => {
-const source = fs.readFileSync(require('path').join(__dirname, 'studio/assets/web-runtime-adapter.js'), 'utf8');
+const source = fs.readFileSync(require('path').join(__dirname, 'studio/assets/web-runtime-adapter-r4.js'), 'utf8');
 assert.match(source, /\/api\/canvas\/provider-status/);
 assert.match(source, /\/api\/projects\/.*\/canvas\/jobs/);
 assert.match(source, /\/api\/projects\/.*\/text\/jobs/);

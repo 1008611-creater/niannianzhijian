@@ -1,4 +1,4 @@
-const CACHE_NAME = 'niannian-app-shell-20260808-studio-module-bypass-r27';
+const CACHE_NAME = 'niannian-app-shell-20260809-studio-module-bypass-r4';
 const APP_SHELL = [
   '/',
   '/index.html',

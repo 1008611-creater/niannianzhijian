@@ -1,1 +1,0 @@
-import{l as o}from"./proxy-B50diLEI.js?v=20260808-static-r3";const n=[["path",{d:"M6 9l6 6l6 -6",key:"svg-0"}]],c=o("outline","chevron-down","ChevronDown",n);const e=[["path",{d:"M9 6l6 6l-6 6",key:"svg-0"}]],h=o("outline","chevron-right","ChevronRight",e);export{c as I,h as a};

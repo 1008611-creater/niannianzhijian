@@ -1,1 +1,0 @@
-import"./react-vendor-CRt0dbXk.js?v=20260808-static-r3";import{aj as l,a9 as r,a8 as i}from"./index-M-8MrEH2-r28-19b89ec.js?v=20260808-static-r3";function n({classNames:a,styles:o,props:e,stylesCtx:s}){const t=l();return{resolvedClassNames:i({theme:t,classNames:a,props:e,stylesCtx:s||void 0}),resolvedStyles:r({theme:t,styles:o,props:e,stylesCtx:s||void 0})}}export{n as u};

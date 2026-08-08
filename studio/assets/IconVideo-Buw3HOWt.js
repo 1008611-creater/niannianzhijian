@@ -1,1 +1,0 @@
-import{l as o}from"./proxy-B50diLEI.js?v=20260808-static-r3";const a=[["path",{d:"M15 10l4.553 -2.276a1 1 0 0 1 1.447 .894v6.764a1 1 0 0 1 -1.447 .894l-4.553 -2.276v-4",key:"svg-0"}],["path",{d:"M3 8a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2l0 -8",key:"svg-1"}]],t=o("outline","video","Video",a);export{t as I};
