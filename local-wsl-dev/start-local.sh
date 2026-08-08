@@ -46,7 +46,9 @@ start_one() {
       tail -n 60 "$log_file" >&2 || true
       exit 1
     fi
-    if curl --fail --silent --show-error --max-time 1 "$health_url" >/dev/null 2>&1; then
+    # Vite may spend several seconds optimizing dependencies on a cold WSL start.
+    # Keep the health probe bounded, but do not mistake that one-time work for a dead service.
+    if curl --fail --silent --show-error --max-time 10 "$health_url" >/dev/null 2>&1; then
       echo "$name 已启动：PID $(cat "$pid_file")"
       return
     fi
