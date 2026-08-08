@@ -92,13 +92,14 @@ When a task says `继续`, continue from the current approved scope and this dir
   collaboration handovers. See `COLLABORATION_AND_HANDOVER.md` for the exact
   handover and release procedure.
 - Until the second contributor has accepted repository access, the primary
-  owner advances only Workstream A through `feat/canvas-provider-runtime` and
-  Issue #2. Workstream B remains reserved. On contributor readiness, invite
-  them and assign Issue #1. `main` remains pull-request-only with force pushes
-  and deletion disallowed as a required team process, but the current GitHub
-  Free private-repository plan cannot enforce it technically. No
-  approving-review count is configured unless the product owner explicitly
-  changes that decision.
+  owner normally advances Workstream A through Issue #2 and keeps Workstream B
+  reserved. When the product owner directs an immediate Studio recovery because
+  it blocks the real generation path, the primary owner may take that Issue on
+  a new Issue-linked branch, merge it before provider-runtime work, then return
+  to Workstream A. `main` remains pull-request-only with force pushes and
+  deletion disallowed as a required team process, but the current GitHub Free
+  private-repository plan cannot enforce it technically. No approving-review
+  count is configured unless the product owner explicitly changes that decision.
 
 ## Engineering Baseline
 

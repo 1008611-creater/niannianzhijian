@@ -81,7 +81,9 @@ Required result:
 5. Verify changed Studio flows on desktop, mobile, and a clean browser.
 
 This workstream must not modify `server.js`, `bridge/niannian_canvas_*.js`, or
-`deploy/**`. A cross-boundary API change requires a separate agreed PR.
+`deploy/**`, except for the focused canvas-document persistence repair proven
+by Issue #1's clean-browser save regression. Any other cross-boundary API
+change requires a separate agreed PR.
 
 ## Shared runtime contract
 
@@ -122,20 +124,20 @@ Current GitHub controls:
 
 ## Current collaboration mode and resume point
 
-- The second contributor is not yet onboarded. Until their GitHub username is
-  supplied and their invitation is accepted, the primary owner works alone on
-  Workstream A through Issue #2 and `feat/canvas-provider-runtime`.
-- Workstream B and Issue #1 remain reserved for the second contributor. The
-  primary owner does not make speculative Studio changes in its owned paths
-  while waiting, preventing a later two-person merge conflict.
+- The second contributor is not yet onboarded. The primary owner normally works
+  alone on Workstream A through Issue #2 and keeps Studio paths available for
+  the future contributor.
+- If a Studio recovery is the proven blocker for the real generation path, the
+  product owner may direct the primary owner to take Issue #1 on a new focused
+  branch. That recovery merges before provider-runtime acceptance; the primary
+  owner then returns to Issue #2 without altering its in-progress branch.
 - When the contributor is ready, the primary owner invites them with repository
-  write access and assigns Issue #1. The active main protection and ownership
-  boundaries remain unchanged unless the product owner explicitly approves a
-  plan upgrade or review requirement.
-- If the product owner says `继续` before the contributor is ready, resume the
-  earliest unfinished Workstream A item from Issue #2. If the contributor is
-  ready, first complete onboarding and protection, then progress both issues
-  under their respective file boundaries.
+  write access and assigns an unclaimed Studio Issue. The active main
+  protection and ownership boundaries remain unchanged unless the product owner
+  explicitly approves a plan upgrade or review requirement.
+- If the product owner says `继续`, resume the earliest unfinished blocker in
+  the active user path. Do not wait for contributor onboarding when the product
+  owner has explicitly reassigned that blocker.
 
 ## Handover procedure
 
