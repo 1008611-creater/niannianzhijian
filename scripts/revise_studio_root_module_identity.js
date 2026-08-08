@@ -5,10 +5,10 @@ const path = require('path');
 
 const assetsRoot = path.resolve(__dirname, '..', 'studio', 'assets');
 const indexPath = path.resolve(__dirname, '..', 'studio', 'index.html');
-const oldEntry = 'index-M-8MrEH2.js';
-const nextEntry = 'index-M-8MrEH2-r26.js';
-const oldApp = 'NomiStudioApp-DDB0IgSO.js';
-const nextApp = 'NomiStudioApp-DDB0IgSO-r26.js';
+const oldEntry = 'index-M-8MrEH2-r26.js';
+const nextEntry = 'index-M-8MrEH2-r27.js';
+const oldApp = 'NomiStudioApp-DDB0IgSO-r26.js';
+const nextApp = 'NomiStudioApp-DDB0IgSO-r27.js';
 const oldEntryPath = path.join(assetsRoot, oldEntry);
 const nextEntryPath = path.join(assetsRoot, nextEntry);
 const oldAppPath = path.join(assetsRoot, oldApp);
@@ -29,7 +29,7 @@ for (const name of assetFiles) {
   const source = fs.readFileSync(filePath, 'utf8');
   let next = source
     .replaceAll(oldEntry, nextEntry)
-    .replaceAll(oldApp + '?v=20260808-r23', nextApp)
+    .replaceAll(oldApp + '?v=20260808-r26', nextApp)
     .replaceAll(oldApp, nextApp);
   if (next !== source) {
     entryReferenceCount += source.includes(oldEntry) ? 1 : 0;
@@ -43,8 +43,7 @@ fs.renameSync(oldAppPath, nextAppPath);
 
 const index = fs.readFileSync(indexPath, 'utf8');
 const nextIndex = index
-  .replace('./assets/' + oldEntry + '?v=20260808-r25', './assets/' + nextEntry)
-  .replace('./assets/' + oldEntry + '?v=20260808-r23', './assets/' + nextEntry);
+  .replace('./assets/' + oldEntry, './assets/' + nextEntry);
 if (nextIndex === index || nextIndex.includes(oldEntry)) {
   throw new Error('studio_html_entry_rewrite_failed');
 }

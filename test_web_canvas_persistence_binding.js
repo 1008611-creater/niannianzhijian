@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const source = fs.readFileSync(
-  path.join(__dirname, 'studio', 'assets', 'NomiStudioApp-DDB0IgSO-r26.js'),
+  path.join(__dirname, 'studio', 'assets', 'NomiStudioApp-DDB0IgSO-r27.js'),
   'utf8',
 );
 

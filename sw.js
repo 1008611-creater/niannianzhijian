@@ -1,4 +1,4 @@
-const CACHE_NAME = 'niannian-app-shell-20260807-local-auth-r1';
+const CACHE_NAME = 'niannian-app-shell-20260808-studio-module-bypass-r27';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -21,7 +21,7 @@ const APP_SHELL = [
 ];
 
 function isProjectOrMediaRequest(url) {
-  return url.pathname.startsWith('/api/') || url.pathname.startsWith('/assets/');
+  return url.pathname.startsWith('/api/') || url.pathname.startsWith('/assets/') || url.pathname.startsWith('/studio/assets/');
 }
 
 self.addEventListener('install', event => {
