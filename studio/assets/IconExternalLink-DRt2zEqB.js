@@ -1,1 +1,1 @@
-import{l as e}from"./proxy-B50diLEI.js";const t=[["path",{d:"M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6",key:"svg-0"}],["path",{d:"M11 13l9 -9",key:"svg-1"}],["path",{d:"M15 4h5v5",key:"svg-2"}]],n=e("outline","external-link","ExternalLink",t);export{n as I};
+import{l as e}from"./proxy-B50diLEI.js?v=20260808-static-r3";const t=[["path",{d:"M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6",key:"svg-0"}],["path",{d:"M11 13l9 -9",key:"svg-1"}],["path",{d:"M15 4h5v5",key:"svg-2"}]],n=e("outline","external-link","ExternalLink",t);export{n as I};
