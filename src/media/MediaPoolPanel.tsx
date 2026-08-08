@@ -419,6 +419,8 @@ export function MediaPoolPanel({
         menu={menu}
         busy={busy}
         uploadRatio={uploadRatio}
+        selectedCount={selectedAssets.length}
+        onUseSelectedWithAgent={() => onAddAssetsToChat?.(selectedAssets)}
         canAddSolid={!!onAddSolid}
         semanticOpenRequest={semanticOpenRequest}
         onQueryChange={setQuery}

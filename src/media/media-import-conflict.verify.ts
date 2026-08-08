@@ -104,14 +104,13 @@ const secondReadyMaster: MediaAsset = {
   src: '/media/uploads/voice.wav',
 };
 const mediaSeed = createMediaAssetsChatSeed([readyMaster, secondReadyMaster], 42);
-assert.deepEqual(mediaSeed, {
-  text: '@interview.mov @voice.wav ',
-  nonce: 42,
-  references: [
-    { id: readyMaster.id, name: readyMaster.name, kind: readyMaster.kind },
-    { id: secondReadyMaster.id, name: secondReadyMaster.name, kind: secondReadyMaster.kind },
-  ],
-}, 'one ordered chat seed contains every selected media reference');
+assert.equal(mediaSeed?.nonce, 42);
+assert.match(mediaSeed?.text ?? '', /请使用我选中的素材/);
+assert.match(mediaSeed?.text ?? '', /@interview\.mov @voice\.wav$/);
+assert.deepEqual(mediaSeed?.references, [
+  { id: readyMaster.id, name: readyMaster.name, kind: readyMaster.kind },
+  { id: secondReadyMaster.id, name: secondReadyMaster.name, kind: secondReadyMaster.kind },
+], 'one ordered chat seed contains every selected media reference');
 assert.equal(createMediaAssetsChatSeed([], 42), null, 'an empty media selection does not expand or reseed chat');
 
 

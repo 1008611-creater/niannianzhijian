@@ -36,6 +36,8 @@ interface MediaPoolToolbarProps {
   onQueryChange: (value: string) => void;
   onSemanticResults: (matches: SemanticMatch[] | null) => void;
   onUpload: () => void;
+  selectedCount?: number;
+  onUseSelectedWithAgent?: () => void;
   onMobileUpload: (restoreFocus: () => void) => void;
   onAddSolid: () => void;
   onCreateFolder: (restoreFocus: () => void) => void;
@@ -130,6 +132,17 @@ export function MediaPoolToolbar(props: MediaPoolToolbarProps) {
       </label>
       <SemanticSearchControls scopeId={props.scopeId} assets={props.assets} onResultsChange={props.onSemanticResults} openRequest={props.semanticOpenRequest} />
       <button className="cc-media-upload-btn cc-tip" aria-label={t('上传素材')} data-tip={t('上传素材')} disabled={props.busy} onClick={props.onUpload}><Icon name="upload" size={17} /><span>{t('上传素材')}</span></button>
+      {props.selectedCount ? (
+        <button
+          className="cc-media-agent-btn cc-tip"
+          aria-label={t('将已选素材交给 Agent')}
+          data-tip={t('将已选素材交给 Agent')}
+          disabled={props.busy}
+          onClick={props.onUseSelectedWithAgent}
+        >
+          <Icon name="sparkles" size={16} /><span>{t('交给 Agent')}（{props.selectedCount}）</span>
+        </button>
+      ) : null}
       {props.busy && props.uploadRatio != null && <span className="cc-media-upload-pct" title={t('上传中')}>{Math.round(props.uploadRatio * 100)}%</span>}
       <button className="cc-media-icon cc-tip" aria-label={t(mediaViewToggleLabel(props.view))} data-tip={t(mediaViewToggleLabel(props.view))} onClick={props.onViewChange}><Icon name={props.view === 'grid' ? 'list' : 'grid'} size={19} /></button>
       <SortMenu {...props} lifecycle={lifecycle} />

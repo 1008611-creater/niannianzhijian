@@ -386,7 +386,7 @@ export function readyMediaAssetsForPaste(
 export function createMediaAssetsChatSeed(assets: MediaAsset[], nonce = Date.now()) {
   if (!assets.length) return null;
   return {
-    text: `${assets.map((asset) => `@${asset.name}`).join(' ')} `,
+    text: `请使用我选中的素材，制作一条适合自媒体发布的智能剪辑：保留最有表现力的画面，调整节奏，并生成简短口播解说和同步字幕。不要使用未选中的素材。 ${assets.map((asset) => `@${asset.name}`).join(' ')}`,
     nonce,
     references: assets.map((asset) => ({ id: asset.id, name: asset.name, kind: asset.kind })),
   };
