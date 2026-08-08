@@ -6,7 +6,7 @@ const path = require('path');
 const assetsRoot = path.resolve(__dirname, '..', 'studio', 'assets');
 const indexPath = path.resolve(__dirname, '..', 'studio', 'index.html');
 const releaseTag = 'r4';
-const cacheVersion = '20260809-static-r4';
+const cacheVersion = '20260809-static-r5';
 const starts = ['index-M-8MrEH2-r28-19b89ec.js', 'web-runtime-adapter.js'];
 
 function assetNameFromReference(reference) {
@@ -62,6 +62,7 @@ for (const [oldName, replacement] of [...mapping.entries()].sort((a, b) => b[0].
 }
 nextHtml = nextHtml.replaceAll('20260808-static-r3', cacheVersion);
 nextHtml = nextHtml.replaceAll('20260808-static-r2', cacheVersion);
+nextHtml = nextHtml.replaceAll('20260809-static-r4', cacheVersion);
 if (nextHtml === html) throw new Error('studio_html_identity_rewrite_failed');
 fs.writeFileSync(indexPath, nextHtml);
 
