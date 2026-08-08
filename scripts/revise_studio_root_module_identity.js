@@ -6,7 +6,8 @@ const path = require('path');
 const assetsRoot = path.resolve(__dirname, '..', 'studio', 'assets');
 const indexPath = path.resolve(__dirname, '..', 'studio', 'index.html');
 const releaseTag = 'r4';
-const cacheVersion = '20260809-static-r5';
+const moduleCacheVersion = '20260809-static-r4';
+const adapterCacheVersion = '20260809-static-r5';
 const starts = ['index-M-8MrEH2-r28-19b89ec.js', 'web-runtime-adapter.js'];
 
 function assetNameFromReference(reference) {
@@ -60,9 +61,10 @@ let nextHtml = html;
 for (const [oldName, replacement] of [...mapping.entries()].sort((a, b) => b[0].length - a[0].length)) {
   nextHtml = nextHtml.split(`./assets/${oldName}`).join(`./assets/${replacement}`);
 }
-nextHtml = nextHtml.replaceAll('20260808-static-r3', cacheVersion);
-nextHtml = nextHtml.replaceAll('20260808-static-r2', cacheVersion);
-nextHtml = nextHtml.replaceAll('20260809-static-r4', cacheVersion);
+nextHtml = nextHtml.replaceAll('20260808-static-r3', moduleCacheVersion);
+nextHtml = nextHtml.replaceAll('20260808-static-r2', moduleCacheVersion);
+nextHtml = nextHtml.replaceAll('20260809-static-r4', moduleCacheVersion);
+nextHtml = nextHtml.replace(/(web-runtime-adapter-r4\\.js\\?v=)[^"']+/g, `$1${adapterCacheVersion}`);
 if (nextHtml === html) throw new Error('studio_html_identity_rewrite_failed');
 fs.writeFileSync(indexPath, nextHtml);
 
@@ -73,7 +75,8 @@ for (const [name, nextName] of mapping) {
 process.stdout.write(JSON.stringify({
   ok: true,
   releaseTag,
-  cacheVersion,
+  moduleCacheVersion,
+  adapterCacheVersion,
   renamed: mapping.size,
   js: [...mapping].filter(([name]) => name.endsWith('.js')).length,
   css: [...mapping].filter(([name]) => name.endsWith('.css')).length
