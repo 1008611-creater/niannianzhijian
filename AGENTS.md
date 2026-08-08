@@ -10,6 +10,13 @@ This directory is the canonical source for NianNian AI's Haika server execution 
 - Keep the same job identity and source authority through recovery. Do not replace the task with a new diagnostic artifact or an unrelated route.
 - Report only verified state as complete. Distinguish queued, running, blocked, and delivered.
 
+## Delegated Technical Execution
+
+- When the product owner states an outcome or says to continue, make ordinary technical decisions and execute the full in-scope path without requesting step-by-step confirmation. This includes complex code changes, diagnosis, tests, local tooling, repository configuration, CI, documentation, and reversible GitHub operations.
+- Treat confirmation as unnecessary for implementation detail, command choice, debugging strategy, test selection, or routine repository maintenance. Do not hand a technical decision back merely because it is complex.
+- Escalate only when the next action changes the product goal, incurs material cost, accesses or rotates a credential, makes an irreversible external change, changes account permissions, publishes or deploys, or has an explicitly stated acceptance tradeoff. Preserve every existing hard boundary.
+- After acting, report the outcome first: what changed, how it was verified, any deviation from the stated goal, and the one real blocker or next action. Do not expose internal command-by-command narration unless it changes the product decision.
+
 ## User-facing behavior
 
 - Never expose internal error codes, token/controller/lease terminology, paths, hashes, or recovery mechanics in the product UI.
@@ -87,8 +94,9 @@ When a task says `继续`, continue from the current approved scope and this dir
 - Until the second contributor has accepted repository access, the primary
   owner advances only Workstream A through `feat/canvas-provider-runtime` and
   Issue #2. Workstream B remains reserved. On contributor readiness, invite
-  them, assign Issue #1, protect `main` with pull requests, no force pushes,
-  and one approving review, then resume both streams within their owned paths.
+  them and assign Issue #1. `main` remains pull-request-only with force pushes
+  and deletion disabled; no approving-review count is configured unless the
+  product owner explicitly changes that decision.
 
 ## Professional Website Development Skill
 

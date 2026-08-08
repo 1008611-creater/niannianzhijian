@@ -102,17 +102,23 @@ This workstream must not modify `server.js`, `bridge/niannian_canvas_*.js`, or
    No one commits directly to `main`.
 4. Each PR is focused on one user-visible path, names its Issue, lists changed
    paths, and states exact verification evidence and remaining gaps.
-5. Before review, the branch is rebased on current `main`. The owner of a path
+5. Before merge, the branch is rebased on current `main`. The owner of a path
    resolves conflicts in that path.
-6. The primary owner reviews and merges Workstream B first, then Workstream A.
+6. The primary owner merges Workstream B first, then Workstream A.
    A merged `main` is the only input for a release candidate.
 
-Recommended `main` repository protection:
+Current GitHub controls:
 
-- Require pull requests; disallow direct pushes and force pushes.
-- Require one review from the primary owner before merge.
-- Do not configure a GitHub status check until the corresponding CI check has
-  been added and proven reliable.
+- The Quality Gate and clean-browser Studio smoke workflows run on every pull
+  request and push to `main`; Dependabot vulnerability alerts are enabled.
+- This private personal repository's current GitHub plan does not permit branch
+  protection or repository rulesets. Until the owner upgrades the plan, the
+  pull-request-only, no-direct-push, no-force-push, and no-deletion rules are
+  enforced by this collaboration contract rather than by GitHub itself.
+- After GitHub Pro is explicitly authorized, enable pull requests, force-push
+  and deletion blocking, and the passing Quality Gate and clean-browser Studio
+  smoke test as required checks. Do not configure an approving-review count:
+  Pull Request review is deliberately outside the current process.
 
 ## Current collaboration mode and resume point
 
@@ -123,8 +129,9 @@ Recommended `main` repository protection:
   primary owner does not make speculative Studio changes in its owned paths
   while waiting, preventing a later two-person merge conflict.
 - When the contributor is ready, the primary owner invites them with repository
-  write access, assigns Issue #1, and enables `main` protection: pull requests
-  required, force pushes disabled, and one approving review required.
+  write access and assigns Issue #1. The active main protection and ownership
+  boundaries remain unchanged unless the product owner explicitly approves a
+  plan upgrade or review requirement.
 - If the product owner says `继续` before the contributor is ready, resume the
   earliest unfinished Workstream A item from Issue #2. If the contributor is
   ready, first complete onboarding and protection, then progress both issues

@@ -1,0 +1,34 @@
+changelog:
+  categories:
+    - title: Studio and canvas
+      labels:
+        - studio
+        - canvas
+    - title: Providers and runtime
+      labels:
+        - runtime
+        - provider
+    - title: Reliability and security
+      labels:
+        - reliability
+        - security
+        - dependencies
+    - title: Other changes
+      labels:
+        - "*"
+  exclude:
+    labels:
+      - skip-changelog
+
+template: |
+  ## Changes
+
+  $CHANGES
+
+  ## Verification before publishing
+
+  - [ ] Release candidate is built from this exact `main` commit.
+  - [ ] Clean-browser Studio journey passed on desktop and mobile.
+  - [ ] Real provider generation was run only with explicit authorization.
+  - [ ] Persistent data and prior release rollback are verified.
+  - [ ] Product owner explicitly approved production deployment.

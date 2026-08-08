@@ -5,7 +5,6 @@ const fs=require('fs');
 const fsp=fs.promises;
 const path=require('path');
 const {THREADS}=require('./mac_codex_app_employee_bootstrap');
-const {validateToolchainContract}=require('./mac-employee-training/execute_redraw_step01_hq_full');
 
 const SCHEMA='niannian_redraw_step01_mac_employee_dispatch_v1';
 const MANIFEST_SCHEMA='niannian_redraw_step01_mac_phase_export_v1';
@@ -16,6 +15,11 @@ const RUNTIME_IMPORT_SCHEMA='niannian_mac_step01_python_import_receipt_v1';
 const REQUIRED_CAPABILITIES=Object.freeze(['mimo_asr','paddle_ocr','transnetv2','hq_audio','forced_aligner']);
 const REQUIRED_CAPABILITY_KEYS=Object.freeze(['credential:mimo_asr','credential:paddle_ocr','runtime:transnetv2','runtime:hq','runtime:forced_aligner']);
 const MAC_HQ_GATE_PATH=MAC_PROJECT+'/output/mac-employee-training/mac-step01-hq-full-gate-receipt.json';
+
+async function validateMacToolchainContract(...args){
+  const {validateToolchainContract}=require('./mac-employee-training/execute_redraw_step01_hq_full');
+  return validateToolchainContract(...args);
+}
 
 function sha256(value){return crypto.createHash('sha256').update(value).digest('hex');}
 function jsonBytes(value){return Buffer.from(JSON.stringify(value,null,2)+'\n','utf8');}
@@ -186,7 +190,7 @@ async function prepareStep01Phase(options={}){
   try{
     const testInjection=options.toolchainValidator||options.toolchainValidationOptions||options.allowedSkillRoots;
     if(testInjection&&!(options.testMode===true&&process.env.NIANNIAN_STEP01_PHASE_TEST_MODE==='1'))throw new Error('step01_phase_toolchain_test_override_forbidden');
-    if(options.toolchainValidator)await options.toolchainValidator(toolchain,toolchainPath,options.allowedSkillRoots,options.toolchainValidationOptions||{nowMs:Number(options.nowMs||Date.now())});else if(options.fixedHqReadback)validateFixedHqReadbackMirror(options,hqGate,hqGateEvidence,toolchain);else if(process.platform==='darwin')await validateToolchainContract(toolchain,toolchainPath,undefined,{nowMs:Number(options.nowMs||Date.now())});else await validateWindowsMirror(toolchain,toolchainPath,hqGatePath,hqGateEvidence);
+    if(options.toolchainValidator)await options.toolchainValidator(toolchain,toolchainPath,options.allowedSkillRoots,options.toolchainValidationOptions||{nowMs:Number(options.nowMs||Date.now())});else if(options.fixedHqReadback)validateFixedHqReadbackMirror(options,hqGate,hqGateEvidence,toolchain);else if(process.platform==='darwin')await validateMacToolchainContract(toolchain,toolchainPath,undefined,{nowMs:Number(options.nowMs||Date.now())});else await validateWindowsMirror(toolchain,toolchainPath,hqGatePath,hqGateEvidence);
   }catch(error){prerequisiteIssues.push('toolchain_contract_receipt_validation_failed:'+String(error.message||error).split(':')[0]);}
   if(!options.fixedHqReadback&&(runtimeImport.schema_version!==RUNTIME_IMPORT_SCHEMA||runtimeImport.status!=='ready'||runtimeImport.host?.platform!=='darwin'||runtimeImport.host?.project_root!==MAC_PROJECT||runtimeImport.runtime?.python_root!=='/Users/lsb/AI-Brain/runtime/step01-python312'||!['Pillow','requests','silero-vad'].every(name=>runtimeImport.imports?.[name]?.ready===true)))prerequisiteIssues.push('runtime_import_receipt_not_ready');
   if(prerequisiteIssues.length){const blocker=await writePrerequisiteBlockedProjection(jobRoot,task,authorization,source,'toolchain_or_runtime_import',prerequisiteIssues,{toolchain_sha256:toolchainEvidence.sha256,runtime_import_sha256:runtimeImportEvidence.sha256});return {status:'blocked_contract',blocked:true,dispatch:null,phase:null,root:null,manifest:null,manifest_sha256:null,blocker};}
