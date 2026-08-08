@@ -7,6 +7,9 @@ export default {
   // ---- App.tsx (startup/project import and export prompt) ----
   '加载工程…': 'Loading project…',
   '加载编辑器…': 'Loading editor…',
+  '编辑器加载失败，请刷新后重试': 'The editor failed to load. Refresh and try again.',
+  '刷新重试': 'Refresh and retry',
+  '返回工程列表': 'Back to projects',
   '加载中…': 'Loading…',
   '工程不存在，返回…': 'Project not found, going back…',
   '已导出「{name}」;{n} 个素材两端都取不到,未随包': 'Exported "{name}"; {n} asset(s) unavailable on both ends, not bundled',

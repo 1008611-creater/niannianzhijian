@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { Component, lazy, Suspense, useCallback, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import { theme } from './theme';
 import { Dashboard } from './components/Dashboard';
 import {
@@ -85,6 +85,45 @@ function Splash({ text }: { text: string }) {
   );
 }
 
+interface EditorLoadBoundaryProps {
+  children: ReactNode;
+  onHome: () => void;
+  errorLabel: string;
+  retryLabel: string;
+  homeLabel: string;
+}
+
+interface EditorLoadBoundaryState {
+  error: Error | null;
+}
+
+class EditorLoadBoundary extends Component<EditorLoadBoundaryProps, EditorLoadBoundaryState> {
+  state: EditorLoadBoundaryState = { error: null };
+
+  static getDerivedStateFromError(error: Error): EditorLoadBoundaryState {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Editor failed to load', error, info.componentStack);
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24, background: theme.bg, color: theme.text, fontFamily: 'system-ui, sans-serif' }}>
+        <div style={{ display: 'grid', gap: 12, maxWidth: 420, textAlign: 'center' }}>
+          <strong>{this.props.errorLabel}</strong>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+            <button type="button" onClick={() => window.location.reload()}>{this.props.retryLabel}</button>
+            <button type="button" onClick={this.props.onHome}>{this.props.homeLabel}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
 // Load one project's timeline, then mount the editor for it.
 function EditorLoader({ meta, onHome, onRename }: { meta: ProjectMeta; onHome: () => void; onRename: (name: string) => void }) {
   const t = useT();
@@ -95,7 +134,16 @@ function EditorLoader({ meta, onHome, onRename }: { meta: ProjectMeta; onHome: (
     return () => { alive = false; };
   }, [meta.id]);
   if (!initial) return <Splash text={t('加载工程…')} />;
-  return <Suspense fallback={<Splash text={t('加载编辑器…')} />}><Editor initial={initial} project={meta} onHome={onHome} onRename={onRename} /></Suspense>;
+  return (
+    <EditorLoadBoundary
+      onHome={onHome}
+      errorLabel={t('编辑器加载失败，请刷新后重试')}
+      retryLabel={t('刷新重试')}
+      homeLabel={t('返回工程列表')}
+    >
+      <Suspense fallback={<Splash text={t('加载编辑器…')} />}><Editor initial={initial} project={meta} onHome={onHome} onRename={onRename} /></Suspense>
+    </EditorLoadBoundary>
+  );
 }
 
 export default function App() {
