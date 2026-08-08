@@ -80,6 +80,10 @@ test('Studio loads from a clean browser with one canonical module graph', async 
   await newProject.click();
   await expect(page.getByRole('banner', {name: '念念 AI 工作台'})).toBeVisible();
   await expect(page.getByRole('button', {name: /未命名项目/})).toBeVisible();
+  await page.getByRole('button', {name: '生成'}).click();
+  await page.getByRole('button', {name: '念念 AI 生成'}).click();
+  await expect(page.getByText('AI 助手入口加载失败')).toHaveCount(0);
+  await expect(page.getByRole('complementary', {name: '生成区 AI 侧栏'})).toBeVisible();
 
   const loadedModuleUrls = await page.evaluate(() => performance.getEntriesByType('resource')
     .map(entry => entry.name)
