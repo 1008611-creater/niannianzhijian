@@ -1,0 +1,10 @@
+# CODEOWNERS routes attention; branch protection intentionally does not require
+# a review count until the second contributor is onboarded.
+* @1008611-creater
+/studio/ @1008611-creater
+/sw.js @1008611-creater
+/server.js @1008611-creater
+/bridge/ @1008611-creater
+/deploy/ @1008611-creater
+/.github/ @1008611-creater
+

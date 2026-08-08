@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a reproducible user-path defect.
+title: "Bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include API keys, cookies, signed URLs, user media, or raw Provider responses.
+  - type: textarea
+    id: user-path
+    attributes:
+      label: User path
+      description: State the exact project, node, and action that failed.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Verification evidence
+      description: Include sanitized browser/API status and the test or URL used.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, cookies, signed URLs, user media, and raw Provider responses.
+          required: true

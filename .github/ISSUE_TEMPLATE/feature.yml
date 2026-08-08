@@ -1,0 +1,43 @@
+name: Feature request
+description: Propose a bounded user-facing capability or engineering improvement.
+title: "Feature: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: User outcome
+      description: What should a user be able to complete?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and ownership
+      description: Identify Studio, server/provider, data, or release paths and the proposed owner.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance evidence
+      description: State the real browser/API path and refresh readback that prove completion.
+    validations:
+      required: true
+  - type: dropdown
+    id: provider-spend
+    attributes:
+      label: Real Provider spend
+      options:
+        - No real Provider call
+        - Requires explicit approval before testing
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Boundary check
+      options:
+        - label: This proposal does not change the confirmed NianNian canvas family or hide an unimplemented capability behind a fake result.
+          required: true

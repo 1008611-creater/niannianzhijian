@@ -87,8 +87,9 @@ When a task says `继续`, continue from the current approved scope and this dir
 - Until the second contributor has accepted repository access, the primary
   owner advances only Workstream A through `feat/canvas-provider-runtime` and
   Issue #2. Workstream B remains reserved. On contributor readiness, invite
-  them, assign Issue #1, protect `main` with pull requests, no force pushes,
-  and one approving review, then resume both streams within their owned paths.
+  them and assign Issue #1. `main` remains pull-request-only with force pushes
+  and deletion disabled; no approving-review count is configured unless the
+  product owner explicitly changes that decision.
 
 ## Professional Website Development Skill
 
