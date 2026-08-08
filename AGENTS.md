@@ -95,8 +95,33 @@ When a task says `继续`, continue from the current approved scope and this dir
   owner advances only Workstream A through `feat/canvas-provider-runtime` and
   Issue #2. Workstream B remains reserved. On contributor readiness, invite
   them and assign Issue #1. `main` remains pull-request-only with force pushes
-  and deletion disabled; no approving-review count is configured unless the
-  product owner explicitly changes that decision.
+  and deletion disallowed as a required team process, but the current GitHub
+  Free private-repository plan cannot enforce it technically. No
+  approving-review count is configured unless the product owner explicitly
+  changes that decision.
+
+## Engineering Baseline
+
+- Treat GitHub `main` as authoritative only after the focused pull-request CI
+  has passed. The required current checks are `Local contract tests` and
+  `Clean-browser Studio smoke test`; a locally passing command is not a
+  substitute for their first real GitHub run.
+- Keep the completed GitHub controls in use: focused Issue and branch, pull
+  request template, CODEOWNERS routing, Dependabot alerts and updates, the
+  weekly production dependency audit, security policy, and draft release notes.
+  A draft Release is changelog preparation only, never deployment authority.
+- On every dependency or workflow change, inspect the resulting GitHub Actions
+  status and open Dependabot alerts. Fix a proven CI or dependency failure in a
+  focused follow-up change; do not merge around it or label it as a false alarm.
+- Branch protection, rulesets, Secret Scanning, and private vulnerability
+  reporting are unavailable on the current private-repository plan. Keep their
+  required behavior in this contract, state the limitation in the handover, and
+  do not claim GitHub is enforcing controls it cannot enforce.
+- Observability, persistent worker recovery, multi-user storage, and public
+  beta policy are planned production capabilities, not completed controls.
+  Their acceptance criteria and ownership remain in GitHub Issues #6 through
+  #10; do not describe the product as public-ready until those applicable
+  outcomes are actually delivered.
 
 ## Professional Website Development Skill
 
