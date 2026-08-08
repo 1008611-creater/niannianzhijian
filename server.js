@@ -7484,7 +7484,13 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         prompt:canvasText(body.prompt || node.data?.prompt, 4000),
         inputAssetIds,
         resolution:canvasText(body.resolution || node.data?.resolution || '2k', 8),
-        aspectRatio:canvasText(body.aspectRatio || node.data?.aspectRatio || '1:1', 16),
+        aspectRatio:canvasText(
+          body.aspectRatio
+            || (nodeType === 'video'
+              ? (node.data?.aspectRatio && node.data.aspectRatio !== '1:1' ? node.data.aspectRatio : '9:16')
+              : node.data?.aspectRatio || '1:1'),
+          16
+        ),
         durationSeconds:body.durationSeconds || body.duration_seconds || node.data?.durationSeconds || node.data?.duration_seconds || (nodeType === 'video' ? 5 : 0),
         idempotencyKey:request.headers['idempotency-key']
       });
