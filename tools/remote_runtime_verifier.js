@@ -16,7 +16,7 @@ const assets = fs.readdirSync(assetsRoot);
 // The adapter cache version is intentionally release-specific. Require a
 // cache-busted adapter reference without coupling candidate activation to a
 // retired release identifier.
-if (!/web-runtime-adapter\.js\?v=[A-Za-z0-9._-]+/.test(index)) throw new Error('web_adapter_cache_bust_missing');
-if (!assets.some(name => /^NomiStudioApp-.*\.js$/.test(name))) throw new Error('studio_bundle_entry_missing');
-if (!assets.includes('web-runtime-adapter.js')) throw new Error('web_runtime_adapter_missing');
+if (!/web-runtime-adapter-r4\.js\?v=[A-Za-z0-9._-]+/.test(index)) throw new Error('web_adapter_physical_identity_missing');
+if (!assets.some(name => /^NomiStudioApp-.*-r4\.js$/.test(name))) throw new Error('studio_bundle_entry_missing');
+if (!assets.includes('web-runtime-adapter-r4.js')) throw new Error('web_runtime_adapter_missing');
 process.stdout.write(JSON.stringify({ok:true,verified:['server entry','studio bundle entry','web runtime adapter cache bust']}) + '\n');
