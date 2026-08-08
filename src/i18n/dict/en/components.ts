@@ -7,6 +7,10 @@ export default {
   // ---- App.tsx (startup/project import and export prompt) ----
   '加载工程…': 'Loading project…',
   '加载编辑器…': 'Loading editor…',
+  '画面配口播': 'Add narration to visuals',
+  '自动写解说、配音和字幕': 'Write narration, voice it, and caption it',
+  '把当前没有人声的画面做成适合自媒体发布的短视频：先查看并选择最有表现力的镜头，写一版简洁中文口播，使用已配置的 MiMo 内置音色生成旁白，调用 Qwen 强制对齐生成真实字幕，再加轻量背景音乐并检查音画同步。不要使用未选中的素材，先给我可编辑粗剪。':
+    'Turn the current visuals without spoken audio into a social-ready short: inspect and select the most expressive shots, write concise Chinese narration, use a configured MiMo built-in voice, align real captions with Qwen ForcedAligner, add light background music, and check audio-video sync. Do not use unselected media; deliver an editable rough cut first.',
   '编辑器加载失败，请刷新后重试': 'The editor failed to load. Refresh and try again.',
   '刷新重试': 'Refresh and retry',
   '返回工程列表': 'Back to projects',

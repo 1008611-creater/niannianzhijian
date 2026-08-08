@@ -56,6 +56,7 @@ import {
 
 const EMPTY_PROJECT_STARTERS = [
   { label: '口播净剪', description: '去停顿、赘词并同步字幕', prompt: '精剪当前口播：去掉无效停顿和赘词，并生成同步字幕', icon: 'scissors' as const },
+  { label: '画面配口播', description: '自动写解说、配音和字幕', prompt: '把当前没有人声的画面做成适合自媒体发布的短视频：先查看并选择最有表现力的镜头，写一版简洁中文口播，使用已配置的 MiMo 内置音色生成旁白，调用 Qwen 强制对齐生成真实字幕，再加轻量背景音乐并检查音画同步。不要使用未选中的素材，先给我可编辑粗剪。', icon: 'mic' as const },
   { label: '动态包装', description: '标题、数据卡与转场动效', prompt: '为当前内容设计动态包装，包含标题、信息卡和转场动效', icon: 'film' as const },
   { label: '长片拆条', description: '提炼高光并重排为短视频', prompt: '从当前长视频中提炼高光，重排成适合发布的短视频', icon: 'video' as const },
   { label: '产品故事', description: '围绕卖点组织脚本和镜头', prompt: '围绕产品卖点组织脚本和镜头，制作一支产品宣传短片', icon: 'sparkles' as const },
