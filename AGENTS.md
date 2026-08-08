@@ -84,3 +84,8 @@ When a task says `继续`, continue from the current approved scope and this dir
   provider responses remain outside GitHub Issues, pull requests, commits, and
   collaboration handovers. See `COLLABORATION_AND_HANDOVER.md` for the exact
   handover and release procedure.
+- Until the second contributor has accepted repository access, the primary
+  owner advances only Workstream A through `feat/canvas-provider-runtime` and
+  Issue #2. Workstream B remains reserved. On contributor readiness, invite
+  them, assign Issue #1, protect `main` with pull requests, no force pushes,
+  and one approving review, then resume both streams within their owned paths.

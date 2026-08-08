@@ -114,6 +114,22 @@ Recommended `main` repository protection:
 - Do not configure a GitHub status check until the corresponding CI check has
   been added and proven reliable.
 
+## Current collaboration mode and resume point
+
+- The second contributor is not yet onboarded. Until their GitHub username is
+  supplied and their invitation is accepted, the primary owner works alone on
+  Workstream A through Issue #2 and `feat/canvas-provider-runtime`.
+- Workstream B and Issue #1 remain reserved for the second contributor. The
+  primary owner does not make speculative Studio changes in its owned paths
+  while waiting, preventing a later two-person merge conflict.
+- When the contributor is ready, the primary owner invites them with repository
+  write access, assigns Issue #1, and enables `main` protection: pull requests
+  required, force pushes disabled, and one approving review required.
+- If the product owner says `继续` before the contributor is ready, resume the
+  earliest unfinished Workstream A item from Issue #2. If the contributor is
+  ready, first complete onboarding and protection, then progress both issues
+  under their respective file boundaries.
+
 ## Handover procedure
 
 An owner handing a branch to the other person provides one PR or Issue comment
