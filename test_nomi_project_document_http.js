@@ -86,7 +86,20 @@ async function run() {
   assert.equal(saved.document.generationCanvas.nodes[0].meta.unsafeUrl, '');
   assert.equal(savedResponse.headers.get('etag'), '"nomi-rev-1"');
 
-  const staleResponse = await fetch(endpoint, {method:'PUT',headers:headers('nomi-doc-token-a',{'x-niannian-project-kind':'redraw','content-type':'application/json','if-match':'"nomi-rev-0"'}),body:JSON.stringify({document})});
+  const replayResponse = await fetch(endpoint, {method:'PUT',headers:headers('nomi-doc-token-a',{'x-niannian-project-kind':'redraw','content-type':'application/json','if-match':'"nomi-rev-0"'}),body:JSON.stringify({document})});
+  const replay = await replayResponse.json();
+  assert.equal(replayResponse.status, 200);
+  assert.equal(replay.revision, 1);
+  assert.equal(replayResponse.headers.get('etag'), '"nomi-rev-1"');
+
+  const conflictingDocument = {
+    ...document,
+    generationCanvas:{
+      ...document.generationCanvas,
+      nodes:[{...document.generationCanvas.nodes[0],title:'H3 已修改'}]
+    }
+  };
+  const staleResponse = await fetch(endpoint, {method:'PUT',headers:headers('nomi-doc-token-a',{'x-niannian-project-kind':'redraw','content-type':'application/json','if-match':'"nomi-rev-0"'}),body:JSON.stringify({document:conflictingDocument})});
   const stale = await staleResponse.json();
   assert.equal(staleResponse.status, 409);
   assert.equal(stale.code, 'CANVAS_REVISION_CONFLICT');

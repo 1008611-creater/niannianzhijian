@@ -7594,8 +7594,11 @@ async function handleWorkbenchCanvasProjectApi(request, response, pathname, user
       const documents = await readCanvasDocuments();
       const current = nomiRecordForProject(documents[key], project, 'redraw');
       const currentRevision = Number(current?.revision || 0);
-      if (Number(body.revision) !== currentRevision) throw Object.assign(new Error('画布已在其他页面更新，请先重新载入。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:409});
       const document = normalizeNomiProjectDocument(body.document);
+      if (Number(body.revision) !== currentRevision) {
+        if (current && JSON.stringify(current.document) === JSON.stringify(document)) return current;
+        throw Object.assign(new Error('画布已在其他页面更新，请先重新载入。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:409});
+      }
       const record = {schemaVersion:'niannian.nomi-project-document.v1',projectId:project.id,projectKind:'redraw',ownerId:user.id,revision:currentRevision + 1,document,updatedAt:new Date().toISOString()};
       documents[key] = record;
       await writeCanvasDocuments(documents);
@@ -7684,8 +7687,11 @@ async function handleNomiProjectApi(request, response, pathname, user) {
       const documents = await readCanvasDocuments();
       const current = nomiRecordForProject(documents[key], owned.project, owned.projectKind);
       const currentRevision = Number(current?.revision || 0);
-      if (request.headers['if-match'] !== nomiEtag(currentRevision)) throw Object.assign(new Error('Nomi 项目已在其他页面更新，请重新载入后再保存。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:409});
       const document = normalizeNomiProjectDocument(body.document);
+      if (request.headers['if-match'] !== nomiEtag(currentRevision)) {
+        if (current && JSON.stringify(current.document) === JSON.stringify(document)) return current;
+        throw Object.assign(new Error('Nomi 项目已在其他页面更新，请重新载入后再保存。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:409});
+      }
       const revision = currentRevision + 1;
       const record = {schemaVersion:'niannian.nomi-project-document.v1',projectId:owned.project.id,projectKind:owned.projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
       documents[key] = record;

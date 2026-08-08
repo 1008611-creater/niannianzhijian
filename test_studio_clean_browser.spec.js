@@ -91,3 +91,39 @@ test('Studio loads from a clean browser with one canonical module graph', async 
 
   await context.close();
 });
+
+test('Canvas node save survives a refresh without a false concurrent-edit warning', async ({browser}) => {
+  const context = await browser.newContext({viewport: {width: 1440, height: 900}});
+  await context.addCookies([{name: 'niannian_session', value: sessionToken, url: baseUrl}]);
+  const page = await context.newPage();
+  const canvasSaveStatuses = [];
+  const failures = [];
+
+  page.on('response', response => {
+    const request = response.request();
+    if (request.method() === 'PUT' && /\/api\/projects\/[^/]+\/canvas$/.test(new URL(response.url()).pathname)) {
+      canvasSaveStatuses.push(response.status());
+    }
+  });
+  page.on('pageerror', error => failures.push(error.message));
+  page.on('console', message => {
+    if (message.type() === 'error') failures.push(message.text());
+  });
+
+  await page.goto(baseUrl + '/studio/', {waitUntil: 'networkidle'});
+  await page.getByRole('button', {name: /新建空白项目/}).click();
+  await page.getByRole('button', {name: '生成'}).click();
+  await page.getByRole('button', {name: '添加文本节点'}).click();
+  await expect(page.getByLabel('拖动文本节点')).toBeVisible();
+  await page.waitForTimeout(800);
+
+  await expect(page.getByText('画布已在其他页面更新，请先重新载入。')).toHaveCount(0);
+  expect(canvasSaveStatuses).not.toContain(409);
+
+  await page.reload({waitUntil: 'networkidle'});
+  await expect(page.getByLabel('拖动文本节点')).toBeVisible();
+  await expect(page.getByText('画布已在其他页面更新，请先重新载入。')).toHaveCount(0);
+  expect(failures).toEqual([]);
+
+  await context.close();
+});
