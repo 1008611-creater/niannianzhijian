@@ -33,7 +33,9 @@ async function seed() {
         version:1,
         nodes:[
           {id:'image-node-001',type:'image',position:{x:100,y:100},data:{title:'产品主图',prompt:'白色背景产品主视觉',assetIds:['asset-001'],status:'draft'}},
-          {id:'video-node-001',type:'video',position:{x:380,y:100},data:{title:'产品视频',prompt:'产品缓慢旋转，镜头轻微推进',assetIds:['asset-001'],aspectRatio:'16:9',durationSeconds:5,status:'draft'}}
+          {id:'video-node-001',type:'video',position:{x:380,y:100},data:{title:'产品视频',prompt:'产品缓慢旋转，镜头轻微推进',assetIds:['asset-001'],aspectRatio:'16:9',durationSeconds:5,status:'draft'}},
+          {id:'video-node-default-001',type:'video',position:{x:660,y:100},data:{title:'默认竖屏视频',prompt:'默认竖屏回归',assetIds:['asset-001'],durationSeconds:5,status:'draft'}},
+          {id:'video-node-stale-default-001',type:'video',position:{x:940,y:100},data:{title:'旧默认视频',prompt:'旧默认竖屏回归',assetIds:['asset-001'],aspectRatio:'1:1',durationSeconds:5,status:'draft'}}
         ],
         edges:[],
         viewport:{x:0,y:0,zoom:1}
@@ -120,6 +122,13 @@ async function run() {
   assert.equal(h3Job.body.job.nodeType, 'video');
   assert.equal(h3Job.body.job.durationSeconds, 5);
   assert.equal(Object.hasOwn(h3Job.body.job, 'providerTaskId'), false);
+
+  const h3DefaultPortrait = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-h3-default-portrait-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'video-node-default-001',model:'h3',prompt:'默认竖屏回归',inputAssetIds:['asset-001'],durationSeconds:5})});
+  assert.equal(h3DefaultPortrait.response.status, 201);
+  assert.equal(h3DefaultPortrait.body.job.aspectRatio, '9:16');
+  const h3StaleDefaultPortrait = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-h3-stale-default-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'video-node-stale-default-001',model:'h3',prompt:'旧默认竖屏回归',inputAssetIds:['asset-001'],durationSeconds:5})});
+  assert.equal(h3StaleDefaultPortrait.response.status, 201);
+  assert.equal(h3StaleDefaultPortrait.body.job.aspectRatio, '9:16');
   const h3AuthorizationMissing = await request(`/api/projects/NN-CANVAS-A/canvas/jobs/${encodeURIComponent(h3Job.body.job.id)}/authorize`, {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','x-niannian-project-kind':'redraw'}),body:JSON.stringify({projectKind:'redraw'})});
   assert.equal(h3AuthorizationMissing.response.status, 422);
   assert.equal(h3AuthorizationMissing.body.code, 'CANVAS_PROVIDER_AUTHORIZATION_REQUIRED');

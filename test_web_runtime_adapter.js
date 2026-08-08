@@ -12,6 +12,7 @@ assert.match(source, /\/api\/projects\/.*\/text\/jobs/);
 assert.match(source, /vendorKey: 'asxs'/);
 assert.match(source, /request\.kind === 'chat'/);
 assert.match(source, /confirmProviderSpend:\s*true/);
+assert.match(source, /aspectRatio: extras\.aspectRatio \|\| \(video \? '9:16' : '1:1'\)/);
 assert.doesNotMatch(source, /RUNNINGHUB_API_KEY|apiKey\s*:/);
 assert.match(source, /!isWebOrigin\s*&&\s*existingBridge/);
 
