@@ -5,10 +5,10 @@ const path = require('path');
 
 const assetsRoot = path.resolve(__dirname, '..', 'studio', 'assets');
 const indexPath = path.resolve(__dirname, '..', 'studio', 'index.html');
-const oldEntry = 'index-M-8MrEH2-r26.js';
-const nextEntry = 'index-M-8MrEH2-r27.js';
-const oldApp = 'NomiStudioApp-DDB0IgSO-r26.js';
-const nextApp = 'NomiStudioApp-DDB0IgSO-r27.js';
+const oldEntry = 'index-M-8MrEH2-r27.js';
+const nextEntry = 'index-M-8MrEH2-r28-19b89ec.js';
+const oldApp = 'NomiStudioApp-DDB0IgSO-r27.js';
+const nextApp = 'NomiStudioApp-DDB0IgSO-r28-19b89ec.js';
 const oldEntryPath = path.join(assetsRoot, oldEntry);
 const nextEntryPath = path.join(assetsRoot, nextEntry);
 const oldAppPath = path.join(assetsRoot, oldApp);
@@ -29,7 +29,7 @@ for (const name of assetFiles) {
   const source = fs.readFileSync(filePath, 'utf8');
   let next = source
     .replaceAll(oldEntry, nextEntry)
-    .replaceAll(oldApp + '?v=20260808-r26', nextApp)
+    .replaceAll(oldApp + '?v=20260808-r27', nextApp)
     .replaceAll(oldApp, nextApp);
   if (next !== source) {
     entryReferenceCount += source.includes(oldEntry) ? 1 : 0;
