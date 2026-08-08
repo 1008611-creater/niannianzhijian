@@ -108,16 +108,25 @@ def handle(request: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(results, list) or len(results) != 1 or not results[0]:
         raise ValueError("forced aligner returned no timestamps")
 
+    expected_words = word_lists[0]
+    raw_results = results[0]
+    if len(raw_results) != len(expected_words):
+        raise ValueError(
+            f"forced aligner returned incomplete timestamps ({len(raw_results)}/{len(expected_words)} tokens)"
+        )
+
     words: list[dict[str, int | str]] = []
-    for token in results[0]:
+    previous_end = -1
+    for index, (token, expected_text) in enumerate(zip(raw_results, expected_words, strict=True)):
         token_text = str(token.get("text", "")).strip()
-        if not token_text:
-            continue
+        if token_text != expected_text:
+            raise ValueError(f"forced aligner returned an unexpected token at index {index}")
         start = round(number(token.get("start_time")) * 1000)
         end = round(number(token.get("end_time")) * 1000)
-        if end <= start:
-            continue
+        if end <= start or start < previous_end:
+            raise ValueError(f"forced aligner returned an invalid timestamp at index {index}")
         words.append({"text": token_text, "start": start, "end": end})
+        previous_end = end
     if not words:
         raise ValueError("forced aligner returned no usable timestamps")
 
