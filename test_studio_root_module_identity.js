@@ -14,7 +14,7 @@ assert.equal(fs.existsSync(path.join(assetsRoot, 'index-M-8MrEH2-r27.js')), fals
 assert.equal(fs.existsSync(path.join(assetsRoot, 'NomiStudioApp-DDB0IgSO-r27.js')), false);
 
 const html = fs.readFileSync(path.join(__dirname, 'studio', 'index.html'), 'utf8');
-assert.match(html, new RegExp('./assets/' + entry.replace(/[.]/g, '\\.')));
+assert.match(html, new RegExp('./assets/' + entry.replace(/[.]/g, '\\.') + '\\?v=20260808-static-r2'));
 assert.match(html, /\.\/assets\/service-worker-migration-r29\.js/);
 assert.doesNotMatch(html, /index-M-8MrEH2-r27\.js(?:\?|['"])/);
 
@@ -26,8 +26,7 @@ for (const name of fs.readdirSync(assetsRoot)) {
 }
 
 const appSource = fs.readFileSync(path.join(assetsRoot, app), 'utf8');
-assert.match(appSource, new RegExp('./' + entry.replace(/[.]/g, '\\.')));
-assert.doesNotMatch(appSource, new RegExp(entry.replace(/[.]/g, '\\.') + '\\?'));
+assert.match(appSource, new RegExp('./' + entry.replace(/[.]/g, '\\.') + '\\?v=20260808-static-r2'));
 
 const serviceWorker = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8');
 assert.match(serviceWorker, /niannian-app-shell-20260808-studio-module-bypass-r27/);
