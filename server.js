@@ -143,6 +143,7 @@ const canvasImage2Runtime = canvasImage2RuntimeModule.createCanvasImage2Runtime(
 const canvasH3Runtime = canvasH3RuntimeModule.createCanvasH3Runtime({jobService:canvasGenerationJobService,assetService:canvasAssetService,enabled:canvasProviderStatus.videoSubmitEnabled});
 const canvasTextRuntime = canvasTextRuntimeModule.createCanvasTextRuntime();
 const canvasTextJobService = canvasTextJobs.createCanvasTextJobService({filePath:canvasTextJobsPath});
+const activeCanvasTextJobs = new Set();
 const nomiWebH3 = nomiRunningHubH3.createNomiRunningHubH3();
 const nomiWebTaskStore = nomiWebTaskStoreModule.createNomiWebTaskStore({filePath:nomiWebTasksPath});
 const smartCutJobService = smartCutJobs.createSmartCutJobService({filePath:smartCutJobsPath});
@@ -7356,6 +7357,38 @@ function publicCanvasTextResponse(job) {
   };
 }
 
+function scheduleCanvasTextJob({ownerId, projectId, job}) {
+  const jobId = String(job?.id || '').trim();
+  if (!jobId || activeCanvasTextJobs.has(jobId)) return;
+  activeCanvasTextJobs.add(jobId);
+  setImmediate(async () => {
+    try {
+      const result = await canvasTextRuntime.submit({model:job.model, prompt:job.prompt});
+      await canvasTextJobService.updateOwned(ownerId, projectId, jobId, {
+        status:'succeeded',
+        text:result.text,
+        error:null,
+        completedAt:new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('canvas_text_provider_failure', JSON.stringify({
+        job_id: jobId,
+        provider: 'asxs',
+        model: canvasTextRuntime.config.model || null,
+        code: typeof error?.code === 'string' ? error.code.slice(0, 80) : 'CANVAS_TEXT_GENERATION_FAILED',
+        http_status: Number.isInteger(error?.providerHttpStatus) ? error.providerHttpStatus : null,
+        duration_ms: Number.isFinite(error?.durationMs) ? Math.max(0, Math.round(error.durationMs)) : null
+      }));
+      await canvasTextJobService.updateOwned(ownerId, projectId, jobId, {
+        status:'recoverable',
+        error:'文本生成暂未完成，请稍后重试或重新读取当前项目。'
+      });
+    } finally {
+      activeCanvasTextJobs.delete(jobId);
+    }
+  });
+}
+
 async function handleCanvasTextApi(request, response, pathname, user) {
   const match = pathname.match(/^\/api\/projects\/([^/]+)\/text\/jobs(?:\/([^/]+))?$/);
   if (!match) return false;
@@ -7374,25 +7407,17 @@ async function handleCanvasTextApi(request, response, pathname, user) {
       if (nodeType !== 'text') return json(response, 422, {code:'CANVAS_TEXT_NODE_REQUIRED',error:'当前节点不是文本节点'});
       const requestedModel = canvasText(body.model || node.meta?.modelKey || node.data?.modelKey || canvasTextRuntime.config.model, 200);
       const prompt = canvasText(body.prompt || node.prompt || node.data?.prompt, 12000);
+      if (!canvasTextRuntime.config.submitEnabled) return json(response, 409, {code:'CANVAS_TEXT_PROVIDER_NOT_READY',error:'文本模型尚未完成服务端配置',providerStatus:canvasTextRuntimeModule.publicCanvasTextStatus()});
+      if (!prompt) return json(response, 422, {code:'CANVAS_TEXT_PROMPT_REQUIRED',error:'文本节点需要填写提示词'});
+      if (!requestedModel || requestedModel !== canvasTextRuntime.config.model) return json(response, 422, {code:'CANVAS_TEXT_MODEL_INVALID',error:'文本模型与服务器配置不匹配'});
       const idempotencyKey = request.headers['idempotency-key'];
       const created = await canvasTextJobService.create({ownerId:user.id,projectId,projectKind:owned.projectKind,nodeId,model:requestedModel,prompt,idempotencyKey});
-      if (!created.created) return json(response, 200, {code:'CANVAS_TEXT_JOB_REUSED',idempotent:true,...publicCanvasTextResponse(created.job)});
-      try {
-        const result = await canvasTextRuntime.submit({model:requestedModel,prompt});
-        const completed = await canvasTextJobService.updateOwned(user.id, projectId, created.job.id, {status:'succeeded',text:result.text,error:null,completedAt:new Date().toISOString()});
-        return json(response, 201, {code:'CANVAS_TEXT_GENERATED',...publicCanvasTextResponse(completed)});
-      } catch (error) {
-        console.error('canvas_text_provider_failure', JSON.stringify({
-          job_id: created.job.id,
-          provider: 'asxs',
-          model: canvasTextRuntime.config.model || null,
-          code: typeof error?.code === 'string' ? error.code.slice(0, 80) : 'CANVAS_TEXT_GENERATION_FAILED',
-          http_status: Number.isInteger(error?.providerHttpStatus) ? error.providerHttpStatus : null,
-          duration_ms: Number.isFinite(error?.durationMs) ? Math.max(0, Math.round(error.durationMs)) : null
-        }));
-        const failed = await canvasTextJobService.updateOwned(user.id, projectId, created.job.id, {status:'recoverable',error:'文本生成暂未完成，请稍后重试或重新读取当前项目。'});
-        return json(response, error.httpStatus || 502, {code:error.code || 'CANVAS_TEXT_GENERATION_FAILED',error:error.message || '文本生成失败',...publicCanvasTextResponse(failed)});
+      if (!created.created) {
+        if (created.job.status === 'running') scheduleCanvasTextJob({ownerId:user.id, projectId, job:created.job});
+        return json(response, 200, {code:'CANVAS_TEXT_JOB_REUSED',idempotent:true,...publicCanvasTextResponse(created.job)});
       }
+      scheduleCanvasTextJob({ownerId:user.id, projectId, job:created.job});
+      return json(response, 202, {code:'CANVAS_TEXT_JOB_ACCEPTED',...publicCanvasTextResponse(created.job)});
     }
     if (jobId && request.method === 'GET') {
       const job = await canvasTextJobService.getOwned(user.id, projectId, jobId);
