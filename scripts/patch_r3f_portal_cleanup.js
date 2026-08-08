@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const target = path.resolve(__dirname, '..', 'studio', 'assets', 'r3f-vendor-4GhrsGNk.js');
+const target = path.resolve(__dirname, '..', 'studio', 'assets', 'r3f-vendor-4GhrsGNk-r25.js');
 const source = fs.readFileSync(target, 'utf8');
 const unsafe = '()=>{k&&k.removeChild(V),_e.unmount()}';
 const safe = '()=>{k&&V.parentNode===k&&k.removeChild(V),_e.unmount()}';
