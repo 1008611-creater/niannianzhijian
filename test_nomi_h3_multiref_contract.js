@@ -21,6 +21,9 @@ async function run() {
   assert.throws(() => readImageWorkflowCatalog({5:{workflowId:'2085000000000000001',imageNodes:['4','19','20','21','23'],targetNode:'6',promptNode:'7'}}), error => error?.code === 'NOMI_H3_IMAGE_WORKFLOW_CONFIG_INVALID');
   assert.deepEqual(Object.keys(readImageWorkflowCatalog(catalog)), ['5']);
   assert.deepEqual(targetFor({aspectRatio:'16:9',durationSeconds:5}), {aspectRatio:'16:9',durationSeconds:5,width:832,height:480});
+  assert.deepEqual(targetFor({aspectRatio:'9:16',durationSeconds:5,images:[image(1)]}), {aspectRatio:'9:16',durationSeconds:5,width:576,height:1024});
+  assert.deepEqual(targetFor({aspectRatio:'9:16',durationSeconds:5,width:480,height:832,images:[image(1)]}), {aspectRatio:'9:16',durationSeconds:5,width:576,height:1024});
+  assert.deepEqual(targetFor({aspectRatio:'9:16',durationSeconds:5,images:[image(1),image(2)]}), {aspectRatio:'9:16',durationSeconds:5,width:480,height:832});
   assert.throws(() => targetFor({aspectRatio:'9:16',width:832,height:480}), error => error?.code === 'NOMI_H3_TARGET_DIMENSION_MISMATCH');
   assert.throws(() => targetFor({durationSeconds:3}), error => error?.code === 'NOMI_H3_DURATION_OUT_OF_RANGE');
   assert.deepEqual(verifyConsumerUsage({consumeCoins:12,consumeMoney:0}), {consumeCoins:12,consumeMoney:0});
@@ -53,6 +56,8 @@ async function run() {
   } finally {
     await fs.rm(tempRoot, {recursive:true,force:true});
   }
+  const rejected = createNomiRunningHubH3({apiKey:'consumer-test-key',fetchImpl:async () => ({ok:true,json:async () => ({code:'WORKFLOW_DENIED',errorMessage:'private provider detail must not escape'})})});
+  await assert.rejects(() => rejected.submit({prompt:'结构化拒绝测试',images:[],audio:[],videos:[]}), error => error?.code === 'RUNNINGHUB_PROVIDER_REJECTED' && error?.providerCode === 'WORKFLOW_DENIED' && !String(error?.message).includes('private'));
   const originalConsumerKey = process.env.NOMI_RUNNINGHUB_H3_API_KEY;
   const originalGenericKey = process.env.RUNNINGHUB_API_KEY;
   try {

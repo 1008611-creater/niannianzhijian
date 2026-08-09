@@ -8240,7 +8240,10 @@ async function handleStudioTaskApi(request, response, pathname, user) {
         const record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, claimed.task.id, {status:'queued',workflowId:submitted.workflowId,providerTaskId:submitted.taskId,submittedAt:new Date().toISOString()});
         return json(response, 202, {result:studioTaskResult(record)});
       } catch (error) {
-        const record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, claimed.task.id, {status:'recoverable',error:'视频提交状态尚未确认，请稍后在当前项目中重新读取。'});
+        const publicError = error?.code === 'RUNNINGHUB_PROVIDER_REJECTED'
+          ? '视频渠道拒绝了当前工作流请求，请检查 H3 工作流参数。'
+          : '视频提交状态尚未确认，请稍后在当前项目中重新读取。';
+        const record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, claimed.task.id, {status:'recoverable',providerErrorCode:error.providerCode || null,error:publicError});
         return json(response, error.httpStatus || 502, {code:error.code || 'STUDIO_TASK_SUBMIT_FAILED',error:error.message || '视频提交失败',result:studioTaskResult(record)});
       }
     } catch (error) {
@@ -8265,7 +8268,10 @@ async function handleStudioTaskApi(request, response, pathname, user) {
           record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, record.id, {status:current.status,error:current.status === 'failed' ? '视频生成失败，请检查提示词或稍后重试。' : null});
         }
       } catch (error) {
-        record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, record.id, {status:'recoverable',error:'视频状态读取失败，请稍后重新打开当前项目。'});
+        const publicError = error?.code === 'RUNNINGHUB_PROVIDER_REJECTED'
+          ? '视频渠道拒绝了当前工作流请求，请检查 H3 工作流参数。'
+          : '视频状态读取失败，请稍后重新打开当前项目。';
+        record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, record.id, {status:'recoverable',providerErrorCode:error.providerCode || null,error:publicError});
       }
     }
     return json(response, 200, {vendor:'runninghub',result:studioTaskResult(record)});

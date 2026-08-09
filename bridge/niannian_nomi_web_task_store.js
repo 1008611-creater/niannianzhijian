@@ -27,6 +27,11 @@ function orderedStringList(value, limit = 24, itemLimit = 160) {
   return value.map(item => clean(item, itemLimit)).filter(Boolean).slice(0, limit);
 }
 
+function safeProviderCode(value) {
+  const code = clean(value, 64);
+  return /^[A-Za-z0-9._:-]+$/.test(code) ? code : null;
+}
+
 function taskId() {
   return 'studio-task-' + crypto.randomBytes(16).toString('hex');
 }
@@ -124,7 +129,7 @@ function createNomiWebTaskStore(options = {}) {
           videos:orderedStringList(submitted.inputAssetIds?.videos, 3, 80)
         },
         parameters:submitted.parameters && typeof submitted.parameters === 'object' ? submitted.parameters : {},
-        workflowId:null, providerTaskId:null, outputAssetIds:[], assets:[], error:null,
+        workflowId:null, providerTaskId:null, providerErrorCode:null, outputAssetIds:[], assets:[], error:null,
         createdAt:new Date(now).toISOString(), updatedAt:new Date(now).toISOString(), submittedAt:null, completedAt:null
       };
       state.tasks.push(task);
@@ -145,6 +150,7 @@ function createNomiWebTaskStore(options = {}) {
       if (patch.status && allowedStatus.has(patch.status)) task.status = patch.status;
       if (patch.workflowId !== undefined) task.workflowId = clean(patch.workflowId, 100) || null;
       if (patch.providerTaskId !== undefined) task.providerTaskId = clean(patch.providerTaskId, 160) || null;
+      if (patch.providerErrorCode !== undefined) task.providerErrorCode = safeProviderCode(patch.providerErrorCode);
       if (patch.error !== undefined) task.error = clean(patch.error, 500) || null;
       if (patch.outputAssetIds !== undefined) task.outputAssetIds = stringList(patch.outputAssetIds, 20, 80);
       if (patch.assets !== undefined) {

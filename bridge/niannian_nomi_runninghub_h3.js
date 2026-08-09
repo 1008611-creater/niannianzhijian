@@ -34,11 +34,28 @@ function positiveInteger(value, fallback) {
   return Number.isInteger(number) && number > 0 ? number : fallback;
 }
 
+function safeProviderCode(value) {
+  const code = String(value == null ? '' : value).trim();
+  return /^[A-Za-z0-9._:-]{1,64}$/.test(code) ? code : null;
+}
+
+function providerEnvelopeRejection(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const providerCode = value.errorCode ?? value.code;
+  if (providerCode == null || ['','0','success','ok'].includes(String(providerCode).trim().toLowerCase())) return null;
+  const error = taskError('RUNNINGHUB_PROVIDER_REJECTED', '视频渠道拒绝了当前工作流请求', 502);
+  error.providerCode = safeProviderCode(providerCode) || 'unknown';
+  return error;
+}
+
 function targetFor(input = {}) {
   const aspectRatio = String(input.aspectRatio || '16:9').trim();
-  const defaults = { '9:16':{width:480, height:832}, '1:1':{width:720, height:720}, '16:9':{width:832, height:480} }[aspectRatio];
+  const oneImagePortrait = aspectRatio === '9:16' && Array.isArray(input.images) && input.images.length === 1;
+  const defaults = oneImagePortrait
+    ? {width:576, height:1024}
+    : { '9:16':{width:480, height:832}, '1:1':{width:720, height:720}, '16:9':{width:832, height:480} }[aspectRatio];
   if (!defaults) throw taskError('NOMI_H3_TARGET_DIMENSION_MISMATCH', 'H3 仅支持 16:9、9:16 或 1:1 画幅');
-  const target = {aspectRatio,durationSeconds:positiveInteger(input.durationSeconds, 5),width:positiveInteger(input.width, defaults.width),height:positiveInteger(input.height, defaults.height)};
+  const target = {aspectRatio,durationSeconds:positiveInteger(input.durationSeconds, 5),width:oneImagePortrait ? defaults.width : positiveInteger(input.width, defaults.width),height:oneImagePortrait ? defaults.height : positiveInteger(input.height, defaults.height)};
   if (target.durationSeconds < 4 || target.durationSeconds > 15) throw taskError('NOMI_H3_DURATION_OUT_OF_RANGE', 'H3 时长必须在 4 到 15 秒之间');
   if (Math.abs(target.width / target.height - defaults.width / defaults.height) > 0.04) throw taskError('NOMI_H3_TARGET_DIMENSION_MISMATCH', 'H3 画幅与宽高设置不一致');
   return target;
@@ -85,6 +102,8 @@ function createNomiRunningHubH3(options = {}) {
     });
     const result = await response.json().catch(() => null);
     if (!response.ok || !result) throw taskError('RUNNINGHUB_REQUEST_FAILED', '视频渠道请求失败', 502);
+    const rejection = providerEnvelopeRejection(result);
+    if (rejection) throw rejection;
     return result;
   };
   const upload = async (asset) => {
