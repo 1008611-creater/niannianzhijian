@@ -1,0 +1,26 @@
+{
+  "schema_version": "niannian_shared_file_baseline_evidence_v1",
+  "review_id": "release-baseline-20260809-canonical-main",
+  "captured_at": "2026-08-09T16:10:23+08:00",
+  "source_root": "E:\\codex\\niannianai\\niannianai",
+  "source_git_revision": "a60964aece7ed76b30e4cf749a4c3f6573f2daad",
+  "scope": "Current canonical source shared-file SHA-256 baseline for release-gate construction",
+  "online_parity_claimed": false,
+  "deployment_authorized": false,
+  "files": {
+    "server.js": "62a65dbaee7d81bec68b86025091ed02edc837598b4bbae18a0fb46ce5ea47c4",
+    "index.html": "f7fa75430011824dbf29b57b378762211ca1dd10b7297214feb0ade6e669c091",
+    "app.js": "0f9c25d8ed5ea1a5152098ef46730c813b867c9ebd90ad3fa1aeddd4cdc6791f",
+    "product.css": "fafa35df7cea0d8abbc6f9cf7a6590a9f80ef63657bcaab9e1390ce4da02f028",
+    "styles.css": "d8254de1de1b0cddeee13301ee64a0e5605294980a9c8de384ea76625822a489",
+    "product-system.css": "86836318ae20e3eda006d1a6aee23a3fe199f31b3893376a9ae2c04d66864875",
+    "hero-oil-paint.css": "0fcba9536da02a0f8843331f986f01dbb670e0d2c1b1ccd2226046ffc0f60cdd",
+    "sw.js": "ef0a843049378dafeab5cb7250cc42f3c0e6e81ade1cc28828c1ae36051d81bf",
+    "bridge/niannian_controller_bridge.js": "64157f96db7f48c33dfe028263cd15138a109e15a194e0375a18ee0f89e427cc"
+  },
+  "checks": [
+    "Hashes were computed from the checked-out canonical main source.",
+    "No production files, user data, credentials, cookies, or provider responses were read.",
+    "This evidence only repairs the local release-gate baseline; it does not assert online parity."
+  ]
+}
