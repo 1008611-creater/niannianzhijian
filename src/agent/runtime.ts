@@ -1,6 +1,7 @@
 import type { ModelMessage } from 'ai';
 import type { AgentContext } from './context';
 import { TOOL_SCHEMAS } from './tools';
+import { ASK_MODE_TOOL_SCHEMAS } from './ask-mode-tools';
 import { buildAgentSystemPrompt, buildCompactAgentSystemPrompt } from './systemPrompt';
 import { normalizeLlmMessages } from './messages';
 import { loadAgentSettings } from './settings/agentSettings';
@@ -72,9 +73,9 @@ async function runCodexBackend(
   toolSchemas: readonly AgentToolSchema[] = TOOL_SCHEMAS,
 ): Promise<LLMMessage[]> {
   const settings = loadAgentSettings();
-  const tools = opts?.askOnly || !choice.capabilities.supportsTools.value
+  const tools = !choice.capabilities.supportsTools.value
     ? []
-    : toolSchemas.map((schema) => ({
+    : (opts?.askOnly ? ASK_MODE_TOOL_SCHEMAS : toolSchemas).map((schema) => ({
       name: schema.name,
       description: schema.description,
       inputSchema: schema.input_schema,
@@ -125,9 +126,9 @@ export async function runAgent(
   const system = compact
     ? buildCompactAgentSystemPrompt(ctx)
     : buildAgentSystemPrompt(ctx);
-  const availableToolSchemas = opts?.askOnly || !active.capabilities.supportsTools.value
+  const availableToolSchemas = !active.capabilities.supportsTools.value
     ? []
-    : toolSchemasForChoice(active);
+    : opts?.askOnly ? ASK_MODE_TOOL_SCHEMAS : toolSchemasForChoice(active);
   try {
     const prepared = await prepareAgentContext({
       messages: conv,

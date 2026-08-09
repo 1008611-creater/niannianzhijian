@@ -23,6 +23,7 @@ export {
 import type { AgentContext } from './context';
 import type { AgentModelChoice } from './model-selection';
 import { TOOL_SCHEMAS } from './tools';
+import { ASK_MODE_TOOL_SCHEMAS } from './ask-mode-tools';
 import {
   getLanguageModel,
   getLanguageModelProviderOptions,
@@ -192,7 +193,7 @@ export async function runApiAgent(
       emitVisibleText(report);
       return { role: 'assistant', content: report };
     };
-    const tools = opts?.askOnly || !choice.capabilities.supportsTools.value
+    const tools = !choice.capabilities.supportsTools.value
       ? {}
       : createAgentTools(
           ctx,
@@ -200,7 +201,7 @@ export async function runApiAgent(
           settings,
           opts?.onSkillGuard,
           () => { askedFollowup = true; },
-          toolSchemas,
+          opts?.askOnly ? ASK_MODE_TOOL_SCHEMAS : toolSchemas,
         );
 
     try {
