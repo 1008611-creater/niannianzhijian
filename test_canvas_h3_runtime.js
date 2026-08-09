@@ -6,11 +6,29 @@ const sharp = require('sharp');
 const {createCanvasAssetService} = require('./bridge/niannian_canvas_assets');
 const {createCanvasGenerationJobService} = require('./bridge/niannian_canvas_generation_jobs');
 const {createCanvasH3Runtime, failureCategory, publicFailure} = require('./bridge/niannian_canvas_h3_runtime');
+const {createRunningHubH3Adapter, targetDimensions} = require('./bridge/niannian_runninghub_h3_adapter');
 
 async function run() {
   assert.equal(failureCategory(Object.assign(new Error(), {code:'RUNNINGHUB_HTTP_400'})), 'provider_request');
   assert.equal(publicFailure(Object.assign(new Error(), {code:'RUNNINGHUB_HTTP_400'})), '视频渠道拒绝了当前工作流请求，请检查 H3 工作流参数。');
   assert.equal(failureCategory(Object.assign(new Error(), {code:'RUNNINGHUB_UPLOAD_HTTP_413'})), 'reference_upload');
+  assert.deepEqual(targetDimensions('9:16'), {width:480, height:832});
+  assert.deepEqual(targetDimensions('16:9'), {width:832, height:480});
+  assert.throws(
+    () => targetDimensions('1:1'),
+    error => error?.code === 'RUNNINGHUB_TARGET_DIMENSION_UNSUPPORTED'
+  );
+  const h3Adapter = createRunningHubH3Adapter({baseUrl:'https://www.runninghub.cn'});
+  const dryRun = h3Adapter.dryRun({prompt:'中文人物自然转身',aspectRatio:'9:16',durationSeconds:5}, 1);
+  assert.deepEqual(
+    dryRun.payload.nodeInfoList.filter(item => ['aspect_ratio','width','height','duration_seconds'].includes(item.fieldName)),
+    [
+      {nodeId:'6',fieldName:'aspect_ratio',fieldValue:'9:16'},
+      {nodeId:'6',fieldName:'width',fieldValue:480},
+      {nodeId:'6',fieldName:'height',fieldValue:832},
+      {nodeId:'6',fieldName:'duration_seconds',fieldValue:5}
+    ]
+  );
   const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'niannian-canvas-h3-runtime-'));
   try {
     const assetService = createCanvasAssetService({indexPath:path.join(root,'assets.json'),storageRoot:path.join(root,'assets')});
