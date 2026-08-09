@@ -164,6 +164,16 @@ if IDEAL.exists():
     cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
     cap.runs[0].italic = True
 
+doc.add_heading("念念原站继承证据矩阵", level=2)
+add_table(doc, ["受保护表面", "本地目标/继承证据", "后续实现要求", "证据性质"], [
+    ("首页品牌壳", "docs/frontend-targets/00-home-desktop.png；assets/home/niannian-hero-oil-paint-quiet-v1.png", "保留 Logo、黑色/深色油画质感、深金和克制洋红；HTML 负责真实导航与 CTA", "本地目标图/真实品牌素材；线上当前状态仍需回读"),
+    ("工作台入口", "docs/frontend-targets/06-workbench-desktop.png", "保留一键短剧、一键转绘、无限画布三个真实入口；入口文案必须服务项目任务", "本地目标图；不是线上完成证据"),
+    ("Studio 项目库", "docs/frontend-targets/07-studio-project-library-desktop.png", "保留新建项目、打开文件夹、预览和最近项目；项目数据必须来自真实 session/API", "本地目标图 + 线上 DOM 回读"),
+    ("Studio 画布/检查器/素材库", "docs/frontend-targets/02-studio-canvas-desktop.png；03-generation-inspector-desktop.png；04-asset-library-desktop.png；05-studio-mobile.png", "保留当前画布家族、资源面板、生成检查器、移动端信息优先级；不能用静态图替代交互", "本地目标图；实现需再做浏览器证据"),
+    ("导演台", "docs/frontend-targets/08-director-desk-desktop.png", "保留导演台入口、场景/镜头操作和返回工作台；只接已有真实 API", "本地目标图 + 线上入口回读；内层细节待核实"),
+], widths=[1.3, 2.7, 2.4, 1.3])
+doc.add_paragraph("继承判定规则：这些目标图用于冻结信息层级、受保护表面和后续验收视口，不等同于线上已实现。任何实现必须同时满足 PRODUCT.md、DESIGN.md、继承矩阵和真实浏览器回读；冲突时保留当前可工作的念念产品并单独记录决策。")
+
 doc.add_heading("URL 树（当前产品表面）", level=2)
 add_code(doc, "/\n├─ #projects                 主站项目管理（未登录回落首页，登录态待核实）\n├─ #workbench                主站工作台：四入口（无限画布/一键转绘/一键短剧/智能剪辑）\n├─ #director-desk            3D 导演台与返回工作台\n├─ studio/#/studio           Studio 项目库\n└─ studio/?step=...#/studio  Studio 画布、资源面板、生成检查器与时间轴")
 
