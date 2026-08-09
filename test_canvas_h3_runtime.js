@@ -7,6 +7,7 @@ const {createCanvasAssetService} = require('./bridge/niannian_canvas_assets');
 const {createCanvasGenerationJobService} = require('./bridge/niannian_canvas_generation_jobs');
 const {createCanvasH3Runtime, failureCategory, publicFailure} = require('./bridge/niannian_canvas_h3_runtime');
 const {createRunningHubH3Adapter, targetDimensions} = require('./bridge/niannian_runninghub_h3_adapter');
+const {CHANNELS, chooseChannel} = require('./bridge/niannian_canvas_h3_channels');
 
 async function run() {
   assert.equal(failureCategory(Object.assign(new Error(), {code:'RUNNINGHUB_HTTP_400'})), 'provider_request');
@@ -14,6 +15,8 @@ async function run() {
   assert.equal(failureCategory(Object.assign(new Error(), {code:'RUNNINGHUB_UPLOAD_HTTP_413'})), 'reference_upload');
   assert.deepEqual(targetDimensions('9:16'), {width:480, height:832});
   assert.deepEqual(targetDimensions('16:9'), {width:832, height:480});
+  assert.equal(chooseChannel(1), 'one-image');
+  assert.equal(CHANNELS['one-image'].endpoint, '/openapi/v2/run/workflow/2085388519102570497');
   assert.throws(
     () => targetDimensions('1:1'),
     error => error?.code === 'RUNNINGHUB_TARGET_DIMENSION_UNSUPPORTED'
@@ -39,8 +42,8 @@ async function run() {
     let queryCount = 0;
     const video = Buffer.concat([Buffer.from('ftyp'),Buffer.alloc(2048, 7)]);
     const adapter = {
-      dryRun: (task,count) => { assert.equal(count,1); return {channel:'last-frame',endpoint:'/openapi/v2/run/workflow/2084071981670035457',payload:{nodeInfoList:[]}}; },
-      submit: async (task,refs) => { assert.equal(refs.length,1); return {taskId:'fake-h3-task-001',channel:'last-frame',payload:{referenceCount:1}}; },
+      dryRun: (task,count) => { assert.equal(count,1); return {channel:'one-image',endpoint:'/openapi/v2/run/workflow/2085388519102570497',payload:{nodeInfoList:[]}}; },
+      submit: async (task,refs) => { assert.equal(refs.length,1); return {taskId:'fake-h3-task-001',channel:'one-image',payload:{referenceCount:1}}; },
       query: async () => { queryCount += 1; return queryCount === 1 ? {status:'generating',videoUrls:[]} : {status:'completed',videoUrls:['https://provider.invalid/video.mp4'],usage:{consumeCoins:12,consumeMoney:null}}; },
       download: async () => ({bytes:video,mime:'video/mp4',format:'mp4'})
     };
