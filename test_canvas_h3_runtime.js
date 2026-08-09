@@ -51,6 +51,14 @@ async function run() {
     assert.equal(submittedBody.instanceType, 'ultra');
     assert.equal(submittedBody.nodeInfoList.find(item => item.fieldName === 'width').fieldValue, 576);
     assert.equal(submittedBody.nodeInfoList.find(item => item.fieldName === 'height').fieldValue, 1024);
+    const rejectedAdapter = createRunningHubH3Adapter({
+      apiKey:'test-key',
+      fetchImpl: async () => ({ok:true,json:async () => ({code:40017,msg:'provider detail must not be persisted'})})
+    });
+    await assert.rejects(
+      () => rejectedAdapter.query('provider-task-001'),
+      error => error?.code === 'RUNNINGHUB_PROVIDER_REJECTED' && error.providerCode === '40017'
+    );
     const assetService = createCanvasAssetService({indexPath:path.join(root,'assets.json'),storageRoot:path.join(root,'assets')});
     const jobService = createCanvasGenerationJobService({filePath:path.join(root,'jobs.json')});
     const image = await sharp({create:{width:8,height:8,channels:4,background:{r:1,g:2,b:3,alpha:1}}}).png().toBuffer();
