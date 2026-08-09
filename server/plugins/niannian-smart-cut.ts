@@ -211,7 +211,7 @@ export async function notifyNiannianSmartCutExport(input: { jobId: `SCJ-${string
   const secret = bridgeSecret();
   if (!secret) throw new Error('smart-cut bridge secret is not configured');
   const main = new URL(String(process.env.NIANNIAN_SMART_CUT_MAIN_URL || 'https://ai.cau.fun').replace(/\/+$/, ''));
-  const editor = new URL(String(process.env.NIANNIAN_SMART_CUT_EDITOR_PUBLIC_URL || 'https://edit.cau.fun').replace(/\/+$/, ''));
+  const editor = new URL(String(process.env.NIANNIAN_SMART_CUT_EDITOR_PUBLIC_URL || 'https://edit.cauai.fun').replace(/\/+$/, ''));
   const body = JSON.stringify({output:{url:new URL(input.publicPath, editor).toString(),originalName:String(input.originalName || '念念智能剪辑成片.mp4').slice(0, 160),...(Number.isFinite(input.durationSeconds) ? {durationSeconds:input.durationSeconds} : {})}});
   const signature = createHmac('sha256', secret).update(body).digest('hex');
   const response = await fetch(new URL(`/api/internal/smart-cut/jobs/${encodeURIComponent(input.jobId)}/complete`, main), {method:'POST',headers:{'Content-Type':'application/json','X-Niannian-Smart-Cut-Signature':signature},body,signal:AbortSignal.timeout(60_000)});

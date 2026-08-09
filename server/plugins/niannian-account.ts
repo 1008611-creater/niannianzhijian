@@ -8,7 +8,7 @@ type Ticket = { v: 1; userId: string; email: string; exp: number; nonce?: string
 
 const SESSION_COOKIE = 'niannian_editor_session';
 const MAIN_ORIGIN = () => (process.env.NIANNIAN_MAIN_ORIGIN?.trim() || 'https://ai.cau.fun').replace(/\/+$/, '');
-const EDITOR_ORIGIN = () => (process.env.NIANNIAN_EDITOR_ORIGIN?.trim() || 'https://edit.cau.fun').replace(/\/+$/, '');
+const EDITOR_ORIGIN = () => (process.env.NIANNIAN_EDITOR_ORIGIN?.trim() || 'https://edit.cauai.fun').replace(/\/+$/, '');
 
 function secret(): string | null {
   const value = process.env.NIANNIAN_EDITOR_SSO_SECRET?.trim();
