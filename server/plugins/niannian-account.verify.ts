@@ -23,7 +23,7 @@ const previous = {
 };
 process.env.LOCAL_WSL_DEV = '1';
 process.env.NIANNIAN_EDITOR_SSO_SECRET = 'local-wsl-editor-sso-secret-20260807';
-  process.env.NIANNIAN_EDITOR_STEP_PRICES = 'export:0,vision:0,ocr:0';
+  process.env.NIANNIAN_EDITOR_STEP_PRICES = 'agent_llm:0,agent_codex:0,export:0,vision:0,ocr:0';
 
 try {
   const routes = new Map<string, Handler[]>();
@@ -37,6 +37,7 @@ try {
   assert.deepEqual(sessionProbe.read().body, {
     integrated: true,
     user: { id: 'local-wsl-user', email: 'local-wsl@example.invalid' },
+    admin: true,
   });
 
   let nextCalls = 0;
@@ -46,6 +47,14 @@ try {
   await exportGuard({ method: 'POST', headers: {} }, exportProbe.res, () => { nextCalls += 1; });
   assert.equal(nextCalls, 1, 'zero-cost local export bypasses remote billing');
   assert.equal(exportProbe.read().status, 200);
+
+  let llmCalls = 0;
+  const llmGuard = routes.get('/llm')?.[0];
+  assert.ok(llmGuard, 'agent LLM route is guarded');
+  const llmProbe = responseProbe();
+  await llmGuard({ method: 'POST', headers: {} }, llmProbe.res, () => { llmCalls += 1; });
+  assert.equal(llmCalls, 1, 'zero-cost local agent LLM bypasses remote billing');
+  assert.equal(llmProbe.read().status, 200);
 
   for (const path of ['/api/asset-intelligence/vision', '/api/asset-intelligence/ocr']) {
     let calls = 0;

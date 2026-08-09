@@ -36,6 +36,8 @@ export interface AgentRuntimeModule {
   runAgent: typeof runAgent;
 }
 export interface RunAgentOptions {
+  /** Stable billing id for one user turn; retries must not charge twice. */
+  readonly operationId?: string;
   readonly askOnly?: boolean;
   readonly signal?: AbortSignal;
   readonly onSkillGuard?: (info: RuntimeGuardRequest) => Promise<GuardDecision>;

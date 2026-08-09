@@ -173,6 +173,7 @@ export function useAgent(ctx: AgentContext, projectId: string, yoloAutoApply = f
       let draftInvalidated = false;
       let assistantText = '';
       const ac = new AbortController();
+      const operationId = crypto.randomUUID();
       abortRef.current = ac;
       try {
         const { runAgent } = await preloadAgentRuntime();
@@ -230,6 +231,7 @@ export function useAgent(ctx: AgentContext, projectId: string, yoloAutoApply = f
             setMessages((m) => [...m, { role: 'error', text: ev.message }]);
           }
         }, {
+          operationId,
           askOnly: opts?.askOnly,
           signal: ac.signal,
           previousContextUsage: contextUsageRef.current ?? undefined,

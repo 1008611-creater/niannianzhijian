@@ -72,6 +72,8 @@ export interface KeyStatusResponse {
   keys: Record<string, KeyState>;
   caps: Record<string, boolean>;
   models: Record<string, string>;
+  admin?: boolean;
+  mediaDir?: string;
 }
 
 const secret = (name: string, label: string): SettingsField => ({ name, label, kind: 'secret' });

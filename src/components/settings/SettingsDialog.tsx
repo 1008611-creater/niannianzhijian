@@ -211,14 +211,33 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
             <button type="button" onClick={requestClose} title={t('关闭')} style={iconBtn}><Icon name="x" size={15} /></button>
           </div>
         </header>
-        <div className="cc-settings-body" style={bodyRow}>
-          <div className="cc-settings-sidebar"><CapabilityTree status={status} codexStatus={codexStatus} activeGroup={group.key} onSelect={selectGroup} /></div>
-          <div className="cc-settings-vendors"><VendorList group={group} activeVendor={page.key} onSelectVendor={selectVendor} ctx={ctx} /></div>
-          <VendorPane page={page} hint={group.hint} ctx={ctx} />
-        </div>
-        <div className="cc-settings-footer"><FooterBar reveal={reveal} onReveal={setReveal} message={message}
-          dirty={dirty} saving={saving} onClose={onClose} onSave={() => { void save(); }} />
-        </div>
+        {!status ? <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: theme.textDim }}>{t('读取平台配置…')}</div>
+          : status.admin !== true ? <PlatformConfiguredPane onClose={onClose} /> : <>
+          <div className="cc-settings-body" style={bodyRow}>
+            <div className="cc-settings-sidebar"><CapabilityTree status={status} codexStatus={codexStatus} activeGroup={group.key} onSelect={selectGroup} /></div>
+            <div className="cc-settings-vendors"><VendorList group={group} activeVendor={page.key} onSelectVendor={selectVendor} ctx={ctx} /></div>
+            <VendorPane page={page} hint={group.hint} ctx={ctx} />
+          </div>
+          <div className="cc-settings-footer"><FooterBar reveal={reveal} onReveal={setReveal} message={message}
+            dirty={dirty} saving={saving} onClose={onClose} onSave={() => { void save(); }} />
+          </div>
+        </>}
+      </div>
+    </div>
+  );
+}
+
+function PlatformConfiguredPane({ onClose }: { onClose: () => void }) {
+  const t = useT();
+  return (
+    <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: 32 }}>
+      <div style={{ maxWidth: 440, textAlign: 'center', display: 'grid', gap: 12 }}>
+        <Icon name="check" size={28} />
+        <b style={{ fontSize: 16 }}>{t('平台能力已配置')}</b>
+        <span style={{ color: theme.textDim, lineHeight: 1.7 }}>
+          {t('AI 服务由念念平台统一配置和维护。你可以直接使用 Agent、配音、转写和生成等功能，无需填写 API 地址或密钥；使用云端 AI 功能时按账户积分计费。')}
+        </span>
+        <button type="button" onClick={onClose} style={{ ...btnPrimary, justifySelf: 'center' }}>{t('知道了')}</button>
       </div>
     </div>
   );

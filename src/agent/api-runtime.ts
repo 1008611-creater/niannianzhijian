@@ -253,6 +253,7 @@ export async function runApiAgent(
           tools,
           maxOutputTokens,
           maxRetries: 0,
+          ...(opts?.operationId ? { headers: { 'x-niannian-operation-id': opts.operationId } } : {}),
           abortSignal: opts?.signal,
           // Guard against hanging model calls: first token within 30s, each
           // step capped at 2min, tool executions at 30s (all local store ops
