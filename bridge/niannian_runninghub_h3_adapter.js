@@ -38,6 +38,13 @@ function statusOf(value) {
   return 'generating';
 }
 
+function targetDimensions(aspectRatio) {
+  const normalized = String(aspectRatio || '16:9').trim();
+  if (normalized === '9:16') return {width:480, height:832};
+  if (normalized === '16:9') return {width:832, height:480};
+  throw adapterError('RUNNINGHUB_TARGET_DIMENSION_UNSUPPORTED', '当前 H3 画幅没有经过验证', 422);
+}
+
 function createRunningHubH3Adapter(options = {}) {
   const fetchImpl = options.fetchImpl || global.fetch;
   const baseUrl = String(options.baseUrl || process.env.RUNNINGHUB_BASE_URL || 'https://www.runninghub.cn').replace(/\/+$/, '');
@@ -69,10 +76,14 @@ function createRunningHubH3Adapter(options = {}) {
     const channel = task.channel || Object.keys(CHANNELS).find(name => CHANNELS[name].referenceNodes.length === Number(referenceCount)) || 'text';
     const spec = CHANNELS[channel];
     if (!spec) throw adapterError('CANVAS_H3_CHANNEL_INVALID', 'H3 通道无效', 422);
+    const aspectRatio = task.aspectRatio || '16:9';
+    const dimensions = targetDimensions(aspectRatio);
     const items = [];
     if (spec.referenceNodes.length && Number(referenceCount) !== spec.referenceNodes.length) throw adapterError('CANVAS_H3_REFERENCE_COUNT_INVALID', 'H3 参考图数量与通道不匹配', 422);
     spec.referenceNodes.forEach((nodeId, index) => items.push({nodeId,fieldName:'image',fieldValue:`DRY_RUN_UPLOAD:reference-${index + 1}`}));
-    items.push({nodeId:spec.controlNode,fieldName:'aspect_ratio',fieldValue:task.aspectRatio || '16:9'});
+    items.push({nodeId:spec.controlNode,fieldName:'aspect_ratio',fieldValue:aspectRatio});
+    items.push({nodeId:spec.controlNode,fieldName:'width',fieldValue:dimensions.width});
+    items.push({nodeId:spec.controlNode,fieldName:'height',fieldValue:dimensions.height});
     items.push({nodeId:spec.controlNode,fieldName:'duration_seconds',fieldValue:Number(task.durationSeconds || 5)});
     items.push({nodeId:spec.promptNode,fieldName:'prompt',fieldValue:task.prompt || ''});
     return {channel,endpoint:spec.endpoint,payload:{nodeInfoList:items}};
@@ -110,4 +121,4 @@ function createRunningHubH3Adapter(options = {}) {
   return {dryRun,submit,query,download,channels:CHANNELS};
 }
 
-module.exports = {createRunningHubH3Adapter,findTaskId,findUrls,statusOf,findUsage};
+module.exports = {createRunningHubH3Adapter,findTaskId,findUrls,statusOf,findUsage,targetDimensions};
