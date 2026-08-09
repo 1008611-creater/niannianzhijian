@@ -4,6 +4,7 @@ import {
   attachPlayheadMediaSync,
 } from './usePlayheadPaint';
 import {
+  seekTimelineFromPointer,
   timelineGestureHasDragged,
   timelinePointerShouldSeek,
   timelineSeekFrameAtClientX,
@@ -31,6 +32,13 @@ assert.equal(timelinePointerShouldSeek(0, false, true), false);
 assert.equal(timelineGestureHasDragged(10, 10, 13, 13), false);
 assert.equal(timelineGestureHasDragged(10, 10, 14, 10), true);
 assert.equal(timelineGestureHasDragged(10, 10, 10, 14), true);
+
+const pointerOrder: string[] = [];
+seekTimelineFromPointer({
+  pause: () => pointerOrder.push('pause'),
+  seekTo: (frame) => pointerOrder.push(`seek:${frame}`),
+}, 42, (frame) => pointerOrder.push(`paint:${frame}`));
+assert.deepEqual(pointerOrder, ['pause', 'seek:42', 'paint:42'], 'pointer seek pauses before moving the playhead');
 
 type FrameListener = (event: { detail: { frame: number } }) => void;
 
