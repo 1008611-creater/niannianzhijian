@@ -8,7 +8,7 @@ function failureCategory(error) {
   if (code === 'CANVAS_H3_BILLING_UNVERIFIED') return 'billing_scope';
   if (code === 'CANVAS_H3_REFERENCE_MISSING' || /^RUNNINGHUB_UPLOAD_/.test(code)) return 'reference_upload';
   if (/^RUNNINGHUB_OUTPUT_/.test(code) || code === 'CANVAS_H3_OUTPUT_MISSING') return 'output_validation';
-  if (/^RUNNINGHUB_HTTP_/.test(code) || code === 'RUNNINGHUB_RESPONSE_INVALID' || code === 'RUNNINGHUB_TASK_ID_MISSING') return 'provider_request';
+  if (/^RUNNINGHUB_HTTP_/.test(code) || code === 'RUNNINGHUB_RESPONSE_INVALID' || code === 'RUNNINGHUB_TASK_ID_MISSING' || code === 'RUNNINGHUB_PROVIDER_REJECTED') return 'provider_request';
   if (code === 'RUNNINGHUB_CREDENTIAL_NOT_CONFIGURED') return 'provider_configuration';
   return 'provider_failure';
 }
@@ -17,7 +17,7 @@ function publicFailure(error) {
   if (error?.code === 'RUNNINGHUB_NETWORK_UNCERTAIN') return '生成请求状态待确认，请稍后查看任务状态。';
   if (error?.code === 'CANVAS_H3_BILLING_UNVERIFIED') return '视频结算信息尚未核验，暂不标记为已交付。';
   if (error?.code === 'CANVAS_H3_REFERENCE_MISSING' || /^RUNNINGHUB_UPLOAD_/.test(String(error?.code || ''))) return '参考素材上传到视频渠道失败，请检查素材后重试。';
-  if (/^RUNNINGHUB_HTTP_/.test(String(error?.code || ''))) return '视频渠道拒绝了当前工作流请求，请检查 H3 工作流参数。';
+  if (/^RUNNINGHUB_HTTP_/.test(String(error?.code || '')) || error?.code === 'RUNNINGHUB_PROVIDER_REJECTED') return '视频渠道拒绝了当前工作流请求，请检查 H3 工作流参数。';
   if (/^RUNNINGHUB_OUTPUT_/.test(String(error?.code || '')) || error?.code === 'CANVAS_H3_OUTPUT_MISSING') return '视频渠道返回的结果无法校验，请稍后重试。';
   return '视频生成暂未完成，请检查输入后重试。';
 }
@@ -59,7 +59,7 @@ function createCanvasH3Runtime(options = {}) {
       return await jobs.updateOwned(ownerId, projectId, jobId, {status:'queued',providerSubmitState:'accepted',providerTaskId:submitted.taskId,providerChannel:submitted.channel,providerPayload:submitted.payload,publicError:null});
     } catch (error) {
       const unknown = error?.code === 'RUNNINGHUB_NETWORK_UNCERTAIN';
-      return await jobs.updateOwned(ownerId, projectId, jobId, {status:unknown ? 'review' : 'failed',providerSubmitState:unknown ? 'uncertain' : 'failed',failureCategory:failureCategory(error),publicError:publicFailure(error)}).then(() => { throw error; });
+      return await jobs.updateOwned(ownerId, projectId, jobId, {status:unknown ? 'review' : 'failed',providerSubmitState:unknown ? 'uncertain' : 'failed',failureCategory:failureCategory(error),providerErrorCode:error.providerCode || null,publicError:publicFailure(error)}).then(() => { throw error; });
     }
   }
 

@@ -56,7 +56,15 @@ function createRunningHubH3Adapter(options = {}) {
     try { response = await fetchImpl(baseUrl + endpoint, {method:'POST',headers:{authorization:'Bearer ' + key(),'content-type':'application/json',accept:'application/json','user-agent':'niannian-canvas-h3/1.0'},body:JSON.stringify(payload),signal:AbortSignal.timeout(timeoutMs)}); }
     catch (error) { throw adapterError('RUNNINGHUB_NETWORK_UNCERTAIN', 'RunningHub 网络状态不确定：' + redact(error.message)); }
     if (!response.ok) throw adapterError('RUNNINGHUB_HTTP_' + response.status, 'RunningHub 请求失败');
-    return response.json().catch(() => { throw adapterError('RUNNINGHUB_RESPONSE_INVALID', 'RunningHub 返回格式无效'); });
+    const value = await response.json().catch(() => { throw adapterError('RUNNINGHUB_RESPONSE_INVALID', 'RunningHub 返回格式无效'); });
+    const providerCode = value && typeof value === 'object' ? (value.errorCode ?? value.code) : null;
+    const providerMessage = value && typeof value === 'object' ? String(value.errorMessage ?? value.msg ?? '').trim().toLowerCase() : '';
+    if (providerCode != null && !['', '0', 'success', 'ok'].includes(String(providerCode).toLowerCase()) && !['', 'success', 'ok'].includes(providerMessage)) {
+      const error = adapterError('RUNNINGHUB_PROVIDER_REJECTED', 'RunningHub 拒绝了当前请求');
+      error.providerCode = String(providerCode).replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 64) || 'unknown';
+      throw error;
+    }
+    return value;
   }
   async function upload(filePath) {
     const bytes = await fs.readFile(filePath);
