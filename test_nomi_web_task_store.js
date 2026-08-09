@@ -34,10 +34,11 @@ async function run() {
     ownerId:'USR-A',projectId:'NN-A',projectKind:'redraw',grantId:grant.id,nodeId:'node-h3',idempotencyKey:'new-click',submitted:{}
   }), 'STUDIO_SPEND_CONFIRMATION_REQUIRED');
 
-  const updated = await first.updateOwnedTask('USR-A','NN-A',created.task.id,{status:'queued',workflowId:'2085082190681038850',providerTaskId:'internal-provider-id'});
+  const updated = await first.updateOwnedTask('USR-A','NN-A',created.task.id,{status:'queued',workflowId:'2085082190681038850',providerTaskId:'internal-provider-id',providerErrorCode:'WORKFLOW_DENIED'});
   assert.equal(updated.status, 'queued');
   assert.equal(updated.workflowId, '2085082190681038850');
   assert.equal(updated.providerTaskId, 'internal-provider-id');
+  assert.equal(updated.providerErrorCode, 'WORKFLOW_DENIED');
   assert.equal(await first.getOwnedTask('USR-B','NN-A',created.task.id), null);
   assert.equal(await first.getOwnedTask('USR-A','NN-B',created.task.id), null);
 
@@ -46,6 +47,7 @@ async function run() {
   const restored = await restarted.getOwnedTask('USR-A','NN-A',created.task.id);
   assert.equal(restored.id, created.task.id);
   assert.equal(restored.status, 'queued');
+  assert.equal(restored.providerErrorCode, 'WORKFLOW_DENIED');
   const replay = await restarted.claimTask({
     ownerId:'USR-A',projectId:'NN-A',projectKind:'redraw',grantId:'missing-grant',nodeId:'node-h3',idempotencyKey:'same-click',submitted:{}
   });
