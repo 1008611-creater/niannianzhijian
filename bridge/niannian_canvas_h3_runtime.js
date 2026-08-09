@@ -27,6 +27,7 @@ function createCanvasH3Runtime(options = {}) {
   const assets = options.assetService;
   const adapter = options.adapter || createRunningHubH3Adapter(options.runningHub || {});
   const enabled = options.enabled === true;
+  const submissionsInFlight = new Map();
   if (!jobs || !assets) throw new Error('canvas H3 runtime requires job and asset services');
 
   async function ownedReferences(job) {
@@ -45,7 +46,7 @@ function createCanvasH3Runtime(options = {}) {
     return adapter.dryRun({prompt:job.prompt,aspectRatio:job.aspectRatio || '16:9',durationSeconds:job.durationSeconds || 5}, count);
   }
 
-  async function submit(ownerId, projectId, jobId) {
+  async function submitOnce(ownerId, projectId, jobId) {
     if (!enabled) throw runtimeError('CANVAS_PROVIDER_SUBMIT_DISABLED', '视频生成尚未启用，当前任务仅完成准备。');
     const job = await jobs.getOwned(ownerId, projectId, jobId);
     if (!job) throw runtimeError('CANVAS_JOB_NOT_FOUND', '任务不存在', 404);
@@ -61,6 +62,19 @@ function createCanvasH3Runtime(options = {}) {
       const unknown = error?.code === 'RUNNINGHUB_NETWORK_UNCERTAIN';
       return await jobs.updateOwned(ownerId, projectId, jobId, {status:unknown ? 'review' : 'failed',providerSubmitState:unknown ? 'uncertain' : 'failed',failureCategory:failureCategory(error),providerErrorCode:error.providerCode || null,publicError:publicFailure(error)}).then(() => { throw error; });
     }
+  }
+
+  function submit(ownerId, projectId, jobId) {
+    const key = [ownerId, projectId, jobId].map(value => String(value || '')).join(':');
+    const existing = submissionsInFlight.get(key);
+    if (existing) return existing;
+    const submission = submitOnce(ownerId, projectId, jobId);
+    submissionsInFlight.set(key, submission);
+    void submission.then(
+      () => submissionsInFlight.delete(key),
+      () => submissionsInFlight.delete(key)
+    );
+    return submission;
   }
 
   async function reconcile(ownerId, projectId, jobId) {
