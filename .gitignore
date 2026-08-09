@@ -21,6 +21,18 @@ verification_frontend/
 
 # Historical evidence, generated review records, and old release receipts.
 docs/
+!docs/
+docs/*
+!docs/frontend-reference-study.md
+!docs/frontend-targets/
+docs/frontend-targets/*
+!docs/frontend-targets/target-prototype.html
+!docs/frontend-targets/capture-targets.js
+!docs/frontend-targets/01-project-hub-desktop.png
+!docs/frontend-targets/02-studio-canvas-desktop.png
+!docs/frontend-targets/03-generation-inspector-desktop.png
+!docs/frontend-targets/04-asset-library-desktop.png
+!docs/frontend-targets/05-studio-mobile.png
 release_baseline_attestation_*.json
 release_baseline_review_evidence_*.md
 post_coding_review_*.md

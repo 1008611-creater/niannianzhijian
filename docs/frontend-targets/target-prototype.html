@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>念念 AI 前端目标界面</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #09090a;
+      --surface: #141416;
+      --raised: #1b1b1e;
+      --soft: #222225;
+      --line: #303034;
+      --line-strong: #444449;
+      --text: #f6f6f4;
+      --muted: #a3a3a8;
+      --quiet: #74747b;
+      --brand: #f23ba7;
+      --brand-soft: #3a1830;
+      --success: #5ecb91;
+      --warning: #e8b45c;
+      --danger: #ee6a6a;
+      --info: #71a7ef;
+      --radius: 6px;
+      font-family: "Noto Sans SC", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+      letter-spacing: 0;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; min-height: 100%; background: var(--bg); color: var(--text); }
+    body { overflow: hidden; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+    .screen { display: none; width: 1440px; height: 900px; background: var(--bg); overflow: hidden; }
+    body[data-screen="hub"] #hub,
+    body[data-screen="canvas"] #canvas,
+    body[data-screen="inspector"] #inspector,
+    body[data-screen="assets"] #assets,
+    body[data-screen="mobile"] #mobile { display: flex; }
+    .icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+    .icon.sm { width: 15px; height: 15px; }
+    .app-nav { width: 218px; height: 100%; border-right: 1px solid var(--line); background: #0d0d0e; padding: 22px 14px 16px; display: flex; flex-direction: column; }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 8px 23px; font-size: 18px; font-weight: 700; }
+    .brand img { width: 28px; height: 28px; object-fit: contain; }
+    .nav-items { display: grid; gap: 5px; }
+    .nav-item { height: 42px; padding: 0 11px; display: flex; align-items: center; gap: 11px; color: var(--muted); border-radius: var(--radius); font-size: 14px; }
+    .nav-item.active { background: var(--raised); color: var(--text); box-shadow: inset 2px 0 0 var(--brand); }
+    .nav-section { margin: 24px 10px 8px; color: var(--quiet); font-size: 11px; }
+    .nav-project { padding: 9px 11px; border-left: 1px solid var(--line); margin-left: 10px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .nav-project strong { color: var(--text); display: block; font-weight: 500; }
+    .nav-bottom { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line); }
+    .app-main { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+    .topbar { height: 66px; padding: 0 26px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 16px; background: rgba(13,13,14,.96); }
+    .title-group { min-width: 0; }
+    .title-group h1 { margin: 0; font-size: 19px; line-height: 1.2; font-weight: 650; }
+    .title-group p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .top-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+    .btn { height: 36px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; white-space: nowrap; }
+    .btn.icon-only { width: 36px; padding: 0; }
+    .btn.primary { background: #f4f4f1; color: #151517; border-color: #f4f4f1; font-weight: 600; }
+    .btn.brand { background: var(--brand); border-color: var(--brand); color: white; padding: 0 14px; font-size: 13px; }
+    .content { padding: 24px 28px 30px; overflow: hidden; }
+    .eyebrow { color: var(--muted); font-size: 12px; }
+    .section-head { display: flex; align-items: end; justify-content: space-between; margin: 23px 0 12px; }
+    .section-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+    .section-head span { color: var(--muted); font-size: 12px; }
+    .launch-grid { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 12px; }
+    .launch { height: 138px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; position: relative; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; }
+    .launch.primary { background: #f1f1ee; color: #171719; border-color: #f1f1ee; }
+    .launch .launch-icon { width: 34px; height: 34px; border: 1px solid currentColor; border-radius: 5px; display: grid; place-items: center; opacity: .9; }
+    .launch strong { display: block; font-size: 17px; font-weight: 650; }
+    .launch p { margin: 5px 0 0; font-size: 12px; color: var(--muted); }
+    .launch.primary p { color: var(--line-strong); }
+    .launch .arrow { position: absolute; right: 16px; top: 16px; }
+    .filters { display: flex; align-items: center; gap: 8px; }
+    .segmented { display: inline-flex; padding: 3px; background: var(--surface); border: 1px solid var(--line); border-radius: 5px; }
+    .segmented span { height: 28px; padding: 0 12px; display: flex; align-items: center; border-radius: 3px; color: var(--muted); font-size: 12px; }
+    .segmented span.active { background: var(--soft); color: var(--text); }
+    .search { height: 36px; width: 230px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); display: flex; align-items: center; gap: 8px; padding: 0 11px; color: var(--muted); font-size: 12px; }
+    .project-table { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+    .project-row { height: 96px; display: grid; grid-template-columns: 76px minmax(260px,1.3fr) .8fr .7fr 150px 38px; align-items: center; gap: 16px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    .project-row:last-child { border-bottom: 0; }
+    .thumb { width: 72px; height: 58px; border-radius: 4px; object-fit: cover; background: var(--soft); }
+    .project-name strong { display: block; font-size: 14px; font-weight: 550; margin-bottom: 6px; }
+    .project-name span, .meta { color: var(--muted); font-size: 12px; }
+    .state { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+    .state .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--quiet); }
+    .state.active .dot { background: var(--info); box-shadow: 0 0 0 3px rgba(113,167,239,.12); }
+    .state.done .dot { background: var(--success); }
+    .state.warn .dot { background: var(--warning); }
+    .progress { height: 4px; background: var(--soft); border-radius: 2px; overflow: hidden; width: 130px; margin-top: 8px; }
+    .progress i { display: block; height: 100%; background: var(--info); width: 68%; }
+    .workspace { width: 100%; height: 100%; display: flex; flex-direction: column; }
+    .studio-bar { height: 56px; border-bottom: 1px solid var(--line); background: #0d0d0f; display: flex; align-items: center; padding: 0 13px; gap: 10px; }
+    .studio-brand { display: flex; align-items: center; gap: 9px; width: 200px; }
+    .studio-brand img { width: 25px; height: 25px; }
+    .studio-brand strong { font-size: 14px; }
+    .crumb { border-left: 1px solid var(--line); padding-left: 14px; font-size: 13px; color: var(--muted); }
+    .save-state { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+    .studio-body { min-height: 0; flex: 1; display: flex; }
+    .toolrail { width: 60px; border-right: 1px solid var(--line); background: #0f0f11; padding: 12px 9px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .tool { width: 40px; height: 40px; display: grid; place-items: center; color: var(--muted); border: 0; background: transparent; padding: 0; border-radius: 5px; position: relative; }
+    .tool.active { color: var(--text); background: var(--raised); box-shadow: inset 2px 0 0 var(--brand); }
+    .tool.bottom { margin-top: auto; }
+    .canvas-area { flex: 1; min-width: 0; position: relative; overflow: hidden; background-color: #101012; background-image: radial-gradient(#35353a 1px, transparent 1px); background-size: 22px 22px; }
+    .canvas-label { position: absolute; left: 22px; top: 18px; display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; }
+    .canvas-label strong { color: var(--text); font-weight: 550; }
+    .connector { position: absolute; height: 2px; background: var(--line-strong); transform-origin: left center; }
+    .connector.active { background: var(--brand); }
+    .node { position: absolute; width: 238px; min-height: 148px; border: 1px solid var(--line-strong); background: var(--raised); border-radius: 6px; box-shadow: 0 12px 30px color-mix(in srgb, var(--bg) 72%, transparent); overflow: hidden; }
+    .node.selected { border-color: var(--brand); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 15%, transparent),0 12px 30px color-mix(in srgb, var(--bg) 78%, transparent); }
+    .node-head { height: 39px; padding: 0 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 600; }
+    .node-head .node-state { margin-left: auto; color: var(--muted); font-weight: 400; font-size: 11px; }
+    .node-body { padding: 12px; }
+    .node-body p { margin: 0; font-size: 12px; line-height: 1.55; color: var(--text); opacity: .86; }
+    .node-body .small { margin-top: 9px; color: var(--muted); font-size: 11px; }
+    .node-media { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; }
+    .node-media img { width: 56px; height: 64px; border-radius: 4px; object-fit: cover; }
+    .port { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; background: var(--soft); border: 2px solid var(--muted); }
+    .port.in { left: -6px; }
+    .port.out { right: -6px; }
+    .node-script { left: 70px; top: 110px; }
+    .node-ref { left: 70px; top: 355px; }
+    .node-char { left: 386px; top: 110px; }
+    .node-image { left: 700px; top: 110px; }
+    .node-video { left: 700px; top: 365px; }
+    .canvas-controls { position: absolute; left: 20px; bottom: 17px; height: 38px; background: #171719; border: 1px solid var(--line); border-radius: 5px; display: flex; align-items: center; padding: 0 7px; gap: 3px; }
+    .canvas-controls span { width: 30px; height: 28px; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+    .canvas-controls .zoom { width: 48px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+    .minimap { position: absolute; right: 18px; bottom: 17px; width: 160px; height: 94px; background: rgba(21,21,23,.94); border: 1px solid var(--line); border-radius: 5px; padding: 9px; }
+    .mini-node { position: absolute; width: 25px; height: 13px; background: var(--quiet); border-radius: 2px; }
+    .inspector { width: 326px; border-left: 1px solid var(--line); background: #121214; display: flex; flex-direction: column; }
+    .inspector.wide { width: 408px; }
+    .panel-head { height: 54px; padding: 0 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; }
+    .panel-body { padding: 15px; overflow: hidden; }
+    .field { margin-bottom: 16px; }
+    .field-label { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin-bottom: 7px; }
+    .field-value { border: 1px solid var(--line); background: var(--surface); border-radius: 5px; padding: 10px 11px; font-size: 12px; line-height: 1.5; }
+    .field-value.row { display: flex; justify-content: space-between; align-items: center; }
+    .status-box { background: color-mix(in srgb, var(--info) 7%, var(--surface)); border: 1px solid color-mix(in srgb, var(--info) 32%, var(--line)); border-radius: 5px; padding: 12px; }
+    .status-box .state { color: color-mix(in srgb, var(--info) 60%, var(--text)); }
+    .status-box p { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .panel-actions { margin-top: auto; border-top: 1px solid var(--line); padding: 12px 15px; display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .preview { border: 1px solid var(--line); border-radius: 5px; overflow: hidden; background: #0d0d0e; }
+    .preview img { width: 100%; height: 172px; object-fit: cover; display: block; }
+    .preview-meta { padding: 10px 11px; display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+    .timeline { display: grid; gap: 12px; margin-top: 16px; }
+    .timeline-item { display: grid; grid-template-columns: 16px 1fr auto; gap: 8px; align-items: start; font-size: 11px; color: var(--muted); }
+    .timeline-item .mark { width: 8px; height: 8px; border-radius: 50%; background: var(--quiet); margin-top: 3px; }
+    .timeline-item.done .mark { background: var(--success); }
+    .timeline-item.active .mark { background: var(--info); box-shadow: 0 0 0 3px rgba(113,167,239,.12); }
+    .assets-main { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+    .asset-toolbar { padding: 17px 26px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+    .asset-toolbar .search { width: 310px; }
+    .asset-toolbar .btn:last-child { margin-left: auto; }
+    .asset-content { padding: 22px 26px; overflow: hidden; }
+    .asset-summary { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); margin-bottom: 19px; }
+    .asset-stat { height: 72px; padding: 14px 17px; border-right: 1px solid var(--line); }
+    .asset-stat:last-child { border-right: 0; }
+    .asset-stat strong { display: block; font-size: 20px; font-weight: 600; }
+    .asset-stat span { color: var(--muted); font-size: 11px; }
+    .asset-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .asset-card { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+    .asset-card img { width: 100%; height: 150px; object-fit: cover; display: block; background: var(--soft); }
+    .asset-card-body { padding: 11px 12px 12px; }
+    .asset-card strong { font-size: 13px; font-weight: 550; display: block; }
+    .asset-card p { margin: 6px 0 10px; color: var(--muted); font-size: 11px; }
+    .tags { display: flex; gap: 5px; flex-wrap: wrap; }
+    .tag { border: 1px solid var(--line); padding: 3px 6px; border-radius: 3px; color: var(--muted); font-size: 10px; }
+    .mobile-shell { width: 390px; height: 844px; margin: 0; background: #0b0b0c; display: flex; flex-direction: column; overflow: hidden; }
+    #mobile { width: 390px; height: 844px; }
+    .mobile-top { height: 60px; border-bottom: 1px solid var(--line); display: flex; align-items: center; padding: 0 14px; gap: 10px; }
+    .mobile-top img { width: 26px; height: 26px; }
+    .mobile-top strong { font-size: 14px; }
+    .mobile-top .btn { margin-left: auto; }
+    .mobile-project { padding: 15px 15px 12px; border-bottom: 1px solid var(--line); }
+    .mobile-project .eyebrow { margin-bottom: 5px; }
+    .mobile-project h1 { margin: 0; font-size: 18px; font-weight: 650; }
+    .mobile-project p { margin: 6px 0 0; font-size: 11px; color: var(--muted); }
+    .mobile-stage { display: flex; gap: 6px; margin-top: 12px; }
+    .stage { flex: 1; height: 4px; border-radius: 2px; background: var(--soft); }
+    .stage.done { background: var(--success); }
+    .stage.active { background: var(--brand); }
+    .mobile-scroll { flex: 1; overflow: hidden; padding: 13px 14px; }
+    .mobile-status { border: 1px solid color-mix(in srgb, var(--info) 32%, var(--line)); background: color-mix(in srgb, var(--info) 7%, var(--surface)); border-radius: 6px; padding: 12px; }
+    .mobile-status .status-line { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .mobile-status p { margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .mobile-preview { margin-top: 12px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
+    .mobile-preview img { display: block; width: 100%; height: 184px; object-fit: cover; }
+    .mobile-preview .body { padding: 11px; }
+    .mobile-preview strong { font-size: 13px; }
+    .mobile-preview p { margin: 6px 0 0; color: var(--muted); font-size: 11px; }
+    .mobile-list { margin-top: 12px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+    .mobile-row { min-height: 54px; padding: 10px 11px; display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: center; border-bottom: 1px solid var(--line); }
+    .mobile-row:last-child { border-bottom: 0; }
+    .mobile-row strong { display: block; font-size: 12px; }
+    .mobile-row span { color: var(--muted); font-size: 10px; }
+    .mobile-action { padding: 10px 14px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 42px 1fr; gap: 8px; }
+    .mobile-action .btn { height: 42px; }
+    .mobile-nav { height: 58px; border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(4,1fr); }
+    .mobile-nav span { display: flex; flex-direction: column; gap: 3px; align-items: center; justify-content: center; color: var(--quiet); font-size: 9px; }
+    .mobile-nav span.active { color: var(--text); }
+    .screen-note { position: absolute; right: 14px; top: 14px; font-size: 10px; color: var(--quiet); }
+  </style>
+</head>
+<body data-screen="hub">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <!-- Lucide icon paths, embedded so the documentation prototype remains offline. -->
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/><path d="M3 7V5h6l2 2"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3-1.5 4.5L6 9l4.5 1.5L12 15l1.5-4.5L18 9l-4.5-1.5z"/><path d="m5 16-.8 2.2L2 19l2.2.8L5 22l.8-2.2L8 19l-2.2-.8z"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1z"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v1"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0-6 6v1"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4"/><path d="M5 20h14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-node" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><path d="M10 6h4a4 4 0 0 1 4 4v4"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 5h16l-6 7v5l-4 2v-7z"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></symbol>
+  </svg>
+
+  <section class="screen" id="hub">
+    <aside class="app-nav">
+      <div class="brand"><img src="../../assets/brand/niannian-ai-fused-monogram-v6-brand-pink.png" alt=""><span>念念 AI</span></div>
+      <div class="nav-items">
+        <div class="nav-item active"><svg class="icon"><use href="#i-grid"/></svg>项目库</div>
+        <div class="nav-item"><svg class="icon"><use href="#i-node"/></svg>创作画布</div>
+        <div class="nav-item"><svg class="icon"><use href="#i-image"/></svg>素材库</div>
+        <div class="nav-item"><svg class="icon"><use href="#i-spark"/></svg>生成任务</div>
+      </div>
+      <div class="nav-section">最近项目</div>
+      <div class="nav-project"><strong>《雪地来信》转绘</strong>2 个任务进行中</div>
+      <div class="nav-project"><strong>长安异闻录 EP01</strong>上次编辑 2 小时前</div>
+      <div class="nav-bottom"><div class="nav-item"><svg class="icon"><use href="#i-settings"/></svg>设置与模型</div></div>
+    </aside>
+    <main class="app-main">
+      <header class="topbar">
+        <div class="title-group"><h1>项目库</h1><p>从一个项目进入画布、转绘或短剧生产</p></div>
+        <div class="top-actions"><button class="btn icon-only" aria-label="搜索"><svg class="icon"><use href="#i-search"/></svg></button><button class="btn primary"><svg class="icon sm"><use href="#i-plus"/></svg>新建项目</button></div>
+      </header>
+      <div class="content">
+        <div class="eyebrow">开始创作</div>
+        <div class="launch-grid" style="margin-top:10px">
+          <div class="launch primary"><div class="launch-icon"><svg class="icon"><use href="#i-node"/></svg></div><div><strong>无限画布</strong><p>组织脚本、素材、图像与视频生成</p></div><svg class="icon arrow"><use href="#i-arrow"/></svg></div>
+          <div class="launch"><div class="launch-icon"><svg class="icon"><use href="#i-image"/></svg></div><div><strong>一键转绘</strong><p>从参考视频进入受控转绘流程</p></div><svg class="icon arrow"><use href="#i-arrow"/></svg></div>
+          <div class="launch"><div class="launch-icon"><svg class="icon"><use href="#i-spark"/></svg></div><div><strong>一键短剧</strong><p>从剧本推进到分镜与成片</p></div><svg class="icon arrow"><use href="#i-arrow"/></svg></div>
+        </div>
+        <div class="section-head"><h2>最近项目</h2><div class="filters"><div class="segmented"><span class="active">全部 6</span><span>进行中 2</span><span>已完成 3</span></div><div class="search"><svg class="icon sm"><use href="#i-search"/></svg>搜索项目</div></div></div>
+        <div class="project-table">
+          <div class="project-row"><img class="thumb" src="../../assets/showcase/redraw-keyart-v1.png" alt=""><div class="project-name"><strong>《雪地来信》转绘</strong><span>一键转绘 · 9:16 · 5 个镜头</span></div><div><div class="state active"><i class="dot"></i>生成镜头 03</div><div class="progress"><i></i></div></div><div class="meta">2 个待确认</div><div><button class="btn">继续制作<svg class="icon sm"><use href="#i-arrow"/></svg></button></div><svg class="icon"><use href="#i-more"/></svg></div>
+          <div class="project-row"><img class="thumb" src="../../assets/showcase/short-drama-keyart-v1.png" alt=""><div class="project-name"><strong>长安异闻录 EP01</strong><span>一键短剧 · 16:9 · 12 个镜头</span></div><div><div class="state warn"><i class="dot"></i>需要确认角色</div></div><div class="meta">上次编辑 2 小时前</div><div><button class="btn">检查角色<svg class="icon sm"><use href="#i-arrow"/></svg></button></div><svg class="icon"><use href="#i-more"/></svg></div>
+          <div class="project-row"><img class="thumb" src="../../assets/showcase/animation-drama-keyart-v1.png" alt=""><div class="project-name"><strong>纸鸢奇谈</strong><span>无限画布 · 14 个节点 · 28 项素材</span></div><div><div class="state done"><i class="dot"></i>已保存</div></div><div class="meta">昨天 21:48</div><div><button class="btn">打开画布<svg class="icon sm"><use href="#i-arrow"/></svg></button></div><svg class="icon"><use href="#i-more"/></svg></div>
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <section class="screen" id="canvas">
+    <div class="workspace">
+      <header class="studio-bar"><div class="studio-brand"><img src="../../assets/brand/niannian-ai-fused-monogram-v6-brand-pink.png" alt=""><strong>念念 AI</strong></div><div class="crumb">《雪地来信》转绘 / 制作画布</div><div class="top-actions"><div class="save-state"><svg class="icon sm"><use href="#i-check"/></svg>已保存</div><button class="btn icon-only"><svg class="icon"><use href="#i-undo"/></svg></button><button class="btn icon-only"><svg class="icon"><use href="#i-redo"/></svg></button><button class="btn">预览</button><button class="btn primary">检查并生成</button></div></header>
+      <div class="studio-body">
+        <aside class="toolrail"><button class="tool active" aria-label="选择节点"><svg class="icon"><use href="#i-node"/></svg></button><button class="tool" aria-label="添加节点"><svg class="icon"><use href="#i-plus"/></svg></button><button class="tool" aria-label="打开素材"><svg class="icon"><use href="#i-image"/></svg></button><button class="tool" aria-label="打开生成工具"><svg class="icon"><use href="#i-spark"/></svg></button><button class="tool bottom" aria-label="画布设置"><svg class="icon"><use href="#i-settings"/></svg></button></aside>
+        <main class="canvas-area">
+          <div class="canvas-label"><strong>镜头 03</strong><span>角色接近 · 雪地夜景</span></div>
+          <div class="connector active" style="left:308px;top:184px;width:78px"></div><div class="connector active" style="left:624px;top:184px;width:76px"></div><div class="connector" style="left:308px;top:430px;width:392px;transform:rotate(-17deg)"></div><div class="connector active" style="left:819px;top:259px;width:106px;transform:rotate(64deg)"></div>
+          <article class="node node-script"><i class="port out"></i><div class="node-head"><svg class="icon sm"><use href="#i-list"/></svg>镜头描述<span class="node-state">已确认</span></div><div class="node-body"><p>女孩在风雪中回头，远处暖光勾勒出追赶者的轮廓。</p><div class="small">时长 5 秒 · 中近景 · 缓慢推镜</div></div></article>
+          <article class="node node-ref"><i class="port out"></i><div class="node-head"><svg class="icon sm"><use href="#i-play"/></svg>参考视频<span class="node-state">00:03–00:08</span></div><div class="node-body node-media"><img src="../../assets/showcase/redraw-keyart-partial-xuedi-v1.png" alt=""><div><p>动作节奏与构图参考</p><div class="small">来源已验证 · 可读取</div></div></div></article>
+          <article class="node node-char"><i class="port in"></i><i class="port out"></i><div class="node-head"><svg class="icon sm"><use href="#i-image"/></svg>角色资产<span class="node-state">2 项</span></div><div class="node-body node-media"><img src="../../assets/showcase/animation-drama-keyart-v1.png" alt=""><div><p>主角「阿雪」<br>追赶者剪影</p><div class="small">本项目素材库</div></div></div></article>
+          <article class="node node-image"><i class="port in"></i><i class="port out"></i><div class="node-head"><svg class="icon sm"><use href="#i-spark"/></svg>关键帧 Image2<span class="node-state" style="color:var(--success)">已完成</span></div><div class="node-body node-media"><img src="../../assets/showcase/redraw-keyart-v1.png" alt=""><div><p>竖屏关键帧候选 02</p><div class="small">已通过构图检查</div></div></div></article>
+          <article class="node node-video selected"><i class="port in"></i><div class="node-head"><svg class="icon sm"><use href="#i-play"/></svg>视频 H3<span class="node-state" style="color:var(--info)">生成中 68%</span></div><div class="node-body"><p>5 秒 · 768P · 9:16<br>参考图 2 项 · 运镜已锁定</p><div class="progress" style="width:100%"><i></i></div></div></article>
+          <div class="canvas-controls"><span>−</span><span class="zoom">74%</span><span>＋</span><span>◎</span></div>
+          <div class="minimap"><i class="mini-node" style="left:16px;top:18px"></i><i class="mini-node" style="left:56px;top:18px"></i><i class="mini-node" style="left:99px;top:18px"></i><i class="mini-node" style="left:16px;top:57px"></i><i class="mini-node" style="left:100px;top:58px;background:var(--brand)"></i></div>
+        </main>
+        <aside class="inspector"><div class="panel-head">视频生成检查器</div><div class="panel-body"><div class="status-box"><div class="state active"><i class="dot"></i>正在生成镜头 03</div><p>可以离开此页面，任务完成后会保存到本项目。</p></div><div class="field" style="margin-top:16px"><div class="field-label"><span>输出规格</span></div><div class="field-value row"><span>9:16 · 5 秒 · 768P</span><svg class="icon sm"><use href="#i-arrow"/></svg></div></div><div class="field"><div class="field-label"><span>输入证据</span><span>4 / 4 已就绪</span></div><div class="field-value">镜头描述、角色资产、关键帧、运镜设置均已确认。</div></div><div class="field"><div class="field-label"><span>完成后</span></div><div class="field-value">自动写入镜头 03，并保留本次设置用于重新生成。</div></div></div><div class="panel-actions"><button class="btn">取消任务</button><button class="btn icon-only"><svg class="icon"><use href="#i-more"/></svg></button></div></aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="inspector">
+    <div class="workspace">
+      <header class="studio-bar"><div class="studio-brand"><img src="../../assets/brand/niannian-ai-fused-monogram-v6-brand-pink.png" alt=""><strong>念念 AI</strong></div><div class="crumb">《雪地来信》转绘 / 镜头 03</div><div class="top-actions"><div class="save-state"><svg class="icon sm"><use href="#i-check"/></svg>项目已保存</div><button class="btn">返回画布</button><button class="btn primary"><svg class="icon sm"><use href="#i-download"/></svg>下载成片</button></div></header>
+      <div class="studio-body">
+        <aside class="toolrail"><button class="tool" aria-label="返回节点"><svg class="icon"><use href="#i-node"/></svg></button><button class="tool active" aria-label="查看生成结果"><svg class="icon"><use href="#i-play"/></svg></button><button class="tool" aria-label="打开素材"><svg class="icon"><use href="#i-image"/></svg></button><button class="tool bottom" aria-label="结果设置"><svg class="icon"><use href="#i-settings"/></svg></button></aside>
+        <main class="canvas-area" style="display:flex;align-items:center;justify-content:center;background-image:none"><div style="width:492px"><div class="preview" style="border-color:var(--line-strong)"><img src="../../assets/showcase/redraw-keyart-v1.png" alt="" style="height:590px"><div class="preview-meta"><span>镜头 03 · 候选 02</span><span>00:05</span></div></div><div style="display:flex;gap:8px;margin-top:10px"><button class="btn primary" style="flex:1"><svg class="icon sm"><use href="#i-check"/></svg>采用此结果</button><button class="btn" style="flex:1">重新生成</button></div></div></main>
+        <aside class="inspector wide"><div class="panel-head"><svg class="icon"><use href="#i-check"/></svg>生成完成</div><div class="panel-body"><div class="field"><div class="field-label"><span>结果</span><span style="color:var(--success)">可读取</span></div><div class="field-value">视频已写入《雪地来信》镜头 03，等待你的采用确认。</div></div><div class="field"><div class="field-label"><span>本次输入</span><span>完整</span></div><div class="field-value">关键帧 1 项 · 角色参考 2 项<br>5 秒 · 9:16 · 缓慢推镜</div></div><div class="field"><div class="field-label"><span>质量检查</span></div><div class="field-value"><div class="state done"><i class="dot"></i>文件可播放</div><div class="state done" style="margin-top:8px"><i class="dot"></i>规格与项目一致</div><div class="state warn" style="margin-top:8px"><i class="dot"></i>角色一致性待人工确认</div></div></div><div class="timeline"><div class="timeline-item done"><i class="mark"></i><span>输入检查完成</span><span>18:42</span></div><div class="timeline-item done"><i class="mark"></i><span>生成任务完成</span><span>18:44</span></div><div class="timeline-item active"><i class="mark"></i><span>等待采用或重新生成</span><span>现在</span></div></div></div><div class="panel-actions"><button class="btn">查看任务记录</button><button class="btn icon-only"><svg class="icon"><use href="#i-more"/></svg></button></div></aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="assets">
+    <aside class="app-nav"><div class="brand"><img src="../../assets/brand/niannian-ai-fused-monogram-v6-brand-pink.png" alt=""><span>念念 AI</span></div><div class="nav-items"><div class="nav-item"><svg class="icon"><use href="#i-grid"/></svg>项目库</div><div class="nav-item"><svg class="icon"><use href="#i-node"/></svg>创作画布</div><div class="nav-item active"><svg class="icon"><use href="#i-image"/></svg>素材库</div><div class="nav-item"><svg class="icon"><use href="#i-spark"/></svg>生成任务</div></div><div class="nav-bottom"><div class="nav-item"><svg class="icon"><use href="#i-settings"/></svg>设置与模型</div></div></aside>
+    <main class="assets-main"><header class="topbar"><div class="title-group"><h1>素材库</h1><p>只显示当前账号和项目可读取的素材</p></div><div class="top-actions"><button class="btn">新建文件夹</button><button class="btn primary"><svg class="icon sm"><use href="#i-plus"/></svg>导入素材</button></div></header><div class="asset-toolbar"><div class="search"><svg class="icon sm"><use href="#i-search"/></svg>搜索名称、角色或镜头</div><div class="segmented"><span class="active">全部</span><span>图片</span><span>视频</span><span>角色</span></div><button class="btn"><svg class="icon sm"><use href="#i-filter"/></svg>筛选</button><button class="btn icon-only"><svg class="icon"><use href="#i-grid"/></svg></button></div><div class="asset-content"><div class="asset-summary"><div class="asset-stat"><strong>28</strong><span>当前项目素材</span></div><div class="asset-stat"><strong>9</strong><span>已用于镜头</span></div><div class="asset-stat"><strong>4</strong><span>待确认候选</span></div><div class="asset-stat"><strong>0</strong><span>失效引用</span></div></div><div class="section-head" style="margin-top:0"><h2>《雪地来信》</h2><span>按最近使用排序</span></div><div class="asset-grid"><article class="asset-card"><img src="../../assets/showcase/redraw-keyart-v1.png" alt=""><div class="asset-card-body"><strong>镜头 03 · 关键帧</strong><p>图片 · 9:16 · 已用于 1 个节点</p><div class="tags"><span class="tag">已确认</span><span class="tag">雪地夜景</span></div></div></article><article class="asset-card"><img src="../../assets/showcase/redraw-keyart-partial-xuedi-v1.png" alt=""><div class="asset-card-body"><strong>参考片段 03–08 秒</strong><p>视频参考 · 已用于镜头 03</p><div class="tags"><span class="tag">动作参考</span><span class="tag">来源已验证</span></div></div></article><article class="asset-card"><img src="../../assets/showcase/animation-drama-keyart-v1.png" alt=""><div class="asset-card-body"><strong>角色 · 阿雪</strong><p>角色资产 · 4 张已确认视图</p><div class="tags"><span class="tag">主角</span><span class="tag">已确认</span></div></div></article><article class="asset-card"><img src="../../assets/showcase/short-drama-keyart-v1.png" alt=""><div class="asset-card-body"><strong>场景 · 古城外景</strong><p>场景资产 · 未用于当前镜头</p><div class="tags"><span class="tag">场景</span><span class="tag">可复用</span></div></div></article><article class="asset-card"><img src="../../assets/showcase/runninghub-redraw-v1/3a8d86c2-70d4-440b-a965-629ca7a379f0.png" alt=""><div class="asset-card-body"><strong>镜头 01 · 采用结果</strong><p>视频 · 5 秒 · 已写入项目</p><div class="tags"><span class="tag">已采用</span><span class="tag">可下载</span></div></div></article><article class="asset-card"><img src="../../assets/showcase/runninghub-animation-v1/eae550e9-61fd-4019-a854-1e07baacc24e.png" alt=""><div class="asset-card-body"><strong>角色动作候选</strong><p>图片 · 待人工确认</p><div class="tags"><span class="tag">候选</span><span class="tag">镜头 04</span></div></div></article></div></div></main>
+  </section>
+
+  <section class="screen" id="mobile"><div class="mobile-shell"><header class="mobile-top"><img src="../../assets/brand/niannian-ai-fused-monogram-v6-brand-pink.png" alt=""><strong>念念 AI</strong><button class="btn icon-only" aria-label="更多"><svg class="icon"><use href="#i-more"/></svg></button></header><div class="mobile-project"><div class="eyebrow">《雪地来信》转绘</div><h1>镜头 03 · 结果确认</h1><p>项目已保存 · 当前没有需要重新上传的内容</p><div class="mobile-stage"><i class="stage done"></i><i class="stage done"></i><i class="stage active"></i><i class="stage"></i></div></div><main class="mobile-scroll"><div class="mobile-status"><div class="status-line"><div class="state done"><i class="dot"></i></div><strong>生成完成，等待你的确认</strong></div><p>结果已经写入当前项目。采用后会进入镜头 04，不采用可保留输入重新生成。</p></div><div class="mobile-preview"><img src="../../assets/showcase/redraw-keyart-v1.png" alt=""><div class="body"><strong>候选 02 · 00:05</strong><p>9:16 · 768P · 文件可播放</p></div></div><div class="mobile-list"><div class="mobile-row"><svg class="icon"><use href="#i-check"/></svg><div><strong>输入完整</strong><span>关键帧、角色、运镜均已确认</span></div><span>4/4</span></div><div class="mobile-row"><svg class="icon"><use href="#i-check"/></svg><div><strong>规格一致</strong><span>与当前项目竖屏规格相同</span></div><span>通过</span></div><div class="mobile-row"><svg class="icon"><use href="#i-clock"/></svg><div><strong>角色一致性</strong><span>需要人工确认面部与服装</span></div><span>待确认</span></div></div></main><div class="mobile-action"><button class="btn icon-only"><svg class="icon"><use href="#i-more"/></svg></button><button class="btn primary"><svg class="icon sm"><use href="#i-check"/></svg>采用并进入下一镜头</button></div><nav class="mobile-nav"><span><svg class="icon sm"><use href="#i-grid"/></svg>项目</span><span class="active"><svg class="icon sm"><use href="#i-play"/></svg>制作</span><span><svg class="icon sm"><use href="#i-image"/></svg>素材</span><span><svg class="icon sm"><use href="#i-settings"/></svg>设置</span></nav></div></section>
+
+  <script>
+    const screen = new URLSearchParams(location.search).get("screen") || "hub";
+    document.body.dataset.screen = screen;
+  </script>
+</body>
+</html>
