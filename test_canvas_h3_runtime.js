@@ -14,6 +14,7 @@ async function run() {
   assert.equal(publicFailure(Object.assign(new Error(), {code:'RUNNINGHUB_HTTP_400'})), '视频渠道拒绝了当前工作流请求，请检查 H3 工作流参数。');
   assert.equal(failureCategory(Object.assign(new Error(), {code:'RUNNINGHUB_UPLOAD_HTTP_413'})), 'reference_upload');
   assert.deepEqual(targetDimensions('9:16'), {width:480, height:832});
+  assert.deepEqual(targetDimensions('9:16', 'one-image'), {width:576, height:1024});
   assert.deepEqual(targetDimensions('16:9'), {width:832, height:480});
   assert.equal(chooseChannel(1), 'one-image');
   assert.equal(CHANNELS['one-image'].endpoint, '/openapi/v2/run/workflow/2085388519102570497');
@@ -27,8 +28,8 @@ async function run() {
     dryRun.payload.nodeInfoList.filter(item => ['aspect_ratio','width','height','duration_seconds'].includes(item.fieldName)),
     [
       {nodeId:'6',fieldName:'aspect_ratio',fieldValue:'9:16'},
-      {nodeId:'6',fieldName:'width',fieldValue:480},
-      {nodeId:'6',fieldName:'height',fieldValue:832},
+      {nodeId:'6',fieldName:'width',fieldValue:576},
+      {nodeId:'6',fieldName:'height',fieldValue:1024},
       {nodeId:'6',fieldName:'duration_seconds',fieldValue:5}
     ]
   );
@@ -48,8 +49,8 @@ async function run() {
     const submittedProviderTask = await requestAdapter.submit({channel:'one-image',aspectRatio:'9:16',durationSeconds:5,prompt:'中文人物自然转身'}, [referencePath]);
     assert.equal(submittedProviderTask.taskId, 'provider-task-001');
     assert.equal(submittedBody.instanceType, 'ultra');
-    assert.equal(submittedBody.nodeInfoList.find(item => item.fieldName === 'width').fieldValue, 480);
-    assert.equal(submittedBody.nodeInfoList.find(item => item.fieldName === 'height').fieldValue, 832);
+    assert.equal(submittedBody.nodeInfoList.find(item => item.fieldName === 'width').fieldValue, 576);
+    assert.equal(submittedBody.nodeInfoList.find(item => item.fieldName === 'height').fieldValue, 1024);
     const assetService = createCanvasAssetService({indexPath:path.join(root,'assets.json'),storageRoot:path.join(root,'assets')});
     const jobService = createCanvasGenerationJobService({filePath:path.join(root,'jobs.json')});
     const image = await sharp({create:{width:8,height:8,channels:4,background:{r:1,g:2,b:3,alpha:1}}}).png().toBuffer();
