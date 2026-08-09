@@ -5,9 +5,12 @@ const path = require('path');
 const sharp = require('sharp');
 const {createCanvasAssetService} = require('./bridge/niannian_canvas_assets');
 const {createCanvasGenerationJobService} = require('./bridge/niannian_canvas_generation_jobs');
-const {createCanvasH3Runtime} = require('./bridge/niannian_canvas_h3_runtime');
+const {createCanvasH3Runtime, failureCategory, publicFailure} = require('./bridge/niannian_canvas_h3_runtime');
 
 async function run() {
+  assert.equal(failureCategory(Object.assign(new Error(), {code:'RUNNINGHUB_HTTP_400'})), 'provider_request');
+  assert.equal(publicFailure(Object.assign(new Error(), {code:'RUNNINGHUB_HTTP_400'})), '视频渠道拒绝了当前工作流请求，请检查 H3 工作流参数。');
+  assert.equal(failureCategory(Object.assign(new Error(), {code:'RUNNINGHUB_UPLOAD_HTTP_413'})), 'reference_upload');
   const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'niannian-canvas-h3-runtime-'));
   try {
     const assetService = createCanvasAssetService({indexPath:path.join(root,'assets.json'),storageRoot:path.join(root,'assets')});
