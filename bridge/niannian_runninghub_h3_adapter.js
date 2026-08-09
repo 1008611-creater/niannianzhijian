@@ -38,9 +38,9 @@ function statusOf(value) {
   return 'generating';
 }
 
-function targetDimensions(aspectRatio) {
+function targetDimensions(aspectRatio, channel = '') {
   const normalized = String(aspectRatio || '16:9').trim();
-  if (normalized === '9:16') return {width:480, height:832};
+  if (normalized === '9:16') return channel === 'one-image' ? {width:576, height:1024} : {width:480, height:832};
   if (normalized === '16:9') return {width:832, height:480};
   throw adapterError('RUNNINGHUB_TARGET_DIMENSION_UNSUPPORTED', '当前 H3 画幅没有经过验证', 422);
 }
@@ -77,7 +77,7 @@ function createRunningHubH3Adapter(options = {}) {
     const spec = CHANNELS[channel];
     if (!spec) throw adapterError('CANVAS_H3_CHANNEL_INVALID', 'H3 通道无效', 422);
     const aspectRatio = task.aspectRatio || '16:9';
-    const dimensions = targetDimensions(aspectRatio);
+    const dimensions = targetDimensions(aspectRatio, channel);
     const items = [];
     if (spec.referenceNodes.length && Number(referenceCount) !== spec.referenceNodes.length) throw adapterError('CANVAS_H3_REFERENCE_COUNT_INVALID', 'H3 参考图数量与通道不匹配', 422);
     spec.referenceNodes.forEach((nodeId, index) => items.push({nodeId,fieldName:'image',fieldValue:`DRY_RUN_UPLOAD:reference-${index + 1}`}));
