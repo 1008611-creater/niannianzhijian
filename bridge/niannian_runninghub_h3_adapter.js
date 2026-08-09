@@ -95,7 +95,7 @@ function createRunningHubH3Adapter(options = {}) {
     const items = spec.payload.nodeInfoList.map(item => ({...item}));
     let imageIndex = 0;
     for (const item of items) if (item.fieldName === 'image') item.fieldValue = uploaded[imageIndex++];
-    const response = await jsonRequest(spec.endpoint, {nodeInfoList:items});
+    const response = await jsonRequest(spec.endpoint, {instanceType:'ultra',nodeInfoList:items});
     const taskId = findTaskId(response);
     if (!taskId) throw adapterError('RUNNINGHUB_TASK_ID_MISSING', 'RunningHub 未返回视频任务标识');
     return {taskId,channel:spec.channel,payload:{referenceCount:uploaded.length}};
