@@ -1,0 +1,5 @@
+Reading this as: a high-fidelity redesign-preserve of NianNian AI's project asset library, optimized for provenance, reuse, and delivery readiness.
+
+Use the supplied asset-library screenshot as structural evidence. Preserve the Studio resource-library context, asset/group/prompt/skill navigation, source provenance, filtering and search, selected asset state, send-to-node/timeline/director-desk actions, and recoverable missing/failed states. Improve the interface into a quiet production library with clear hierarchy, strong thumbnails only where real media exists, neutral empty states, deep-black or confirmed Studio surface, gold selection, one restrained magenta accent, and readable metadata.
+
+Do not use stock imagery, fabricated media, fake completion badges, provider details, keys, signed URLs, decorative card piles, or a separate global dashboard shell. Keep project ownership and cross-project reuse boundaries visible. Output a polished 1440x900 interface direction image with no browser chrome or annotations; real assets and actions are implemented separately.

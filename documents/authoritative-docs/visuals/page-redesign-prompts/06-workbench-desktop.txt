@@ -1,0 +1,5 @@
+Reading this as: a high-fidelity redesign-preserve of NianNian AI's workbench, the project's decisive entry point for creators and small teams.
+
+Use the supplied workbench screenshot as structural evidence. Preserve the global navigation, four existing entry semantics 一键短剧, 一键转绘, 无限画布, 智能剪辑, their numbered editorial order, clear arrow actions, and the distinction between available and reference-only capabilities. Improve the surface with a cinematic black editorial shell, deep-gold active emphasis, restrained magenta accent, stronger type scale, generous spacing, and an adjacent project-status/continue context that points toward real delivery without becoming a generic card dashboard.
+
+Do not reduce the four protected entries to three, delete smart editing, invent capabilities, use provider names or keys, use purple AI gradients, floating decorative cards, or promotional metrics. Output a polished 1440x900 interface direction image with crisp Chinese labels and no browser chrome or annotations; the actual routes remain real HTML.
