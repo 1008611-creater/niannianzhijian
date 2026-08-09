@@ -34,6 +34,22 @@ async function run() {
   );
   const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'niannian-canvas-h3-runtime-'));
   try {
+    const referencePath = path.join(root, 'reference.png');
+    await fsp.writeFile(referencePath, Buffer.alloc(2048, 1));
+    let submittedBody = null;
+    const requestAdapter = createRunningHubH3Adapter({
+      apiKey:'test-key',
+      fetchImpl: async (url, init) => {
+        if (String(url).includes('/media/upload/binary')) return {ok:true,json:async () => ({data:{fileName:'uploaded-reference.png'}})};
+        submittedBody = JSON.parse(init.body);
+        return {ok:true,json:async () => ({taskId:'provider-task-001'})};
+      }
+    });
+    const submittedProviderTask = await requestAdapter.submit({channel:'one-image',aspectRatio:'9:16',durationSeconds:5,prompt:'中文人物自然转身'}, [referencePath]);
+    assert.equal(submittedProviderTask.taskId, 'provider-task-001');
+    assert.equal(submittedBody.instanceType, 'ultra');
+    assert.equal(submittedBody.nodeInfoList.find(item => item.fieldName === 'width').fieldValue, 480);
+    assert.equal(submittedBody.nodeInfoList.find(item => item.fieldName === 'height').fieldValue, 832);
     const assetService = createCanvasAssetService({indexPath:path.join(root,'assets.json'),storageRoot:path.join(root,'assets')});
     const jobService = createCanvasGenerationJobService({filePath:path.join(root,'jobs.json')});
     const image = await sharp({create:{width:8,height:8,channels:4,background:{r:1,g:2,b:3,alpha:1}}}).png().toBuffer();
