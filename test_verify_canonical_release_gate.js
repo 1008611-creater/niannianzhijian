@@ -13,6 +13,10 @@ const currentChangedSharedFiles = protectedSharedFiles.filter(relativePath => {
   const current = crypto.createHash('sha256').update(fs.readFileSync(path.join(root, relativePath))).digest('hex');
   return current !== expected;
 });
+// A canonical baseline may be fully aligned with the protected source files.
+// Keep package fixtures non-empty while allowing mismatch assertions to be
+// skipped when there is no real shared-file change to declare.
+const fixtureAllowedChanges = currentChangedSharedFiles.length ? currentChangedSharedFiles : ['sw.js'];
 const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'niannian-release-governance-'));
 
 function writePackageManifest(name, value) {
@@ -80,7 +84,7 @@ try {
   const approvedStage = createStage('approved-stage', approvedFiles);
   const approvedIntegrity = stageIntegrity(approvedStage, approvedFiles);
   const approved = writePackageManifest('approved', {
-    release:{ allowed_files:currentChangedSharedFiles },
+    release:{ allowed_files:fixtureAllowedChanges },
     source_root: root,
     target: 'https://ai.cauai.fun',
     package_root: approvedStage,
@@ -104,21 +108,29 @@ try {
   assert.equal(result.release_ready, true);
 
   const undeclaredSharedChange = writePackageManifest('undeclared-shared-change', {
-    release:{ allowed_files:currentChangedSharedFiles.filter(file => file !== 'sw.js') },
+    release:{ allowed_files:fixtureAllowedChanges.filter(file => file !== 'sw.js') },
     source_root:root,
     target:'https://ai.cauai.fun',
     package_root:approvedStage,
     files:approvedFiles,
     ...approvedIntegrity
   });
-  expectFailure(['--target', 'https://ai.cauai.fun', '--package-manifest', undeclaredSharedChange], 'shared_file_baseline_mismatch:sw.js');
+  if (currentChangedSharedFiles.includes('sw.js')) {
+    expectFailure(['--target', 'https://ai.cauai.fun', '--package-manifest', undeclaredSharedChange], 'shared_file_baseline_mismatch:sw.js');
+  }
 
-  expectFailure(['--target', 'https://ai.cauai.fun'], 'shared_file_baseline_mismatch:' + currentChangedSharedFiles.slice().sort()[0]);
+  if (currentChangedSharedFiles.length) {
+    expectFailure(['--target', 'https://ai.cauai.fun'], 'shared_file_baseline_mismatch:' + currentChangedSharedFiles.slice().sort()[0]);
+  } else {
+    const aligned = run(['--target', 'https://ai.cauai.fun']);
+    assert.equal(aligned.release_ready, false);
+    assert.deepEqual(aligned.shared_file_baseline_changed_files, []);
+  }
 
   const dataLeakFiles = requiredFiles.concat(['data-local/projects.json']);
   const dataLeakStage = createStage('data-local-leak-stage', dataLeakFiles);
   const localDataLeak = writePackageManifest('data-local-leak', {
-    release:{ allowed_files:currentChangedSharedFiles },
+    release:{ allowed_files:fixtureAllowedChanges },
     source_root: root,
     target: 'https://ai.cauai.fun',
     package_root: dataLeakStage,
@@ -130,7 +142,7 @@ try {
   const nodeModulesLeakFiles = requiredFiles.concat(['node_modules/mammoth/index.js']);
   const nodeModulesLeakStage = createStage('node-modules-leak-stage', nodeModulesLeakFiles);
   const nodeModulesLeak = writePackageManifest('node-modules-leak', {
-    release:{ allowed_files:currentChangedSharedFiles },
+    release:{ allowed_files:fixtureAllowedChanges },
     source_root: root,
     target: 'https://ai.cauai.fun',
     package_root: nodeModulesLeakStage,
@@ -140,7 +152,7 @@ try {
   expectFailure(['--target', 'https://ai.cauai.fun', '--package-manifest', nodeModulesLeak], 'release_package_forbidden_path:node_modules');
 
   const legacySource = writePackageManifest('legacy-source', {
-    release:{ allowed_files:currentChangedSharedFiles },
+    release:{ allowed_files:fixtureAllowedChanges },
     source_root: 'D:\\codex-work\\zhuanhui\\outputs\\niannian-ai-web',
     target: 'https://ai.cauai.fun',
     package_root: approvedStage,
@@ -152,7 +164,7 @@ try {
   expectFailure(['--target', 'https://sd2.cauai.fun', '--package-manifest', approved], 'release_target_not_allowlisted');
 
   const staleManifest = writePackageManifest('stale-manifest', {
-    release:{ allowed_files:currentChangedSharedFiles },
+    release:{ allowed_files:fixtureAllowedChanges },
     source_root: root,
     target: 'https://ai.cauai.fun',
     package_root: approvedStage,
