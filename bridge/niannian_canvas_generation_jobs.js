@@ -70,6 +70,7 @@ function publicJob(job, options = {}) {
     durationSeconds: job.durationSeconds || null,
     prompt: job.prompt,
     error: ['failed','review'].includes(job.status) ? (job.publicError || '任务未完成') : null,
+    failureCategory: ['failed','review'].includes(job.status) ? (job.failureCategory || null) : null,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     completedAt: job.completedAt || null
