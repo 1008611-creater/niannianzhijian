@@ -17,7 +17,7 @@
   "evidence": [
     {
       "path": "release_baseline_review_evidence_20260809_canonical_main.json",
-      "sha256": "133f2e70b4ffbe8608bfe5b67e69d2929a32e850a5305ebfdfd43ffe4678cb23",
+      "sha256": "86a3699abb121c475553f3b47fad820bee29976505ed0e2220df16cd3c422743",
       "covers": [
         "server.js",
         "index.html",
