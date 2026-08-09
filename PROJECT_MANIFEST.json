@@ -123,7 +123,7 @@
       "capture_reason": "Recomputed the shared-file baseline from canonical main after the prior online-alignment record was proven stale; this record does not claim online parity or authorize deployment.",
       "attestation": {
         "path": "release_baseline_attestation_20260809_canonical_main.json",
-          "sha256": "b1572a98fe6b9cf48f7b4e03c52ff73961c3cc6bdb557ae1068d8cf183f8a798"
+          "sha256": "dd764c7be1ad6ca576232252f7d543aadb16b7eace96b36afb486afe6678b290"
       },
       "files": {
         "server.js": "62a65dbaee7d81bec68b86025091ed02edc837598b4bbae18a0fb46ce5ea47c4",
