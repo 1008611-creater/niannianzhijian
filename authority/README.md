@@ -9,6 +9,7 @@ historical evidence that is currently missing.
 - [Engineering authority](NIANNIAN_AI_ENGINEERING_AUTHORITY.md)
 - [Online readback evidence](online-baselines/ai.cauai.fun/20260810-readback.json)
 - [Approved asset status](approved/README.md)
+- [Image2 channel registry](IMAGE2_CHANNELS.md)
 - [Authoritative project brief](../documents/authoritative-docs/niannian-ai-web/念念AI主站权威项目文档V2.docx)
 - [Protected-surface inheritance matrix](../docs/frontend-inheritance-matrix.md)
 

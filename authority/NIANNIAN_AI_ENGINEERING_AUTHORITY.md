@@ -32,6 +32,13 @@ The planned beta scope is ASXS text with `gpt-5.6-luna`, RunningHub Image2, and
 RunningHub H3. Audio, 3D generation, whiteboard, panorama, and scene-3D remain
 edit/reference-only until a complete server execution path exists.
 
+## Image2 routing metadata
+
+The user-supplied `yunfei-1k` channel is recorded in
+`authority/IMAGE2_CHANNELS.md` as a 1024x1024-only fallback. It cannot replace
+the required 2048x1152 desktop visual direction image. Its credential remains
+outside the repository and must never be copied into a Skill or document.
+
 ## Known gaps
 
 - The historical `authority/README.md`, prior engineering authority file, V1 project brief, and approved homepage screenshot were not present in the current repository or the checked rollback archive when audited.
