@@ -87,6 +87,10 @@ function createRunningHubH3Adapter(options = {}) {
     const aspectRatio = task.aspectRatio || '16:9';
     const dimensions = targetDimensions(aspectRatio, channel);
     const items = [];
+    // RunningHub's MiniMax H3 loader requires this explicit backend selector.
+    // `auto` is supported by the upstream implementation and lets the worker
+    // choose the best available attention backend on the provider runtime.
+    items.push({nodeId:'2',fieldName:'attention_backend',fieldValue:'auto'});
     if (spec.referenceNodes.length && Number(referenceCount) !== spec.referenceNodes.length) throw adapterError('CANVAS_H3_REFERENCE_COUNT_INVALID', 'H3 参考图数量与通道不匹配', 422);
     spec.referenceNodes.forEach((nodeId, index) => items.push({nodeId,fieldName:'image',fieldValue:`DRY_RUN_UPLOAD:reference-${index + 1}`}));
     items.push({nodeId:spec.controlNode,fieldName:'aspect_ratio',fieldValue:aspectRatio});

@@ -25,6 +25,10 @@ async function run() {
   const h3Adapter = createRunningHubH3Adapter({baseUrl:'https://www.runninghub.cn'});
   const dryRun = h3Adapter.dryRun({prompt:'中文人物自然转身',aspectRatio:'9:16',durationSeconds:5}, 1);
   assert.deepEqual(
+    dryRun.payload.nodeInfoList.find(item => item.fieldName === 'attention_backend'),
+    {nodeId:'2',fieldName:'attention_backend',fieldValue:'auto'}
+  );
+  assert.deepEqual(
     dryRun.payload.nodeInfoList.filter(item => ['aspect_ratio','width','height','duration_seconds'].includes(item.fieldName)),
     [
       {nodeId:'6',fieldName:'aspect_ratio',fieldValue:'9:16'},
@@ -49,6 +53,10 @@ async function run() {
     const submittedProviderTask = await requestAdapter.submit({channel:'one-image',aspectRatio:'9:16',durationSeconds:5,prompt:'中文人物自然转身'}, [referencePath]);
     assert.equal(submittedProviderTask.taskId, 'provider-task-001');
     assert.equal(submittedBody.instanceType, 'ultra');
+    assert.deepEqual(
+      submittedBody.nodeInfoList.find(item => item.fieldName === 'attention_backend'),
+      {nodeId:'2',fieldName:'attention_backend',fieldValue:'auto'}
+    );
     assert.equal(submittedBody.nodeInfoList.find(item => item.fieldName === 'width').fieldValue, 576);
     assert.equal(submittedBody.nodeInfoList.find(item => item.fieldName === 'height').fieldValue, 1024);
     const rejectedAdapter = createRunningHubH3Adapter({
