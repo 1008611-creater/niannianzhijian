@@ -142,7 +142,7 @@ add_table(doc, ["事实项", "当前证据", "结论"], [
     ("历史线上 release", "release-baselines/ai.cauai.fun/20260804...json 记录旧活动 release、回滚 release 和候选规则", "归档证据；不可直接作为当前源码"),
     ("已批准首页截图", "要求路径 authority/approved/homepage/r11-1440.png 在当前仓库不存在", "待核实，不能声称已读取"),
     ("V1 权威文档", "要求路径 documents/authoritative-docs/niannian-ai-web/AUTHORITATIVE_PROJECT_DOC_V1.md 在当前仓库不存在", "待核实，不能声称已读取"),
-    ("authority/README 与工程 authority", "当前仓库无 authority/ 目录", "待补齐；本 V2 不能覆盖缺失证据"),
+    ("authority/README 与工程 authority", "本次已建立 authority/README.md、NIANNIAN_AI_ENGINEERING_AUTHORITY.md 与线上只读回读 JSON；历史版本未找到", "当前交接层已确认；历史 authority 版本仍待核实"),
 ], widths=[1.45, 4.0, 1.5])
 doc.add_paragraph("不可改范围（来自 AGENTS.md 与当前工程合同）：不恢复旧 Nomi 自建画布、#canvas 或 owned-canvas-director-import；保留当前念念首页、Logo、Studio 画布、素材库、Image2、H3、导演台、Step01-Step04 与已有 API 适配；不把密钥、Cookie、用户媒体或 Provider 原始响应写入源码、文档或 Git。")
 
@@ -192,7 +192,7 @@ doc.add_heading("5. 用户路径 DAG", level=1)
 add_code(doc, "用户\n  ↓\n登录（真实 session）\n  ↓\n新建项目（项目 ID 写入服务端）\n  ↓\n工作台（选择项目生产入口）\n  ├─ 一键短剧：剧本/Word → 角色 → 分镜 → 真实生产 → Word 交付\n  ├─ 一键转绘：原片/参考素材 → Step01-Step04 → 真实视频交付\n  └─ 无限画布：节点/素材/提示词 → Image2/H3/文本任务 → 项目交付\n  ↓\n项目交付页（业务状态、输入证据、质量检查）\n  ↓\n打开或下载真实 Word / 视频成果")
 
 doc.add_heading("6. 念念 AI 专属阶段路线", level=1)
-add_stage(doc, "S0 权威基线与事实卡", "把线上、批准、正式源码、候选、归档和待核实项分开，冻结事实边界。", "线上只读 DOM/截图；AGENTS.md；PRODUCT.md；DESIGN.md；FRONTEND_EXECUTION_PLAN.md；release_baseline_review_evidence_20260809_canonical_main.json。", "一张可审阅事实卡和来源清单。", "只读回读线上核心路由；核对本地 canonical root、Git revision 和 SHA 记录；缺失 authority/V1 文件明确列为待核实。", "website-product-router（Source truth / existing repo redesign）", "website-quality-router（Workflow 1-2）", "主控 Agent 负责事实来源、阶段准入；任务执行 Agent 只读盘点，不改线上；同一文件范围单一写入者。", "不得用线上镜像覆盖正式源码；不得把旧候选或旧 Nomi 画布当成当前权威。", "每个“已实现”都有文件、线上回读或截图证据；待核实项不写成完成。", "事实卡和批准资产路径（若补齐）", "读取 AGENTS.md 与所有可用 authority/V1 证据，建立已确认/待核实表；不要改线上；输出来源、边界和下一阶段输入。")
+add_stage(doc, "S0 权威基线与事实卡", "把线上、批准、正式源码、候选、归档和待核实项分开，冻结事实边界。", "线上只读 DOM/截图；AGENTS.md；PRODUCT.md；DESIGN.md；FRONTEND_EXECUTION_PLAN.md；新建 authority/ 交接索引；release_baseline_review_evidence_20260809_canonical_main.json。", "一张可审阅事实卡和来源清单。", "只读回读线上核心路由；核对本地 canonical root、Git revision 和 SHA 记录；历史 V1 与批准截图缺失时明确列为待核实，不用新建索引冒充历史证据。", "website-product-router（Source truth / existing repo redesign）", "website-quality-router（Workflow 1-2）", "主控 Agent 负责事实来源、阶段准入；任务执行 Agent 只读盘点，不改线上；同一文件范围单一写入者。", "不得用线上镜像覆盖正式源码；不得把旧候选或旧 Nomi 画布当成当前权威。", "每个“已实现”都有文件、线上回读或截图证据；待核实项不写成完成。", "事实卡和批准资产路径（若补齐）", "读取 AGENTS.md 与所有可用 authority/V1 证据，建立已确认/待核实表；不要改线上；输出来源、边界和下一阶段输入。")
 add_stage(doc, "S1 视觉蓝图与可点击静态原型", "把事实卡转成可看见、可点击、但不接真实业务的首页/工作台蓝图。", "S0 事实卡；现有品牌主资源；三站公开页面观察；批准首页截图（当前缺失，待补齐）。", "理想图、三张 ASCII 线框、可点击静态原型和桌面/390px 验收记录。", "用 krill-image2 生成 bounded hero/方向图；用真实 HTML 组件实现按钮、入口和状态条；不把整图当网页。", "design-taste-frontend（Brief inference / redesign-preserve）", "krill-image2（Run / Verify）", "视觉原型 Agent 只写 visuals、线框和静态原型；不得改线上或真实 API。", "S1 只允许图、Word、线框、静态原型；不提交真实 Provider 任务，不写密钥。", "桌面和 390px 均能识别三个入口、创建行动、生产状态和交付方向；图像缺失时 HTML 仍可用。", "原型页面和审阅结论", "基于事实卡做视觉蓝图，使用真实品牌资源，生成方向图但保持 HTML-first；输出可点击静态原型和差异记录。")
 add_stage(doc, "S2 项目中心与工作台骨架", "让登录后的用户能新建项目并进入四入口工作台，项目状态可恢复。", "S1 审阅通过的结构；真实 session、项目 API、当前首页/工作台路由。", "可点击前端骨架：登录 → 新建项目 → 工作台 → 入口选择。", "先实现项目实体和路由绑定，再接四入口卡片、项目状态条、继续动作、空/加载/失败状态；不接 Provider 生成。", "website-product-router（backend/data/admin route）", "website-quality-router（function/responsive gates）", "任务执行 Agent 是唯一写入者；主控 Agent 决定阶段准入；独立验证 Agent 只在候选冻结后检查，不改候选。", "不改变当前首页、Logo、Studio 画布和导演台；不把静态成功态当真实项目。", "清洁浏览器登录后新建项目，刷新仍回到同一项目；桌面/390px 入口可达。", "真实项目 ID 与工作台候选", "只在 S2 实现真实项目骨架；验证登录、新建、刷新和四入口路由，不触发 Provider 任务。")
 add_stage(doc, "S3 一键短剧真实闭环：剧本/Word 输入 → 真实生产 → 第四步 Word 交付", "从剧本或 Word 输入连续产出可打开/下载的真实 Word 交付成果。", "S2 项目；真实 Word/剧本上传；现有 Step03/Step04 业务合同；文本模型配置。", "项目交付页上的可打开、可下载真实 Word。", "上传并持久化源文件；解析剧本；生成角色/分镜业务状态；执行已批准生产链；写入 Step04 交付；交付页只显示业务状态和恢复动作。", "mx-shortdrama-production-harness（启动/恢复/交付）", "mx-shortdrama-00-router（唯一专业路由）", "短剧生产 Agent 只在 S3 进入真实生产合同；页面只显示业务状态；主控负责费用和发布边界。", "不得显示 Provider 编号、密钥、原始响应；不得无故要求重新上传；不能用 mock Word 冒充成果。", "清洁浏览器从 Word 输入到第四步，用户能打开并下载真实 Word；中途刷新/离开后状态恢复。", "真实 Word 成果与交付记录", "使用真实项目和 Word 输入跑一条短剧生产链，验证第四步交付可打开/下载；失败必须保留输入并给出恢复动作。")
@@ -221,7 +221,7 @@ doc.add_paragraph("每次可见页面改动必须与线上 baseline 在 1440x900
 
 doc.add_heading("9. 当前待我决定事项与下一动作", level=1)
 add_bullets(doc, [
-    "补齐并确认 authority/README、NIANNIAN_AI_ENGINEERING_AUTHORITY.md、online-baselines、approved 与 V1 文档，替换本 V2 中相应“待核实”标记。",
+    "确认本次新建 authority/README、NIANNIAN_AI_ENGINEERING_AUTHORITY.md 与 online-baselines 回读索引；补齐历史 V1 文档后，再替换本 V2 中相应“待核实”标记。",
     "提供或恢复批准首页截图 authority/approved/homepage/r11-1440.png；在 Krill 渠道恢复后重新生成并审图理想首屏。",
     "决定 S0/S1 是否先冻结为 Word + 视觉方向图 + 静态原型，不进入真实业务接线。",
     "下一最小动作：补齐唯一 authority 目录和批准截图，然后对 V2 做一次事实卡复核；在此之前不改线上。",
@@ -230,6 +230,7 @@ add_bullets(doc, [
 doc.add_heading("附录 A：来源与证据索引", level=1)
 add_bullets(doc, [
     "项目合同：AGENTS.md",
+    "当前 authority 交接：authority/README.md、authority/NIANNIAN_AI_ENGINEERING_AUTHORITY.md、authority/online-baselines/ai.cauai.fun/20260810-readback.json、authority/approved/README.md",
     "产品与界面合同：PRODUCT.md、DESIGN.md、FRONTEND_EXECUTION_PLAN.md",
     "同类产品研究：docs/frontend-reference-study.md",
     "原站继承矩阵：docs/frontend-inheritance-matrix.md",
