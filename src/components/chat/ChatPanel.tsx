@@ -84,7 +84,7 @@ interface ChatPanelProps {
   /** show a proposal's draft result in the player (null = show committed state) */
   onPreviewState: (state: TimelineState | null) => void;
   /** prefill the composer (library "generated with AI"); bump the number to re-seed */
-  seed?: { text: string; nonce: number; references?: RefItem[] } | null;
+  seed?: { text: string; nonce: number; references?: RefItem[]; autoSubmit?: boolean } | null;
   /** active creative-mode skill id (agent_skill), or null */
   creativeMode: string | null;
   onCreativeModeChange: (id: string | null) => void;
@@ -324,6 +324,33 @@ export function ChatPanel({ ctx, projectId, collapsed, onToggleCollapse, onPrevi
     commitSelectedRefs([]);
     clearComposerDraft(projectId);
   };
+  useEffect(() => {
+    if (!seed?.autoSubmit) return;
+    let attempts = 0;
+    let timer: number | undefined;
+    const sendSeed = () => {
+      const modelReady = isAgentModelReady(getAgentModelSnapshot());
+      if (running || !modelReady || pendingChatAttachmentCount(attachmentLifecycleRef.current) > 0) {
+        if (attempts < 24) {
+          attempts += 1;
+          timer = window.setTimeout(sendSeed, 250);
+        }
+        return;
+      }
+      const referencesForMessage = seed.references ?? [];
+      const sendText = referencesForMessage.length
+        ? `${seed.text}${seed.text && !seed.text.endsWith(' ') ? ' ' : ''}${referencesForMessage.map((reference) => refPromptToken(reference)).join(' ')}`
+        : seed.text;
+      send(sendText, { askOnly: false, references: referencesForMessage });
+      setInput('');
+      commitSelectedRefs([]);
+      clearComposerDraft(projectId);
+    };
+    timer = window.setTimeout(sendSeed, 150);
+    return () => { if (timer !== undefined) window.clearTimeout(timer); };
+  // The nonce is the explicit one-shot trigger from Quick mode.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seed?.nonce]);
   const runEnhance = async () => {
     const modelReady = isAgentModelReady(getAgentModelSnapshot());
     if (

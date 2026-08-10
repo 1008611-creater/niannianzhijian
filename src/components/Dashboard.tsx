@@ -188,6 +188,9 @@ export function Dashboard({ projects, onOpen, onNew, onRename, onDuplicate, onDe
         <OpenChatCutWordmark />
         <span style={{ color: theme.textDim, fontSize: 13 }}>{t('· 我的工程')}</span>
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+          <button type="button" onClick={() => { window.location.hash = '#/quick'; }} style={{ ...settingsBtn, color: theme.text, fontSize: 12.5, fontWeight: 600, padding: '6px 10px', borderRadius: 6 }}>
+            {t('快速成片')}
+          </button>
           <button onClick={() => setMcpOpen(true)} data-tip={t('外部 Agent 接入 (MCP)')} aria-label={t('外部 Agent 接入 (MCP)')} className="cc-header-btn cc-tip cc-tip-r" style={settingsBtn}>
             <Icon name="plug" size={16} />
           </button>

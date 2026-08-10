@@ -88,12 +88,15 @@ import {
   type CaptionSelectionRef,
 } from './captions/captionSelection';
 import { updateCaptionSelections } from './captions/captionSelectionInteraction';
+import type { QuickRecipeInput } from './components/QuickHome';
 
 interface EditorProps {
   initial: ProjectDoc;
   project: ProjectMeta;
   onHome: () => void;
   onRename: (name: string) => void;
+  initialRecipe?: QuickRecipeInput;
+  onRecipeConsumed?: () => void;
 }
 
 
@@ -115,7 +118,7 @@ function isAutoGradeTarget(item: TimelineItem, state: TimelineState): boolean {
   return /^\/media\/uploads\/[^/]+(?:\?.*)?$/.test(item.src ?? '');
 }
 
-export default function Editor({ initial, project, onHome, onRename }: EditorProps) {
+export default function Editor({ initial, project, onHome, onRename, initialRecipe, onRecipeConsumed }: EditorProps) {
   const t = useT();
   const { state, doc, commands, canUndo, canRedo, getUndoTarget, getRedoTarget } = useEditor(initial);
   const selectedItem = state.items.find((it) => it.id === state.selectedId) ?? null;
@@ -418,7 +421,7 @@ export default function Editor({ initial, project, onHome, onRename }: EditorPro
   }, [autoGradeSession, state]);
   const selectedAutoGrade = autoGradeSession?.recommendations.find((entry) => entry.itemId === state.selectedId) ?? null;
   // library「Generated with AI」→ prefill the chat composer (nonce forces re-seed of the same text)
-  const [chatSeed, setChatSeed] = useState<{ text: string; nonce: number; references?: AgentReference[] } | null>(null);
+  const [chatSeed, setChatSeed] = useState<{ text: string; nonce: number; references?: AgentReference[]; autoSubmit?: boolean } | null>(null);
   // Design style (brand) editor pop-up window.
   const [showDesign, setShowDesign] = useState(false);
   // Version history pop-up window.
@@ -699,6 +702,41 @@ export default function Editor({ initial, project, onHome, onRename }: EditorPro
       throw err;
     }
   }, [commands, startAssetTranscription, t]);
+
+  // Quick mode hands the selected source into the same professional project and
+  // seeds the existing Agent workflow; no second timeline is created.
+  const quickRecipeStartedRef = useRef(false);
+  useEffect(() => {
+    if (!initialRecipe || quickRecipeStartedRef.current) return;
+    quickRecipeStartedRef.current = true;
+    let alive = true;
+    void (async () => {
+      try {
+        const asset = await importToPool(initialRecipe.file);
+        if (!alive) return;
+        const platform = initialRecipe.platform === 'douyin' ? '抖音' : initialRecipe.platform === 'kuaishou' ? '快手' : '视频号';
+        const sourceDurationSeconds = Math.max(1, Math.floor(asset.durationInFrames / stateRef.current.fps));
+        const targetDurationSeconds = Math.min(initialRecipe.durationSeconds, sourceDurationSeconds);
+        const durationConstraint = sourceDurationSeconds < initialRecipe.durationSeconds
+          ? `素材真实时长只有约${sourceDurationSeconds}秒，无法做成${initialRecipe.durationSeconds}秒；请只制作约${targetDurationSeconds}秒的真实片段，绝不补帧、重复或伪造时长。`
+          : `目标时长严格为${targetDurationSeconds}秒。`;
+        // A quick recipe is a single-source short-form edit, not a blank chat.
+        // This narrows the Agent toolset to the workflow that preserves source ranges.
+        changeCreativeMode('11111111-1240-4000-8000-000000000004');
+        setChatCollapsed(false);
+        setChatSeed({
+          nonce: Date.now(),
+          references: [{ id: asset.id, name: asset.name, kind: asset.kind }],
+          autoSubmit: true,
+          text: `制作一条短剧片段精修发布版。运行编号为${initialRecipe.workflowRunId ?? '未记录'}。只使用已上传素材「${asset.name}」，目标平台为${platform}，${durationConstraint} 输出竖屏 9:16。先调用 analyze_asset，kind=video，理解完整视频并取得真实源时间段；再用 view_asset_frames 核对候选时间段的画面，选择一段能看懂起因、冲突和结果的连续剧情。然后必须调用 assemble_rough_cut 创建新的可编辑粗剪，不能用 edit_item 把整段素材直接放进当前时间线。这个素材可能没有人声：若 MiMo 转写为空，立刻停止转写，不要改试其他 ASR 供应商；改按整段视频理解和画面选择片段，并明确标注“原声无可用字幕”。保留原声，不要伪造字幕时间，不要覆盖现有时间线。完成后检查粗剪时长和画面结构，只报告真实完成的步骤。`,
+        });
+        onRecipeConsumed?.();
+      } catch (error) {
+        showAppToast(error instanceof Error ? error.message : '短剧素材导入失败', { error: true });
+      }
+    })();
+    return () => { alive = false; };
+  }, [changeCreativeMode, importToPool, initialRecipe, onRecipeConsumed, setChatCollapsed]);
 
   const dropExternalFilesToTimeline = useCallback(async (
     files: File[],
