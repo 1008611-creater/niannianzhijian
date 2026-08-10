@@ -16,6 +16,7 @@ const tests = [
   'test_canvas_generation_http.js',
   'test_canvas_assets_http.js',
   'test_canvas_generated_video_assets.js',
+  'test_project_library_rows.js',
   'test_pwa_shell.js'
 ];
 
