@@ -3,6 +3,7 @@ const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
 const {normalizeImage2Spec} = require('./niannian_canvas_image2_channels');
+const {resolveVideoChannel} = require('./niannian_canvas_video_channels');
 
 const MODELS = Object.freeze({
   image: Object.freeze({
@@ -52,7 +53,10 @@ function validateIdempotencyKey(value) {
 }
 
 function publicJob(job, options = {}) {
-  const model = MODELS[job.nodeType] || MODELS.image;
+  const videoChannel = job.nodeType === 'video' ? resolveVideoChannel(job.videoChannel || 'h3') : null;
+  const model = videoChannel
+    ? {id:videoChannel.model,label:videoChannel.label,provider:'runninghub',providerSubmitEnabled:false}
+    : (MODELS[job.nodeType] || MODELS.image);
   const providerSubmitEnabled = options.providerSubmitEnabled === true ? true : model.providerSubmitEnabled;
   return {
     id: job.id,
@@ -68,6 +72,8 @@ function publicJob(job, options = {}) {
     outputAssetIds: Array.isArray(job.outputAssetIds) ? job.outputAssetIds : [],
     imageChannel: job.nodeType === 'image' ? (job.imageChannel || 'runninghub-gpt-image-2') : null,
     imageChannelLabel: job.nodeType === 'image' ? (job.imageChannelLabel || 'RunningHub Image2') : null,
+    videoChannel: videoChannel?.id || null,
+    videoChannelLabel: videoChannel?.label || null,
     resolution: job.resolution || '2k',
     aspectRatio: job.aspectRatio || '1:1',
     outputSize: job.nodeType === 'image' ? (job.outputSize || null) : null,
@@ -82,7 +88,10 @@ function publicJob(job, options = {}) {
 }
 
 function dryRunContract(job, options = {}) {
-  const model = MODELS[job.nodeType] || MODELS.image;
+  const videoChannel = job.nodeType === 'video' ? resolveVideoChannel(job.videoChannel || 'h3') : null;
+  const model = videoChannel
+    ? {id:videoChannel.model,label:videoChannel.label,provider:'runninghub',providerSubmitEnabled:false}
+    : (MODELS[job.nodeType] || MODELS.image);
   const providerSubmitEnabled = options.providerSubmitEnabled === true ? true : model.providerSubmitEnabled;
   return {
     schema: 'niannian.canvas_generation_dry_run.v1',
@@ -98,6 +107,8 @@ function dryRunContract(job, options = {}) {
     inputAssetCount: job.inputAssetIds.length,
     imageChannel: job.nodeType === 'image' ? (job.imageChannel || 'runninghub-gpt-image-2') : null,
     imageChannelLabel: job.nodeType === 'image' ? (job.imageChannelLabel || 'RunningHub Image2') : null,
+    videoChannel: videoChannel?.id || null,
+    videoChannelLabel: videoChannel?.label || null,
     resolution: job.resolution || '2k',
     aspectRatio: job.aspectRatio || '1:1',
     outputSize: job.nodeType === 'image' ? (job.outputSize || null) : null,
@@ -151,11 +162,13 @@ function createCanvasGenerationJobService(options = {}) {
     const resolution = clean(input.resolution || '2k', 8).toLowerCase();
     const aspectRatio = clean(input.aspectRatio || input.aspect_ratio || '1:1', 16);
     const durationSeconds = Number(input.durationSeconds || input.duration_seconds || (nodeType === 'video' ? 5 : 0));
+    const videoSpec = nodeType === 'video' ? resolveVideoChannel(input.videoChannel || input.model || 'h3') : null;
     if (!projectId || !nodeId) throw jobError('CANVAS_JOB_INPUT_INVALID', '项目和节点不能为空', 422);
     if (!['redraw', 'script'].includes(projectKind)) throw jobError('CANVAS_JOB_PROJECT_KIND_INVALID', '项目类型无效', 422);
     if (!/^\d{1,2}:\d{1,2}$/.test(aspectRatio)) throw jobError('CANVAS_JOB_ASPECT_RATIO_INVALID', '画幅比例无效', 422);
     if (nodeType === 'video' && (!Number.isFinite(durationSeconds) || durationSeconds < 4 || durationSeconds > 15)) throw jobError('CANVAS_JOB_DURATION_INVALID', '视频时长需在 4 到 15 秒之间', 422);
-    if (!prompt && nodeType !== 'image') throw jobError('CANVAS_JOB_PROMPT_REQUIRED', '视频节点需要填写提示词', 422);
+    if (nodeType === 'video' && !videoSpec) throw jobError('CANVAS_JOB_MODEL_INVALID', '视频模型尚未接入', 422);
+    if (!prompt && nodeType === 'video' && videoSpec.id !== 'animate-transfer') throw jobError('CANVAS_JOB_PROMPT_REQUIRED', '视频节点需要填写提示词', 422);
     const imageSpec = nodeType === 'image'
       ? normalizeImage2Spec({model: input.imageChannel || input.model, resolution, aspectRatio})
       : null;
@@ -167,6 +180,8 @@ function createCanvasGenerationJobService(options = {}) {
       imageChannelLabel: imageSpec?.imageChannelLabel || null,
       imageProvider: imageSpec?.imageProvider || null,
       outputSize: imageSpec?.outputSize || null,
+      videoChannel: videoSpec?.id || null,
+      videoChannelLabel: videoSpec?.label || null,
       durationSeconds:nodeType === 'video' ? durationSeconds : null
     };
   }
@@ -197,6 +212,8 @@ function createCanvasGenerationJobService(options = {}) {
         imageChannel: normalized.imageChannel,
         imageChannelLabel: normalized.imageChannelLabel,
         imageProvider: normalized.imageProvider,
+        videoChannel: normalized.videoChannel,
+        videoChannelLabel: normalized.videoChannelLabel,
         resolution: normalized.resolution,
         aspectRatio: normalized.aspectRatio,
         outputSize: normalized.outputSize,

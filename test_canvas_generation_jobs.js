@@ -31,6 +31,15 @@ async function run() {
       error => error.code === 'CANVAS_IMAGE2_RESOLUTION_UNSUPPORTED'
     );
 
+    const animate = await service.create({
+      ownerId:'USR-A',projectId:'NN-PROJECT-A',projectKind:'redraw',nodeId:'video-node-animate',nodeType:'video',
+      model:'runninghub-animate-motion-transfer',prompt:'',inputAssetIds:['image-001','video-001'],
+      aspectRatio:'9:16',durationSeconds:5,idempotencyKey:'canvas-job-animate-0001'
+    });
+    assert.equal(animate.job.videoChannel, 'animate-transfer');
+    assert.equal(service.publicJob(animate.job).model, 'runninghub-animate-motion-transfer');
+    assert.equal(service.publicJob(animate.job).videoChannelLabel, '动作迁移');
+
     const repeat = await service.create(request);
     assert.equal(repeat.created, false);
     assert.equal(repeat.job.id, first.job.id);
@@ -39,7 +48,7 @@ async function run() {
       () => service.create({...request, prompt:'另一项请求'}),
       error => error.code === 'CANVAS_JOB_IDEMPOTENCY_CONFLICT'
     );
-    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 3);
+    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 4);
     assert.equal((await service.listOwned('USR-B', 'NN-PROJECT-A')).length, 0);
     assert.equal(await service.getOwned('USR-B', 'NN-PROJECT-A', first.job.id), null);
 

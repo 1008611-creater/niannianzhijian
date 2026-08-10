@@ -51,6 +51,8 @@ const canvasImage2RuntimeModule = require('./bridge/niannian_canvas_image2_runti
 const yunfeiImage2Adapter = require('./bridge/niannian_yunfei_image2_adapter');
 const canvasImage2Channels = require('./bridge/niannian_canvas_image2_channels');
 const canvasH3RuntimeModule = require('./bridge/niannian_canvas_h3_runtime');
+const canvasAnimateRuntimeModule = require('./bridge/niannian_canvas_animate_runtime');
+const canvasVideoChannels = require('./bridge/niannian_canvas_video_channels');
 const canvasProviderConfig = require('./bridge/niannian_canvas_provider_config');
 const canvasTextRuntimeModule = require('./bridge/niannian_canvas_text_runtime');
 const canvasTextJobs = require('./bridge/niannian_canvas_text_jobs');
@@ -152,6 +154,12 @@ const canvasImage2Runtime = canvasImage2RuntimeModule.createCanvasImage2Runtime(
   }
 });
 const canvasH3Runtime = canvasH3RuntimeModule.createCanvasH3Runtime({jobService:canvasGenerationJobService,assetService:canvasAssetService,enabled:canvasProviderStatus.videoSubmitEnabled});
+const canvasAnimateRuntime = canvasAnimateRuntimeModule.createCanvasAnimateRuntime({
+  jobService:canvasGenerationJobService,
+  assetService:canvasAssetService,
+  enabled:canvasProviderStatus.animateSubmitEnabled,
+  runningHub:{baseUrl:canvasProviderStatus.baseUrl,apiKey:process.env.NIANNIAN_RUNNINGHUB_ANIMATE_API_KEY}
+});
 const canvasTextRuntime = canvasTextRuntimeModule.createCanvasTextRuntime();
 const canvasTextJobService = canvasTextJobs.createCanvasTextJobService({filePath:canvasTextJobsPath});
 const activeCanvasTextJobs = new Set();
@@ -7358,7 +7366,9 @@ async function generationNodeForProject(project, projectKind, nodeId) {
 
 function canvasGenerationSubmitEnabled(jobOrNodeType) {
   const nodeType = typeof jobOrNodeType === 'string' ? jobOrNodeType : jobOrNodeType?.nodeType;
-  if (nodeType === 'video') return canvasH3Runtime.enabled;
+  if (nodeType === 'video') return typeof jobOrNodeType === 'object' && jobOrNodeType.videoChannel === 'animate-transfer'
+    ? canvasAnimateRuntime.enabled
+    : canvasH3Runtime.enabled;
   const imageChannel = typeof jobOrNodeType === 'object' ? jobOrNodeType.imageChannel : null;
   return imageChannel
     ? canvasProviderStatus.imageChannelEnabled[imageChannel] === true
@@ -7472,7 +7482,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       const jobs = await canvasGenerationJobService.listOwned(user.id, projectId);
       return json(response, 200, {
         jobs:jobs.map(job => canvasGenerationJobService.publicJob(job, {providerSubmitEnabled:canvasGenerationSubmitEnabled(job)})),
-        providerSubmitEnabled:canvasImage2Runtime.enabled || canvasH3Runtime.enabled,
+        providerSubmitEnabled:canvasImage2Runtime.enabled || canvasH3Runtime.enabled || canvasAnimateRuntime.enabled,
         providerStatus:canvasProviderConfig.publicCanvasProviderStatus()
       });
     }
@@ -7483,7 +7493,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       const nodeType = canvasText(node.type || node.kind, 40);
       if (!['image','video'].includes(nodeType)) return json(response, 422, {code:'CANVAS_NODE_NOT_GENERATABLE',error:'该节点不能创建生成任务'});
       const requestedModel = canvasText(body.model, 80);
-      if (nodeType === 'video' && requestedModel && requestedModel !== 'h3') return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'模型与当前节点类型不匹配'});
+      if (nodeType === 'video' && requestedModel && !canvasVideoChannels.resolveVideoChannel(requestedModel)) return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'模型与当前节点类型不匹配'});
       if (nodeType === 'image' && requestedModel && !canvasImage2Channels.resolveImage2Channel(requestedModel)) {
         return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'请选择已接入的 Image2 作图渠道'});
       }
@@ -7519,17 +7529,22 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       let job = await canvasGenerationJobService.getOwned(user.id, projectId, jobId);
       if (!job) return json(response, 404, {code:'CANVAS_JOB_NOT_FOUND',error:'任务不存在'});
       if (job.nodeType === 'image' && canvasImage2Runtime.enabled && ['queued','running'].includes(job.status)) job = await canvasImage2Runtime.reconcile(user.id, projectId, jobId);
-      if (job.nodeType === 'video' && canvasH3Runtime.enabled && ['queued','running'].includes(job.status)) job = await canvasH3Runtime.reconcile(user.id, projectId, jobId);
+      if (job.nodeType === 'video' && ['queued','running'].includes(job.status)) {
+        if (job.videoChannel === 'animate-transfer' && canvasAnimateRuntime.enabled) job = await canvasAnimateRuntime.reconcile(user.id, projectId, jobId);
+        else if (canvasH3Runtime.enabled) job = await canvasH3Runtime.reconcile(user.id, projectId, jobId);
+      }
       return json(response, 200, publicCanvasGenerationResponse(job));
     }
     if (jobId && action === 'dry-run' && request.method === 'POST') {
       const job = await canvasGenerationJobService.getOwned(user.id, projectId, jobId);
       if (!job) return json(response, 404, {code:'CANVAS_JOB_NOT_FOUND',error:'任务不存在'});
       const providerSubmitEnabled = canvasGenerationSubmitEnabled(job);
+      const providerDryRun = job.videoChannel === 'animate-transfer' ? await canvasAnimateRuntime.dryRun(job) : null;
       return json(response, 200, {
         code:'CANVAS_GENERATION_DRY_RUN_READY',
         job:canvasGenerationJobService.publicJob(job, {providerSubmitEnabled}),
         dryRun:canvasGenerationJobService.dryRunContract(job, {providerSubmitEnabled}),
+        ...(providerDryRun ? {providerDryRun} : {}),
         providerSubmitEnabled,
         providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),
         spendRequested:false
@@ -7545,8 +7560,9 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         return json(response, 202, {code:'CANVAS_GENERATION_SUBMITTED',job:canvasGenerationJobService.publicJob(submitted, {providerSubmitEnabled:true}),providerSubmitEnabled:true,providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),spendRequested:true});
       }
       if (job.nodeType === 'video') {
-        if (!canvasH3Runtime.enabled) return json(response, 409, {code:'CANVAS_PROVIDER_SUBMIT_DISABLED',error:'视频生成尚未启用，当前任务仅完成准备'});
-        const submitted = await canvasH3Runtime.submit(user.id, projectId, jobId);
+        const runtime = job.videoChannel === 'animate-transfer' ? canvasAnimateRuntime : canvasH3Runtime;
+        if (!runtime.enabled) return json(response, 409, {code:'CANVAS_PROVIDER_SUBMIT_DISABLED',error:'视频生成尚未启用，当前任务仅完成准备'});
+        const submitted = await runtime.submit(user.id, projectId, jobId);
         return json(response, 202, {code:'CANVAS_GENERATION_SUBMITTED',job:canvasGenerationJobService.publicJob(submitted, {providerSubmitEnabled:true}),providerSubmitEnabled:true,providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),spendRequested:true});
       }
       return json(response, 409, {code:'CANVAS_PROVIDER_MODEL_UNAVAILABLE',error:'当前节点尚未接入可提交的服务端执行器'});
