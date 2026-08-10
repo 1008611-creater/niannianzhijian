@@ -18,6 +18,11 @@ the current Studio canvas family, resource library, Image2 and H3 adapters,
 Step01-Step04 contracts, and the director-desk route. Do not restore the retired
 Nomi self-built canvas, `#canvas`, or `owned-canvas-director-import`.
 
+The authoritative homepage baseline is the product owner's second supplied
+screenshot, preserved as `authority/approved/homepage/r11-1440.png`. The
+homepage is frozen for the current visual work; only the workbench and its four
+entry surfaces may receive Image2 design treatment.
+
 ## Evidence and change rules
 
 1. A target image freezes hierarchy and protected surfaces; it is not proof of a working feature.
@@ -41,6 +46,6 @@ outside the repository and must never be copied into a Skill or document.
 
 ## Known gaps
 
-- The historical `authority/README.md`, prior engineering authority file, V1 project brief, and approved homepage screenshot were not present in the current repository or the checked rollback archive when audited.
+- The historical `authority/README.md`, prior engineering authority file, and V1 project brief were not present in the current repository or the checked rollback archive when audited.
 - The current visual direction image is a real NianNian brand reference copy because the attempted Krill channels returned 403/429; it is not an Image2 generation result.
 - Online parity remains unverified and deployment remains unauthorized.

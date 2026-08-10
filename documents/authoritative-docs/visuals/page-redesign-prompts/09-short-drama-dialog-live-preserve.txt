@@ -1,0 +1,3 @@
+Use the supplied screenshot of the already implemented NianNian AI 一键短剧 dialog as the only layout and content source.
+
+Preserve exactly every visible field, label, option, upload control, rights confirmation, close/cancel action, and create-project action. Keep the dialog's relationship to the workbench. Do not invent examples, statuses, provider names, costs, or output previews. Improve only typography, spacing, grouping, focus visibility, and dark/gold/magenta polish. No browser chrome, no keys, no fabricated copy.
