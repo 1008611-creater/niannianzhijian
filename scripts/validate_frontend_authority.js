@@ -35,6 +35,7 @@ async function main() {
 
   // 3. 目标图：非空且尺寸符合权威视口（1440x900 桌面 / 390x844 移动）。
   const targetsDir = path.join(root, 'docs', 'frontend-targets');
+  assert.equal(fs.existsSync(path.join(targetsDir, 'comparison-20260810.md')), true, 'missing target-image comparison table');
   const targets = [
     ['00-home-desktop.png', '1440x900'],
     ['01-project-hub-desktop.png', '1440x900'],
