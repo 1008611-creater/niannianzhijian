@@ -704,6 +704,8 @@
       queued: allProjects.filter(project => statusBucket(project) === 'queued').length,
       completed: allProjects.filter(project => statusBucket(project) === 'completed').length
     };
+    const hubTotal = document.getElementById('projectHubTotal');
+    if (hubTotal) hubTotal.textContent = counts.total + ' 个项目';
     Object.entries(counts).forEach(([key, value]) => {
       const node = document.querySelector('[data-summary="' + key + '"]');
       if (node) node.textContent = value;
@@ -716,6 +718,8 @@
     if (projectSummary) projectSummary.hidden = signedOut;
     if (projectToolbar) projectToolbar.hidden = signedOut;
     if (projectCreateActions) projectCreateActions.hidden = signedOut;
+    const hubTotal = document.getElementById('projectHubTotal');
+    if (hubTotal) hubTotal.hidden = signedOut;
     if (signedOut) {
       list.innerHTML = '<section class="public-access-panel public-project-access" aria-label="项目库访问说明"><div class="public-access-copy"><span class="eyebrow">PRIVATE PROJECT LIBRARY</span><h3>登录后管理你的项目</h3><p>登录后查看当前账户的短剧项目、制作状态和交付版本。</p><div class="public-access-actions"><button class="page-action" type="button" data-open-auth-login>登录进入项目库</button><button class="workbench-quiet-action" type="button" data-view="workbench">先选择制作路径</button></div></div><dl class="public-access-facts"><div><dt>项目</dt><dd>按当前工作区隔离</dd></div><div><dt>进度</dt><dd>只显示真实制作状态</dd></div><div><dt>交付</dt><dd>通过质量门后可下载</dd></div></dl></section>';
       return;
@@ -739,31 +743,84 @@
       return matchesText && matchesType && matchesStatus;
     });
     if (!rows.length) {
-      list.innerHTML = '<div class="project-empty"><strong>还没有匹配的项目</strong><span>创建项目后，它会出现在这里并从当前质量门继续。</span></div>';
+      const filtered = Boolean(query || selected !== 'all' || selectedType !== 'all');
+      list.innerHTML = filtered
+        ? '<div class="project-empty"><strong>没有匹配当前筛选的项目</strong><span>调整搜索或筛选条件后重试。</span><button class="project-empty-action" type="button" data-project-clear-filter>清除筛选</button></div>'
+        : '<div class="project-empty"><strong>还没有项目</strong><span>创建项目后，它会出现在这里并从当前质量门继续。</span><button class="project-empty-action" type="button" data-view="workbench">去创建第一个项目</button></div>';
       renderSummary();
       return;
     }
-    list.innerHTML = rows.map(project => {
+    syncProjectCountStrip(selected);
+    syncProjectTypeSwitch(selectedType);
+    list.innerHTML = '<div class="project-board-head" aria-hidden="true"><span>#</span><span>项目</span><span>类型</span><span>状态</span><span>进度 · 下一步</span><span>更新</span><span></span></div>' + rows.map((project, index) => {
       const runtime = project.runtime || {};
       const isScript = project.projectKind === 'script';
       const scriptStage = Number(scriptStageForNode(runtime.currentNode, runtime.earliestIncompleteNode));
       const progress = isScript ? Math.max(0, (scriptStage - 1) * 25) : stepProgress(project);
       const projectStatus = projectStatusLabel(project);
-      const sourceSummary = isScript
-        ? (project.source?.type === 'docx' ? (project.source.originalName || 'Word 剧本') : '小说或剧本文本')
-        : (project.replacementBrief || '');
-      const nextNode = isScript
-        ? (runtime.currentNode || runtime.earliestIncompleteNode || 'N00')
-        : (project.route?.earliestNode || runtime.currentNode || 'Step01');
+      const semanticStatus = String(project.autoRedraw?.status || project.runtime?.productionStatus || project.status || '').toLowerCase();
+      const rowTone = /completed|accepted|sent|verified/.test(semanticStatus) ? 'is-row-complete'
+        : (/blocked|failed|infra_failed/.test(semanticStatus) ? 'is-row-blocked'
+          : (/running|claimed|sync|qa_running/.test(semanticStatus) ? 'is-row-running' : 'is-row-waiting'));
+      const pillTone = rowTone === 'is-row-complete' ? 'is-ready'
+        : (rowTone === 'is-row-blocked' ? 'is-blocked'
+          : (rowTone === 'is-row-running' ? 'is-running' : 'is-waiting'));
       const cardAction = isScript ? 'data-script-project-id' : 'data-project-id';
+      const kind = isScript ? 'script' : 'redraw';
+      const stageId = isScript ? String(scriptStage).padStart(2, '0') : redrawStageForProject(project);
+      const stageLabel = (productionStageDefinitions(kind).find(stage => stage.id === stageId) || {}).label || '';
+      const nextAction = humanizeProjectNextAction(runtime.nextAction, isScript ? '等待当前阶段确认。' : '等待当前质量门给出下一步。');
+      const fallbackText = isScript ? '等待当前阶段确认。' : '等待当前质量门给出下一步。';
       const stageSummary = isScript
-        ? '第 ' + String(scriptStage).padStart(2, '0') + ' 阶段 / 04 · ' + (productionStageDefinitions('script').find(stage => stage.id === String(scriptStage).padStart(2, '0'))?.label || '等待阶段')
-        : progress + '% · ' + dispatchLabel(project.dispatch?.status) + ' · 下一节点 ' + nextNode;
-      return '<button class="live-project-card' + (isScript ? ' is-script-project' : ' is-redraw-project') + '" type="button" ' + cardAction + '="' + escapeHtml(project.id) + '">' +
-        '<div class="project-card-visual"><span class="project-card-id">' + escapeHtml(project.id) + '</span><span class="project-card-type">' + (isScript ? '小说短剧' : '参考视频转绘') + '</span><span class="project-card-badge">' + escapeHtml(projectStatus) + '</span></div>' +
-        '<div class="project-card-body"><h3>' + escapeHtml(project.name) + '</h3>' + (sourceSummary ? '<p>' + escapeHtml(sourceSummary) + '</p>' : '') + '<div class="project-progress"><span style="width:' + progress + '%"></span></div><p>' + escapeHtml(stageSummary) + '</p></div></button>';
+        ? '阶段 ' + String(scriptStage).padStart(2, '0') + ' / 04 · ' + stageLabel
+        : progress + '% · ' + stageLabel;
+      const progressDetail = stageSummary + (nextAction && nextAction !== fallbackText ? ' · ' + nextAction : '');
+      return '<button class="project-board-row' + (isScript ? ' is-script-project' : ' is-redraw-project') + rowTone + '" type="button" ' + cardAction + '="' + escapeHtml(project.id) + '" aria-label="继续制作：' + escapeHtml(project.name) + '">' +
+        '<span class="pbr-index">' + String(index + 1).padStart(2, '0') + '</span>' +
+        '<span class="pbr-identity"><strong>' + escapeHtml(project.name) + '</strong><small>' + escapeHtml(project.id) + '</small></span>' +
+        '<span class="pbr-type' + (isScript ? ' is-script' : ' is-redraw') + '">' + (isScript ? '小说短剧' : '参考视频转绘') + '</span>' +
+        '<span class="pbr-status"><span class="production-status-pill ' + pillTone + '">' + escapeHtml(projectStatus) + '</span></span>' +
+        '<span class="pbr-progress"><i class="pbr-rail" aria-hidden="true"><i style="width:' + Number(progress) + '%"></i></i><small>' + escapeHtml(progressDetail) + '</small></span>' +
+        '<time class="pbr-time">' + escapeHtml(compactProjectTime(project.updatedAt || project.createdAt)) + '</time>' +
+        '<span class="pbr-action">继续制作 <b aria-hidden="true">&#8594;</b></span>' +
+      '</button>';
     }).join('');
     renderSummary();
+  }
+
+  function syncProjectCountStrip(selected) {
+    const strip = document.getElementById('projectSummary');
+    if (!strip) return;
+    strip.querySelectorAll('[data-count-filter]').forEach(item => {
+      const isActive = item.dataset.countFilter === selected;
+      item.classList.toggle('is-active', isActive);
+      item.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+
+  function syncProjectTypeSwitch(selectedType) {
+    const switchBox = document.querySelector('.project-type-switch');
+    if (!switchBox) return;
+    switchBox.querySelectorAll('[data-project-type]').forEach(item => {
+      const isActive = item.dataset.projectType === selectedType;
+      item.classList.toggle('is-active', isActive);
+      item.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+
+  function compactProjectTime(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    const now = new Date();
+    const pad = number => String(number).padStart(2, '0');
+    const sameDay = date.toDateString() === now.toDateString();
+    if (sameDay) return '今天 ' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) return '昨天 ' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+    const thisYear = date.getFullYear() === now.getFullYear();
+    return (thisYear ? '' : date.getFullYear() + '/') + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
   }
 
   function escapeHtml(value) {
@@ -4527,6 +4584,26 @@
   search?.addEventListener('input', renderProjects);
   filter?.addEventListener('change', renderProjects);
   projectTypeFilter?.addEventListener('change', renderProjects);
+  document.querySelector('.project-count-strip')?.addEventListener('click', event => {
+    const item = event.target.closest('[data-count-filter]');
+    if (!item || !filter) return;
+    filter.value = item.dataset.countFilter;
+    renderProjects();
+  });
+  document.querySelector('.project-type-switch')?.addEventListener('click', event => {
+    const item = event.target.closest('[data-project-type]');
+    if (!item || !projectTypeFilter) return;
+    projectTypeFilter.value = item.dataset.projectType;
+    renderProjects();
+  });
+  document.querySelector('.project-board')?.addEventListener('click', event => {
+    const clear = event.target.closest('[data-project-clear-filter]');
+    if (!clear) return;
+    if (search) search.value = '';
+    if (filter) filter.value = 'all';
+    if (projectTypeFilter) projectTypeFilter.value = 'all';
+    renderProjects();
+  });
 
   form?.addEventListener('submit', async event => {
     event.preventDefault();
