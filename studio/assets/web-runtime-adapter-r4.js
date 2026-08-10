@@ -97,6 +97,19 @@
     };
   }
 
+  function providerAnimateModel(status) {
+    return {
+      modelKey: 'runninghub-animate-motion-transfer',
+      modelAlias: 'runninghub-animate-motion-transfer',
+      vendorKey: 'runninghub',
+      labelZh: 'RunningHub 动作迁移',
+      kind: 'video',
+      enabled: true,
+      pricing: {cost: 0, enabled: status.animateSubmitEnabled === true, specCosts: []},
+      meta: {transportTaskKind: 'image_to_video', archetype: {id: 'happyhorse', modeId: 'edit'}}
+    };
+  }
+
   async function providerStatus() {
     var response = await api('/api/canvas/provider-status');
     return response.providerStatus || {};
@@ -110,7 +123,7 @@
         key: 'runninghub',
         name: 'RunningHub',
         enabled: true,
-        hasApiKey: status.credentialConfigured === true,
+        hasApiKey: status.credentialConfigured === true || status.animateSubmitEnabled === true,
         authType: 'bearer',
         baseUrlHint: status.baseUrl || null
       },
@@ -139,6 +152,7 @@
       models.push(providerModel('image', status, channel));
     });
     if (status.credentialConfigured === true && status.videoSubmitEnabled === true) models.push(providerModel('video', status));
+    if (status.animateSubmitEnabled === true) models.push(providerAnimateModel(status));
     if (status.text?.credentialConfigured === true && status.text?.modelConfigured === true && status.text?.submitEnabled === true) models.push(providerModel('text', status));
     return {vendors: vendors, models: models};
   }
@@ -158,8 +172,8 @@
     var imageReady = Array.isArray(status.imageChannels)
       ? status.imageChannels.some(function (channel) { return channel.submitEnabled === true; })
       : status.credentialConfigured === true && status.imageSubmitEnabled === true;
-    var videoReady = status.credentialConfigured === true
-      && status.videoSubmitEnabled === true;
+    var videoReady = (status.credentialConfigured === true && status.videoSubmitEnabled === true)
+      || status.animateSubmitEnabled === true;
     var enabledKinds = [textReady, imageReady, videoReady].filter(Boolean).length;
     return {
       byKind: [
@@ -182,16 +196,51 @@
     });
   }
 
+  function assetId(value) {
+    var normalized = String(value || '');
+    var match = /\/assets\/(CAS-[A-Za-z0-9-]+)\/download/.exec(normalized);
+    return match ? match[1] : (/^CAS-/.test(normalized) ? normalized : '');
+  }
+
+  function uniqueAssetIds(values) {
+    return Array.from(new Set(values.map(assetId).filter(Boolean)));
+  }
+
   function assetIds(extras) {
     var values = [];
     if (Array.isArray(extras && extras.referenceImages)) values = values.concat(extras.referenceImages);
     ['firstFrameUrl', 'lastFrameUrl'].forEach(function (key) {
       if (extras && typeof extras[key] === 'string') values.push(extras[key]);
     });
-    return Array.from(new Set(values.map(function (value) {
-      var match = /\/assets\/(CAS-[A-Za-z0-9-]+)\/download/.exec(String(value || ''));
-      return match ? match[1] : (/^CAS-/.test(String(value || '')) ? String(value) : '');
-    }).filter(Boolean)));
+    return uniqueAssetIds(values);
+  }
+
+  function isAnimateTransfer(extras) {
+    return [extras && extras.modelKey, extras && extras.modelAlias].some(function (value) {
+      return String(value || '').trim().toLowerCase() === 'runninghub-animate-motion-transfer';
+    });
+  }
+
+  function animateAssetIds(extras) {
+    var imageValues = Array.isArray(extras && extras.referenceImages) ? extras.referenceImages.slice() : [];
+    ['firstFrameUrl', 'lastFrameUrl'].forEach(function (key) {
+      if (extras && typeof extras[key] === 'string') imageValues.push(extras[key]);
+    });
+    var videoValues = Array.isArray(extras && extras.referenceVideos) ? extras.referenceVideos.slice() : [];
+    ['sourceVideoUrl', 'relayFromVideoUrl'].forEach(function (key) {
+      if (extras && typeof extras[key] === 'string') videoValues.push(extras[key]);
+    });
+    var archetypeInput = extras && extras.archetypeInput;
+    if (archetypeInput && typeof archetypeInput === 'object') {
+      if (typeof archetypeInput.reference_image === 'string') imageValues.push(archetypeInput.reference_image);
+      if (Array.isArray(archetypeInput.reference_image)) imageValues = imageValues.concat(archetypeInput.reference_image);
+      if (typeof archetypeInput.video_url === 'string') videoValues.push(archetypeInput.video_url);
+      if (Array.isArray(archetypeInput.video_url)) videoValues = videoValues.concat(archetypeInput.video_url);
+    }
+    var imageId = uniqueAssetIds(imageValues)[0];
+    var videoId = uniqueAssetIds(videoValues)[0];
+    if (!imageId || !videoId) throw new Error('动作迁移需要同一项目中的 1 张图片和 1 个视频');
+    return [imageId, videoId];
   }
 
   async function importProjectAsset(payload) {
@@ -458,15 +507,16 @@
       return taskFromTextJob(textPrepared.job);
     }
     var video = request.kind === 'text_to_video' || request.kind === 'image_to_video';
+    var animateTransfer = video && isAnimateTransfer(extras);
     var prepared = await api('/api/projects/' + encodeURIComponent(project) + '/canvas/jobs', {
       method: 'POST',
       headers: {'content-type': 'application/json', 'idempotency-key': extras.idempotencyKey || idempotency('nomi-canvas')},
       body: JSON.stringify({
         projectKind: canvasProjectKind(),
         nodeId: nodeId,
-        model: video ? 'h3' : (extras.modelKey || extras.modelAlias || 'runninghub-gpt-image-2'),
+        model: animateTransfer ? 'runninghub-animate-motion-transfer' : (video ? 'h3' : (extras.modelKey || extras.modelAlias || 'runninghub-gpt-image-2')),
         prompt: request.prompt || '',
-        inputAssetIds: assetIds(extras),
+        inputAssetIds: animateTransfer ? animateAssetIds(extras) : assetIds(extras),
         resolution: extras.resolution || '2k',
         aspectRatio: video
           ? (extras.aspectRatio && extras.aspectRatio !== '1:1' ? extras.aspectRatio : '9:16')

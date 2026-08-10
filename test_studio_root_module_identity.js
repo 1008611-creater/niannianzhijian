@@ -9,7 +9,7 @@ const projectRoot = __dirname;
 const assetsRoot = path.join(projectRoot, 'studio', 'assets');
 const releaseTag = 'r4';
 const moduleCacheVersion = '20260811-static-r6';
-const adapterCacheVersion = '20260811-web-assets-r5';
+const adapterCacheVersion = '20260811-animate-r1';
 const starts = ['index-M-8MrEH2-r28-19b89ec-r4.js', 'web-runtime-adapter-r4.js'];
 
 function localReferences(source) {
