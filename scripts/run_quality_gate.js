@@ -17,7 +17,8 @@ const tests = [
   'test_canvas_assets_http.js',
   'test_canvas_generated_video_assets.js',
   'test_project_library_rows.js',
-  'test_pwa_shell.js'
+  'test_pwa_shell.js',
+  'scripts/validate_frontend_authority.js'
 ];
 
 for (const test of tests) {
@@ -31,4 +32,3 @@ for (const test of tests) {
 }
 
 process.stdout.write(`\n[quality] passed ${tests.length} contract tests\n`);
-
