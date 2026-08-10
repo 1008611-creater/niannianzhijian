@@ -126,6 +126,15 @@ export function serverPlugins(): Plugin[] {
       get visionModel() {
         return getKey("OPENAI_VISION_MODEL") || "gpt-4o-mini";
       },
+      get videoBaseUrl() {
+        return getKey("LLM_GEMINI_BASE_URL") || "https://generativelanguage.googleapis.com/v1beta";
+      },
+      get videoApiKey() {
+        return getKey("LLM_GEMINI_API_KEY");
+      },
+      get videoModel() {
+        return getKey("LLM_GEMINI_MODEL") || "gemini-3.5-flash-lite";
+      },
     }),
     extractFramesPlugin(),
     sceneDetectionPlugin(),

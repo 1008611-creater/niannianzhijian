@@ -174,6 +174,7 @@ const guardedRoutes: Array<[string, string]> = [
   ['/generate/voice', 'mimo_tts'],
   ['/api/asset-intelligence/ocr', 'ocr'],
   ['/api/asset-intelligence/vision', 'vision'],
+  ['/api/asset-intelligence/video', 'video_understanding'],
   ['/api/qwen-forced-aligner/align', 'forced_align'],
   ['/api/detect-scenes', 'scene_detection'],
   ['/generate/image', 'image_generation'],

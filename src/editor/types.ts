@@ -44,6 +44,8 @@ export interface AssetIntelligence {
   ocrText?: string;
   /** Text-only ASR for search/script context. Never use as a subtitle timing source. */
   transcriptText?: string;
+  /** Whole-video Gemini summary. Scene entries retain the source time ranges. */
+  videoSummary?: string;
   tags?: string[];
   entities?: AssetIntelligenceEntity[];
   scenes?: AssetIntelligenceScene[];

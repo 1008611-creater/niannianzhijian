@@ -23,7 +23,7 @@ const previous = {
 };
 process.env.LOCAL_WSL_DEV = '1';
 process.env.NIANNIAN_EDITOR_SSO_SECRET = 'local-wsl-editor-sso-secret-20260807';
-  process.env.NIANNIAN_EDITOR_STEP_PRICES = 'agent_llm:0,agent_codex:0,export:0,vision:0,ocr:0';
+  process.env.NIANNIAN_EDITOR_STEP_PRICES = 'agent_llm:0,agent_codex:0,export:0,vision:0,video_understanding:0,ocr:0';
 
 try {
   const routes = new Map<string, Handler[]>();
@@ -56,7 +56,7 @@ try {
   assert.equal(llmCalls, 1, 'zero-cost local agent LLM bypasses remote billing');
   assert.equal(llmProbe.read().status, 200);
 
-  for (const path of ['/api/asset-intelligence/vision', '/api/asset-intelligence/ocr']) {
+  for (const path of ['/api/asset-intelligence/vision', '/api/asset-intelligence/video', '/api/asset-intelligence/ocr']) {
     let calls = 0;
     const route = routes.get(path)?.[0];
     assert.ok(route, `${path} is guarded`);

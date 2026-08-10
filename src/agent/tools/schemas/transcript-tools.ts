@@ -43,15 +43,15 @@ export const TRANSCRIPT_TOOL_SCHEMAS: AgentToolSchema[] = [
   },
   {
     name: 'analyze_asset',
-    description: 'Analyze one imported asset and persist source-bound metadata. kind=ocr runs local Tesseract OCR. kind=vision sends one local image or video frame to the configured OpenAI-compatible visual model, then writes searchable product/person/brand/scene tags. kind=mimo-asr calls the configured MiMo ASR and writes searchable transcript text only: it has no word timestamps and must not be used for subtitles, delete_text, or clean_script. The result is discarded if the source was replaced while analysis was running.',
+    description: 'Analyze one imported asset and persist source-bound metadata. kind=video sends the complete video to the separately configured native Gemini provider and returns a source-timestamped Chinese summary for clip selection. kind=vision analyzes one image or video frame with the OpenAI-compatible visual model. kind=ocr runs local Tesseract OCR. kind=mimo-asr writes searchable speech text without word timestamps. Every result is discarded if the source changes while analysis runs.',
     input_schema: {
       type: 'object',
       properties: {
         assetId: { type: 'string', description: 'Media-pool asset id or unique prefix.' },
-        kind: { type: 'string', enum: ['ocr', 'vision', 'mimo-asr'], description: 'ocr=local text recognition; vision=OpenAI-compatible visual metadata analysis; mimo-asr=MiMo text-only speech transcription for searchable material context, never timestamped captions.' },
+        kind: { type: 'string', enum: ['ocr', 'vision', 'video', 'mimo-asr'], description: 'video=complete-video Gemini understanding with sourceRange formatted as MM:SS.mmm; vision=single-frame compatible visual analysis; ocr=local text recognition; mimo-asr=MiMo text-only speech transcription, never timestamped captions.' },
         timeMs: { type: 'integer', minimum: 0, description: 'Video frame timestamp in milliseconds; omit for the first frame. Ignored for images.' },
         language: { type: 'string', description: 'OCR: Tesseract language list, for example eng or eng+chi_sim. mimo-asr: only auto, zh, or en (defaults to auto). vision ignores it.' },
-        prompt: { type: 'string', description: 'Optional visual-analysis focus, for example identify visible product selling points. Used only with kind=vision.' },
+        prompt: { type: 'string', description: 'Optional analysis focus, for example identify dramatic conflict or product selling points. Used with kind=vision or kind=video.' },
       },
       required: ['assetId', 'kind'],
     },
