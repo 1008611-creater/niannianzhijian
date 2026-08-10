@@ -1,1 +1,1 @@
-import{l}from"./proxy-B50diLEI-r4.js?v=20260811-static-r5";const a=[["path",{d:"M6 4v16a1 1 0 0 0 1.524 .852l13 -8a1 1 0 0 0 0 -1.704l-13 -8a1 1 0 0 0 -1.524 .852z",key:"svg-0"}]],o=l("filled","player-play-filled","PlayerPlayFilled",a);export{o as I};
+import{l}from"./proxy-B50diLEI-r4.js?v=20260811-static-r6";const a=[["path",{d:"M6 4v16a1 1 0 0 0 1.524 .852l13 -8a1 1 0 0 0 0 -1.704l-13 -8a1 1 0 0 0 -1.524 .852z",key:"svg-0"}]],o=l("filled","player-play-filled","PlayerPlayFilled",a);export{o as I};
