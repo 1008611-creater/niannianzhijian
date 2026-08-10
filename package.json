@@ -52,6 +52,7 @@
     "test:web-canvas-persistence-binding": "node test_web_canvas_persistence_binding.js",
     "test:canvas-assets-http": "node test_canvas_assets_http.js",
     "test:canvas-image2-runtime": "node test_canvas_image2_runtime.js",
+    "test:canvas-yunfei-image2": "node test_yunfei_image2_adapter.js",
     "test:canvas-h3-runtime": "node test_canvas_h3_runtime.js",
     "test:nomi-h3-multiref": "node test_nomi_h3_multiref_contract.js",
     "test:browser-smoke": "playwright test test_studio_clean_browser.spec.js --reporter=line",

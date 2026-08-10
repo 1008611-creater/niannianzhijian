@@ -51,7 +51,7 @@
     return body;
   }
 
-  function providerModel(kind, status) {
+  function providerModel(kind, status, imageChannel) {
     if (kind === 'text') {
       var textStatus = status.text || {};
       return {
@@ -66,6 +66,24 @@
       };
     }
     var video = kind === 'video';
+    if (!video && imageChannel) {
+      return {
+        modelKey: imageChannel.id,
+        modelAlias: 'gpt-image-2',
+        vendorKey: imageChannel.provider,
+        labelZh: imageChannel.label,
+        kind: 'image',
+        enabled: true,
+        pricing: {cost: 0, enabled: imageChannel.submitEnabled === true, specCosts: []},
+        meta: {
+          transportTaskKind: 'image_edit',
+          imageChannel: imageChannel.id,
+          supportedResolutions: imageChannel.resolutions || [],
+          supportedAspectRatios: imageChannel.aspectRatios || [],
+          outputSizes: imageChannel.outputSizes || {}
+        }
+      };
+    }
     var enabled = video ? status.videoSubmitEnabled : status.imageSubmitEnabled;
     return {
       modelKey: video ? 'minimax-h3' : 'runninghub-image2-image',
@@ -105,8 +123,21 @@
         baseUrlHint: status.text?.baseUrl || null
       }
     ];
+    (status.imageChannels || []).forEach(function (channel) {
+      if (channel.provider === 'runninghub' || vendors.some(function (vendor) { return vendor.key === channel.provider; })) return;
+      vendors.push({
+        key: channel.provider,
+        name: channel.provider === 'yunfei-1k' ? '云飞 Image2 1K' : '云飞 Image2 高清',
+        enabled: true,
+        hasApiKey: channel.submitEnabled === true,
+        authType: 'bearer',
+        baseUrlHint: null
+      });
+    });
     var models = [];
-    if (status.credentialConfigured === true && status.imageSubmitEnabled === true) models.push(providerModel('image', status));
+    (status.imageChannels || []).filter(function (channel) { return channel.submitEnabled === true; }).forEach(function (channel) {
+      models.push(providerModel('image', status, channel));
+    });
     if (status.credentialConfigured === true && status.videoSubmitEnabled === true) models.push(providerModel('video', status));
     if (status.text?.credentialConfigured === true && status.text?.modelConfigured === true && status.text?.submitEnabled === true) models.push(providerModel('text', status));
     return {vendors: vendors, models: models};
@@ -124,8 +155,9 @@
     var textReady = status.text?.credentialConfigured === true
       && status.text?.modelConfigured === true
       && status.text?.submitEnabled === true;
-    var imageReady = status.credentialConfigured === true
-      && status.imageSubmitEnabled === true;
+    var imageReady = Array.isArray(status.imageChannels)
+      ? status.imageChannels.some(function (channel) { return channel.submitEnabled === true; })
+      : status.credentialConfigured === true && status.imageSubmitEnabled === true;
     var videoReady = status.credentialConfigured === true
       && status.videoSubmitEnabled === true;
     var enabledKinds = [textReady, imageReady, videoReady].filter(Boolean).length;
@@ -168,7 +200,7 @@
     var assets = (job.outputAssetIds || []).map(function (assetId) {
       return {type: type, assetId: assetId, url: '/api/projects/' + encodeURIComponent(project) + '/assets/' + encodeURIComponent(assetId) + '/download'};
     });
-    return {id: job.id, kind: kind, status: job.status === 'awaiting_authorization' ? 'queued' : job.status, assets: assets, raw: {jobId: job.id}, error: job.error || undefined};
+    return {id: job.id, kind: kind, status: job.status === 'awaiting_authorization' ? 'queued' : job.status, assets: assets, raw: {jobId: job.id, imageChannel: job.imageChannel || null, outputSize: job.outputSize || null, aspectRatio: job.aspectRatio || null}, error: job.error || undefined};
   }
 
   function taskFromTextJob(job) {
@@ -362,7 +394,7 @@
       body: JSON.stringify({
         projectKind: canvasProjectKind(),
         nodeId: nodeId,
-        model: video ? 'h3' : 'image2',
+        model: video ? 'h3' : (extras.modelKey || extras.modelAlias || 'runninghub-gpt-image-2'),
         prompt: request.prompt || '',
         inputAssetIds: assetIds(extras),
         resolution: extras.resolution || '2k',
@@ -389,7 +421,7 @@
       return {vendor: 'asxs', result: taskFromTextJob(textResponse.job)};
     }
     var response = await api('/api/projects/' + encodeURIComponent(project) + '/canvas/jobs/' + encodeURIComponent(payload.taskId) + '?projectKind=' + encodeURIComponent(canvasProjectKind()));
-    return {vendor: 'runninghub', result: taskFromCanvasJob(response.job, project)};
+    return {vendor: response.job && response.job.imageChannel ? response.job.imageChannel : 'runninghub', result: taskFromCanvasJob(response.job, project)};
   }
 
   window.nomiDesktop = {

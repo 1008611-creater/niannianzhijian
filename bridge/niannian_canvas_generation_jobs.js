@@ -2,6 +2,7 @@ const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
+const {normalizeImage2Spec} = require('./niannian_canvas_image2_channels');
 
 const MODELS = Object.freeze({
   image: Object.freeze({
@@ -65,8 +66,11 @@ function publicJob(job, options = {}) {
     providerSubmitEnabled,
     inputAssetIds: Array.isArray(job.inputAssetIds) ? job.inputAssetIds : [],
     outputAssetIds: Array.isArray(job.outputAssetIds) ? job.outputAssetIds : [],
+    imageChannel: job.nodeType === 'image' ? (job.imageChannel || 'runninghub-gpt-image-2') : null,
+    imageChannelLabel: job.nodeType === 'image' ? (job.imageChannelLabel || 'RunningHub Image2') : null,
     resolution: job.resolution || '2k',
     aspectRatio: job.aspectRatio || '1:1',
+    outputSize: job.nodeType === 'image' ? (job.outputSize || null) : null,
     durationSeconds: job.durationSeconds || null,
     prompt: job.prompt,
     error: ['failed','review'].includes(job.status) ? (job.publicError || '任务未完成') : null,
@@ -92,8 +96,11 @@ function dryRunContract(job, options = {}) {
     providerSubmitEnabled,
     spendRequested: false,
     inputAssetCount: job.inputAssetIds.length,
+    imageChannel: job.nodeType === 'image' ? (job.imageChannel || 'runninghub-gpt-image-2') : null,
+    imageChannelLabel: job.nodeType === 'image' ? (job.imageChannelLabel || 'RunningHub Image2') : null,
     resolution: job.resolution || '2k',
     aspectRatio: job.aspectRatio || '1:1',
+    outputSize: job.nodeType === 'image' ? (job.outputSize || null) : null,
     durationSeconds: job.durationSeconds || null,
     promptPresent: Boolean(job.prompt),
     requestHash: job.requestHash,
@@ -146,11 +153,22 @@ function createCanvasGenerationJobService(options = {}) {
     const durationSeconds = Number(input.durationSeconds || input.duration_seconds || (nodeType === 'video' ? 5 : 0));
     if (!projectId || !nodeId) throw jobError('CANVAS_JOB_INPUT_INVALID', '项目和节点不能为空', 422);
     if (!['redraw', 'script'].includes(projectKind)) throw jobError('CANVAS_JOB_PROJECT_KIND_INVALID', '项目类型无效', 422);
-    if (!['1k','2k','4k'].includes(resolution)) throw jobError('CANVAS_JOB_RESOLUTION_INVALID', '图片清晰度无效', 422);
     if (!/^\d{1,2}:\d{1,2}$/.test(aspectRatio)) throw jobError('CANVAS_JOB_ASPECT_RATIO_INVALID', '画幅比例无效', 422);
     if (nodeType === 'video' && (!Number.isFinite(durationSeconds) || durationSeconds < 4 || durationSeconds > 15)) throw jobError('CANVAS_JOB_DURATION_INVALID', '视频时长需在 4 到 15 秒之间', 422);
     if (!prompt && nodeType !== 'image') throw jobError('CANVAS_JOB_PROMPT_REQUIRED', '视频节点需要填写提示词', 422);
-    return {projectId, projectKind, nodeId, nodeType, prompt, inputAssetIds, resolution, aspectRatio, durationSeconds:nodeType === 'video' ? durationSeconds : null};
+    const imageSpec = nodeType === 'image'
+      ? normalizeImage2Spec({model: input.imageChannel || input.model, resolution, aspectRatio})
+      : null;
+    return {
+      projectId, projectKind, nodeId, nodeType, prompt, inputAssetIds,
+      resolution: imageSpec?.resolution || resolution,
+      aspectRatio: imageSpec?.aspectRatio || aspectRatio,
+      imageChannel: imageSpec?.imageChannel || null,
+      imageChannelLabel: imageSpec?.imageChannelLabel || null,
+      imageProvider: imageSpec?.imageProvider || null,
+      outputSize: imageSpec?.outputSize || null,
+      durationSeconds:nodeType === 'video' ? durationSeconds : null
+    };
   }
 
   async function create(input) {
@@ -176,8 +194,12 @@ function createCanvasGenerationJobService(options = {}) {
         prompt: normalized.prompt,
         inputAssetIds: normalized.inputAssetIds,
         outputAssetIds: [],
+        imageChannel: normalized.imageChannel,
+        imageChannelLabel: normalized.imageChannelLabel,
+        imageProvider: normalized.imageProvider,
         resolution: normalized.resolution,
         aspectRatio: normalized.aspectRatio,
+        outputSize: normalized.outputSize,
         durationSeconds: normalized.durationSeconds,
         idempotencyKey,
         requestHash: hash,

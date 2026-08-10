@@ -48,6 +48,8 @@ const fullSourceStep01Authority = require('./bridge/niannian_full_source_step01_
 const canvasGenerationJobs = require('./bridge/niannian_canvas_generation_jobs');
 const canvasAssets = require('./bridge/niannian_canvas_assets');
 const canvasImage2RuntimeModule = require('./bridge/niannian_canvas_image2_runtime');
+const yunfeiImage2Adapter = require('./bridge/niannian_yunfei_image2_adapter');
+const canvasImage2Channels = require('./bridge/niannian_canvas_image2_channels');
 const canvasH3RuntimeModule = require('./bridge/niannian_canvas_h3_runtime');
 const canvasProviderConfig = require('./bridge/niannian_canvas_provider_config');
 const canvasTextRuntimeModule = require('./bridge/niannian_canvas_text_runtime');
@@ -139,7 +141,16 @@ const sessionTtlMs = 7 * 24 * 60 * 60 * 1000;
 const canvasGenerationJobService = canvasGenerationJobs.createCanvasGenerationJobService({filePath:canvasGenerationJobsPath});
 const canvasAssetService = canvasAssets.createCanvasAssetService({indexPath:canvasAssetsPath,storageRoot:canvasAssetsRoot,maxBytes:process.env.CANVAS_ASSET_MAX_BYTES});
 const canvasProviderStatus = canvasProviderConfig.readCanvasProviderConfig();
-const canvasImage2Runtime = canvasImage2RuntimeModule.createCanvasImage2Runtime({jobService:canvasGenerationJobService,assetService:canvasAssetService,enabled:canvasProviderStatus.imageSubmitEnabled});
+const canvasImage2Runtime = canvasImage2RuntimeModule.createCanvasImage2Runtime({
+  jobService:canvasGenerationJobService,
+  assetService:canvasAssetService,
+  enabled:canvasProviderStatus.imageSubmitEnabled,
+  adapters:{
+    runninghub: undefined,
+    'yunfei-1k': yunfeiImage2Adapter.createYunfeiImage2Adapter({baseUrl:canvasProviderStatus.yunfei1kBaseUrl,apiKey:process.env.YUNFEI_IMAGE2_1K_API_KEY}),
+    'yunfei-hd': yunfeiImage2Adapter.createYunfeiImage2Adapter({baseUrl:canvasProviderStatus.yunfeiHdBaseUrl,apiKey:process.env.YUNFEI_IMAGE2_HD_API_KEY})
+  }
+});
 const canvasH3Runtime = canvasH3RuntimeModule.createCanvasH3Runtime({jobService:canvasGenerationJobService,assetService:canvasAssetService,enabled:canvasProviderStatus.videoSubmitEnabled});
 const canvasTextRuntime = canvasTextRuntimeModule.createCanvasTextRuntime();
 const canvasTextJobService = canvasTextJobs.createCanvasTextJobService({filePath:canvasTextJobsPath});
@@ -7345,8 +7356,13 @@ async function generationNodeForProject(project, projectKind, nodeId) {
     || await canvasGenerationNode(project, projectKind, nodeId);
 }
 
-function canvasGenerationSubmitEnabled(nodeType) {
-  return nodeType === 'video' ? canvasH3Runtime.enabled : canvasImage2Runtime.enabled;
+function canvasGenerationSubmitEnabled(jobOrNodeType) {
+  const nodeType = typeof jobOrNodeType === 'string' ? jobOrNodeType : jobOrNodeType?.nodeType;
+  if (nodeType === 'video') return canvasH3Runtime.enabled;
+  const imageChannel = typeof jobOrNodeType === 'object' ? jobOrNodeType.imageChannel : null;
+  return imageChannel
+    ? canvasProviderStatus.imageChannelEnabled[imageChannel] === true
+    : canvasImage2Runtime.enabled;
 }
 
 function publicCanvasTextResponse(job) {
@@ -7431,7 +7447,7 @@ async function handleCanvasTextApi(request, response, pathname, user) {
 }
 
 function publicCanvasGenerationResponse(job) {
-  const providerSubmitEnabled = canvasGenerationSubmitEnabled(job.nodeType);
+  const providerSubmitEnabled = canvasGenerationSubmitEnabled(job);
   return {
     job:canvasGenerationJobService.publicJob(job, {providerSubmitEnabled}),
     providerSubmitEnabled,
@@ -7455,7 +7471,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
     if (!jobId && !action && request.method === 'GET') {
       const jobs = await canvasGenerationJobService.listOwned(user.id, projectId);
       return json(response, 200, {
-        jobs:jobs.map(job => canvasGenerationJobService.publicJob(job, {providerSubmitEnabled:canvasGenerationSubmitEnabled(job.nodeType)})),
+        jobs:jobs.map(job => canvasGenerationJobService.publicJob(job, {providerSubmitEnabled:canvasGenerationSubmitEnabled(job)})),
         providerSubmitEnabled:canvasImage2Runtime.enabled || canvasH3Runtime.enabled,
         providerStatus:canvasProviderConfig.publicCanvasProviderStatus()
       });
@@ -7467,8 +7483,10 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       const nodeType = canvasText(node.type || node.kind, 40);
       if (!['image','video'].includes(nodeType)) return json(response, 422, {code:'CANVAS_NODE_NOT_GENERATABLE',error:'该节点不能创建生成任务'});
       const requestedModel = canvasText(body.model, 80);
-      const expectedModel = nodeType === 'image' ? 'image2' : 'h3';
-      if (requestedModel && requestedModel !== expectedModel) return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'模型与当前节点类型不匹配'});
+      if (nodeType === 'video' && requestedModel && requestedModel !== 'h3') return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'模型与当前节点类型不匹配'});
+      if (nodeType === 'image' && requestedModel && !canvasImage2Channels.resolveImage2Channel(requestedModel)) {
+        return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'请选择已接入的 Image2 作图渠道'});
+      }
       const inputAssetIds = [...new Set((Array.isArray(body.inputAssetIds) ? body.inputAssetIds : (node.data?.assetIds || [])).map(value => canvasText(value, 120)).filter(Boolean))].slice(0, 24);
       for (const assetId of inputAssetIds) {
         // Historical canvas documents may contain pre-CAS asset references. Keep those readable;
@@ -7481,6 +7499,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         projectKind:owned.projectKind,
         nodeId,
         nodeType,
+        model:requestedModel || (nodeType === 'image' ? 'runninghub-gpt-image-2' : 'h3'),
         prompt:canvasText(body.prompt || node.data?.prompt, 4000),
         inputAssetIds,
         resolution:canvasText(body.resolution || node.data?.resolution || '2k', 8),
@@ -7506,7 +7525,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
     if (jobId && action === 'dry-run' && request.method === 'POST') {
       const job = await canvasGenerationJobService.getOwned(user.id, projectId, jobId);
       if (!job) return json(response, 404, {code:'CANVAS_JOB_NOT_FOUND',error:'任务不存在'});
-      const providerSubmitEnabled = canvasGenerationSubmitEnabled(job.nodeType);
+      const providerSubmitEnabled = canvasGenerationSubmitEnabled(job);
       return json(response, 200, {
         code:'CANVAS_GENERATION_DRY_RUN_READY',
         job:canvasGenerationJobService.publicJob(job, {providerSubmitEnabled}),
@@ -7521,7 +7540,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       if (!job) return json(response, 404, {code:'CANVAS_JOB_NOT_FOUND',error:'任务不存在'});
       if (body.confirmProviderSpend !== true) return json(response, 422, {code:'CANVAS_PROVIDER_AUTHORIZATION_REQUIRED',error:'请明确确认本次生成会调用已配置的图像渠道'});
       if (job.nodeType === 'image') {
-        if (!canvasImage2Runtime.enabled) return json(response, 409, {code:'CANVAS_PROVIDER_SUBMIT_DISABLED',error:'图像生成尚未启用，当前任务仅完成准备'});
+        if (!canvasGenerationSubmitEnabled(job)) return json(response, 409, {code:'CANVAS_PROVIDER_SUBMIT_DISABLED',error:'所选图像渠道尚未启用，当前任务仅完成准备'});
         const submitted = await canvasImage2Runtime.submit(user.id, projectId, jobId);
         return json(response, 202, {code:'CANVAS_GENERATION_SUBMITTED',job:canvasGenerationJobService.publicJob(submitted, {providerSubmitEnabled:true}),providerSubmitEnabled:true,providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),spendRequested:true});
       }

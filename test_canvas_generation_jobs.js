@@ -17,6 +17,19 @@ async function run() {
     assert.equal(first.created, true);
     assert.equal(first.job.status, 'awaiting_authorization');
     assert.equal(first.job.providerSubmitEnabled, false);
+    assert.equal(first.job.imageChannel, 'runninghub-gpt-image-2');
+    assert.equal(first.job.outputSize, null);
+
+    const yunfei1k = await service.create({...request, model:'yunfei-gpt-image-2-1k', resolution:'1k', aspectRatio:'1:1', idempotencyKey:'canvas-job-yunfei-1k'});
+    assert.equal(yunfei1k.job.imageChannel, 'yunfei-gpt-image-2-1k');
+    assert.equal(yunfei1k.job.outputSize, '1024x1024');
+    const yunfei4k = await service.create({...request, model:'yunfei-gpt-image-2-hd', resolution:'4k', aspectRatio:'16:9', idempotencyKey:'canvas-job-yunfei-4k'});
+    assert.equal(yunfei4k.job.imageChannel, 'yunfei-gpt-image-2-hd');
+    assert.equal(yunfei4k.job.outputSize, '3840x2160');
+    await assert.rejects(
+      () => service.create({...request, model:'yunfei-gpt-image-2-1k', resolution:'2k', aspectRatio:'1:1', idempotencyKey:'canvas-job-yunfei-invalid'}),
+      error => error.code === 'CANVAS_IMAGE2_RESOLUTION_UNSUPPORTED'
+    );
 
     const repeat = await service.create(request);
     assert.equal(repeat.created, false);
@@ -26,7 +39,7 @@ async function run() {
       () => service.create({...request, prompt:'另一项请求'}),
       error => error.code === 'CANVAS_JOB_IDEMPOTENCY_CONFLICT'
     );
-    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 1);
+    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 3);
     assert.equal((await service.listOwned('USR-B', 'NN-PROJECT-A')).length, 0);
     assert.equal(await service.getOwned('USR-B', 'NN-PROJECT-A', first.job.id), null);
 
@@ -38,6 +51,7 @@ async function run() {
     assert.equal(dryRun.model, 'runninghub-image2-image');
     assert.equal(dryRun.spendRequested, false);
     assert.equal(dryRun.providerSubmitEnabled, false);
+    assert.equal(dryRun.imageChannel, 'runninghub-gpt-image-2');
     console.log('CANVAS_GENERATION_JOBS_CONTRACT_OK');
   } finally {
     await fsp.rm(directory, {recursive:true, force:true});

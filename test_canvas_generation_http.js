@@ -111,6 +111,14 @@ async function run() {
   assert.equal(repeat.body.idempotent, true);
   assert.equal(repeat.body.job.id, first.body.job.id);
 
+  const yunfeiHd = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-yunfei-hd-0001'}),body:JSON.stringify({...body, model:'yunfei-gpt-image-2-hd',resolution:'4k',aspectRatio:'16:9'})});
+  assert.equal(yunfeiHd.response.status, 201);
+  assert.equal(yunfeiHd.body.job.imageChannel, 'yunfei-gpt-image-2-hd');
+  assert.equal(yunfeiHd.body.job.outputSize, '3840x2160');
+  const invalidYunfei1k = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-yunfei-1k-invalid-0001'}),body:JSON.stringify({...body, model:'yunfei-gpt-image-2-1k',resolution:'2k',aspectRatio:'1:1'})});
+  assert.equal(invalidYunfei1k.response.status, 422);
+  assert.equal(invalidYunfei1k.body.code, 'CANVAS_IMAGE2_RESOLUTION_UNSUPPORTED');
+
   const dryRun = await request(`/api/projects/NN-CANVAS-A/canvas/jobs/${encodeURIComponent(first.body.job.id)}/dry-run`, {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json'}),body:JSON.stringify({projectKind:'redraw'})});
   assert.equal(dryRun.response.status, 200);
   assert.equal(dryRun.body.dryRun.spendRequested, false);
