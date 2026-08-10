@@ -64,7 +64,7 @@ for (const name of reachable) {
 }
 
 const serviceWorker = fs.readFileSync(path.join(projectRoot, 'sw.js'), 'utf8');
-assert.match(serviceWorker, /niannian-app-shell-20260809-studio-module-bypass-r4/);
+assert.match(serviceWorker, /niannian-app-shell-20260810-workbench-team-docs-r1/);
 assert.match(serviceWorker, /url\.pathname\.startsWith\('\/studio\/assets\/'\)/);
 
 console.log(`STUDIO_ROOT_MODULE_IDENTITY_CONTRACT_OK (${reachable.size} assets)`);
