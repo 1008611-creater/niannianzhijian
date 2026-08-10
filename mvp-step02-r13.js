@@ -752,7 +752,7 @@
     }
     syncProjectCountStrip(selected);
     syncProjectTypeSwitch(selectedType);
-    list.innerHTML = '<div class="project-board-head" aria-hidden="true"><span>#</span><span>项目</span><span>类型</span><span>状态</span><span>进度 · 下一步</span><span>更新</span><span></span></div>' + rows.map((project, index) => {
+    const dispatchRows = rows.map((project, index) => {
       const runtime = project.runtime || {};
       const isScript = project.projectKind === 'script';
       const scriptStage = Number(scriptStageForNode(runtime.currentNode, runtime.earliestIncompleteNode));
@@ -775,16 +775,40 @@
         ? '阶段 ' + String(scriptStage).padStart(2, '0') + ' / 04 · ' + stageLabel
         : progress + '% · ' + stageLabel;
       const progressDetail = stageSummary + (nextAction && nextAction !== fallbackText ? ' · ' + nextAction : '');
-      return '<button class="project-board-row' + (isScript ? ' is-script-project' : ' is-redraw-project') + rowTone + '" type="button" ' + cardAction + '="' + escapeHtml(project.id) + '" aria-label="继续制作：' + escapeHtml(project.name) + '">' +
-        '<span class="pbr-index">' + String(index + 1).padStart(2, '0') + '</span>' +
-        '<span class="pbr-identity"><strong>' + escapeHtml(project.name) + '</strong><small>' + escapeHtml(project.id) + '</small></span>' +
-        '<span class="pbr-type' + (isScript ? ' is-script' : ' is-redraw') + '">' + (isScript ? '小说短剧' : '参考视频转绘') + '</span>' +
-        '<span class="pbr-status"><span class="production-status-pill ' + pillTone + '">' + escapeHtml(projectStatus) + '</span></span>' +
-        '<span class="pbr-progress"><i class="pbr-rail" aria-hidden="true"><i style="width:' + Number(progress) + '%"></i></i><small>' + escapeHtml(progressDetail) + '</small></span>' +
-        '<time class="pbr-time">' + escapeHtml(compactProjectTime(project.updatedAt || project.createdAt)) + '</time>' +
-        '<span class="pbr-action">继续制作 <b aria-hidden="true">&#8594;</b></span>' +
+      const lane = rowTone === 'is-row-running' ? 'running' : (rowTone === 'is-row-complete' ? 'completed' : 'attention');
+      const rowHtml = '<button class="project-dispatch-row' + (isScript ? ' is-script-project' : ' is-redraw-project') + ' ' + rowTone + '" type="button" ' + cardAction + '="' + escapeHtml(project.id) + '" aria-label="继续制作：' + escapeHtml(project.name) + '">' +
+        '<span class="pdr-order">' + String(index + 1).padStart(2, '0') + '</span>' +
+        '<span class="pdr-title"><strong>' + escapeHtml(project.name) + '</strong><small>' + (isScript ? '一键制剧' : '一键转绘') + ' · ' + escapeHtml(project.id) + '</small></span>' +
+        '<span class="pdr-stage"><span class="production-status-pill ' + pillTone + '">' + escapeHtml(projectStatus) + '</span><small>' + escapeHtml(stageSummary) + '</small></span>' +
+        '<span class="pdr-next"><small>下一步</small><strong>' + escapeHtml(nextAction) + '</strong></span>' +
+        '<span class="pdr-meter"><i aria-hidden="true"><i style="width:' + Number(progress) + '%"></i></i><small>' + Number(progress) + '%</small></span>' +
+        '<time class="pdr-time">' + escapeHtml(compactProjectTime(project.updatedAt || project.createdAt)) + '</time>' +
+        '<span class="pdr-open">进入 <b aria-hidden="true">&#8594;</b></span>' +
       '</button>';
+      return {project, cardAction, rowTone, lane, progress, projectStatus, stageSummary, nextAction, rowHtml};
+    });
+    const focus = dispatchRows.find(item => item.lane === 'attention') || dispatchRows.find(item => item.lane === 'running') || dispatchRows[0];
+    const laneDefinitions = [
+      {id:'attention', title:'需要处理', description:'存在明确下一步，优先完成后再启动新项目。'},
+      {id:'running', title:'制作中', description:'任务正在推进，可随时进入查看状态或继续制作。'},
+      {id:'completed', title:'已交付', description:'结果已进入项目，可继续查看或复用。'}
+    ];
+    const focusHtml = focus ? '<section class="project-dispatch-focus ' + focus.rowTone + '" aria-label="优先继续的项目">' +
+      '<div class="pdf-kicker">优先继续</div>' +
+      '<div class="pdf-main"><div class="pdf-project"><span class="production-status-pill ' + (focus.rowTone === 'is-row-complete' ? 'is-ready' : (focus.rowTone === 'is-row-running' ? 'is-running' : 'is-waiting')) + '">' + escapeHtml(focus.projectStatus) + '</span><h3>' + escapeHtml(focus.project.name) + '</h3><p>' + escapeHtml(focus.stageSummary) + '</p></div>' +
+      '<div class="pdf-next"><span>下一步</span><strong>' + escapeHtml(focus.nextAction) + '</strong></div>' +
+      '<div class="pdf-progress"><span>' + Number(focus.progress) + '%</span><i aria-hidden="true"><i style="width:' + Number(focus.progress) + '%"></i></i></div>' +
+      '<button class="pdf-action" type="button" ' + focus.cardAction + '="' + escapeHtml(focus.project.id) + '">继续制作 <b aria-hidden="true">&#8594;</b></button></div>' +
+      '</section>' : '';
+    const lanesHtml = laneDefinitions.map(definition => {
+      const items = dispatchRows.filter(item => item.lane === definition.id && item !== focus);
+      if (!items.length) return '';
+      return '<section class="project-dispatch-lane project-dispatch-lane-' + definition.id + '">' +
+        '<header><div><h3>' + definition.title + '</h3><p>' + definition.description + '</p></div><span>' + items.length + ' 个项目</span></header>' +
+        '<div class="project-dispatch-list">' + items.map(item => item.rowHtml).join('') + '</div>' +
+      '</section>';
     }).join('');
+    list.innerHTML = '<div class="project-dispatch">' + focusHtml + lanesHtml + '</div>';
     renderSummary();
   }
 

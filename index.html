@@ -20,6 +20,14 @@
     <link rel="stylesheet" href="./amber-authority.css?v=20260802-unified-header-r3" />
   </head>
   <body>
+    <!-- PROJECT-DISPATCH-V1
+      THESIS: 项目管理是创作现场的调度台，拒绝通用表格和均匀卡片。
+      OWN-WORLD: 念念深色工作区、细分隔线、暖白内容、品牌粉仅用于当前动作。
+      STORY: 创作者先看到下一项可推进的制作，再扫描其余项目所处的真实队列。
+      FIRST VIEWPORT: 标题与新建动作在上，紧接唯一的焦点项目，再进入可筛选的制作队列。
+      FORM: Operate-mode production dispatch board; seed PROJECT-DISPATCH-V1.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->
     <a class="skip-link" href="#mainContent">跳到主要内容</a>
     <div class="connection-status" id="connectionStatus" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 
@@ -88,15 +96,15 @@
           <header class="project-hub-header">
             <div class="project-hub-title">
               <h2>项目管理</h2>
-              <span class="project-hub-total" id="projectHubTotal">0 个项目</span>
+              <span class="project-hub-total" id="projectHubTotal">正在读取项目</span>
             </div>
             <div class="project-hub-actions">
               <button class="project-new-button" type="button" data-view="workbench">新建项目</button>
             </div>
           </header>
 
-          <div class="project-count-strip" id="projectSummary" role="group" aria-label="项目状态统计">
-            <button class="pcs-item is-active" type="button" data-count-filter="all" aria-pressed="true"><span>全部项目</span><strong data-summary="total">0</strong></button>
+          <div class="project-count-strip" id="projectSummary" role="group" aria-label="按制作状态筛选项目">
+            <button class="pcs-item is-active" type="button" data-count-filter="all" aria-pressed="true"><span>所有项目</span><strong data-summary="total">0</strong></button>
             <button class="pcs-item" type="button" data-count-filter="running" aria-pressed="false"><span>制作中</span><strong data-summary="active">0</strong></button>
             <button class="pcs-item" type="button" data-count-filter="queued" aria-pressed="false"><span>待处理</span><strong data-summary="queued">0</strong></button>
             <button class="pcs-item" type="button" data-count-filter="completed" aria-pressed="false"><span>已交付</span><strong data-summary="completed">0</strong></button>

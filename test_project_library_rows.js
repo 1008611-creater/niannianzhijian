@@ -15,6 +15,10 @@ const renderer = source.slice(renderStart, renderEnd);
   "state.projects.map(project => ({...project, projectKind:'redraw'}))",
   "state.scriptProjects.map(project => ({...project, projectKind:'script'}))",
   "const matchesType = selectedType === 'all' || selectedType === project.projectKind;",
+  "const dispatchRows = rows.map((project, index) =>",
+  "const laneDefinitions = [",
+  "project-dispatch-focus",
+  "project-dispatch-lane",
   "'data-project-id'",
   "'data-script-project-id'"
 ].forEach(token => assert(renderer.includes(token), `missing project library contract: ${token}`));

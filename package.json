@@ -55,6 +55,7 @@
     "test:canvas-h3-runtime": "node test_canvas_h3_runtime.js",
     "test:nomi-h3-multiref": "node test_nomi_h3_multiref_contract.js",
     "test:browser-smoke": "playwright test test_studio_clean_browser.spec.js --reporter=line",
+    "test:project-dispatch-browser": "node test_project_dispatch_browser.js",
     "test:quality-gate": "node scripts/run_quality_gate.js",
     "test:pwa-shell": "node test_pwa_shell.js",
     "check:release-governance": "node verify_canonical_release_gate.js --target https://ai.cauai.fun",
