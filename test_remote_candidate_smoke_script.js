@@ -14,6 +14,7 @@ assert.match(script, /\/opt\/node24\/bin\/node/);
 assert.match(script, /candidate_pid/);
 assert.match(script, /trap cleanup EXIT/);
 assert.match(script, /http:\/\/127\.0\.0\.1:\$\{port\}/);
+assert.match(script, /"\$verifier_path" "\$stage_root" "\$origin"/);
 assert.match(script, /api\/health/);
 assert.match(script, /value\?\.ok!==true/);
 assert.match(script, /for attempt in 1 2 3 4 5 6 7 8/);
