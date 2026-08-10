@@ -1,1 +1,1 @@
-import{j as s,R as e}from"./react-vendor-CRt0dbXk-r4.js?v=20260809-static-r4";import{C as r}from"./r3f-vendor-4GhrsGNk-r25-r4.js?v=20260809-static-r4";function c({fence:a=null,...n}){return s.jsx(e.Suspense,{fallback:a,children:s.jsx(r,{...n})})}export{c as F};
+import{j as s,R as e}from"./react-vendor-CRt0dbXk-r4.js?v=20260811-static-r5";import{C as r}from"./r3f-vendor-4GhrsGNk-r25-r4.js?v=20260811-static-r5";function c({fence:a=null,...n}){return s.jsx(e.Suspense,{fallback:a,children:s.jsx(r,{...n})})}export{c as F};
