@@ -24,7 +24,7 @@ candidate_pid=$!
 
 for attempt in 1 2 3 4 5 6 7 8; do
   if kill -0 "$candidate_pid" 2>/dev/null \
-    && /opt/node24/bin/node "$verifier_path" "$stage_root" >"$tmp_status" 2>&1 \
+    && /opt/node24/bin/node "$verifier_path" "$stage_root" "$origin" >"$tmp_status" 2>&1 \
     && curl -fsS --max-time 5 "$origin/api/health" >"$tmp_health" 2>/dev/null \
     && /opt/node24/bin/node -e "const fs=require('fs'); const value=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); if(value?.ok!==true) process.exit(1)" "$tmp_health"; then
     cat "$tmp_status"
