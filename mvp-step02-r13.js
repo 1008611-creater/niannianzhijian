@@ -723,7 +723,10 @@
     const query = (search?.value || '').trim().toLowerCase();
     const selected = filter?.value || 'all';
     const selectedType = projectTypeFilter?.value || 'all';
-    const rows = state.scriptProjects.map(project => ({...project, projectKind:'script'})).filter(project => {
+    const rows = [
+      ...state.projects.map(project => ({...project, projectKind:'redraw'})),
+      ...state.scriptProjects.map(project => ({...project, projectKind:'script'}))
+    ].filter(project => {
       const runtimeStatus = String(project.runtime?.productionStatus || project.status || project.runtime?.currentNode || '').toLowerCase();
       const matchesText = !query || project.name.toLowerCase().includes(query) || project.id.toLowerCase().includes(query);
       const matchesType = selectedType === 'all' || selectedType === project.projectKind;
@@ -736,7 +739,7 @@
       return matchesText && matchesType && matchesStatus;
     });
     if (!rows.length) {
-      list.innerHTML = '<div class="project-empty"><strong>还没有匹配的项目</strong><span>创建小说短剧项目后，它会出现在这里并从当前质量门继续。</span></div>';
+      list.innerHTML = '<div class="project-empty"><strong>还没有匹配的项目</strong><span>创建项目后，它会出现在这里并从当前质量门继续。</span></div>';
       renderSummary();
       return;
     }
