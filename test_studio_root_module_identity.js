@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('assert/strict');
+const childProcess = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -37,9 +38,15 @@ assert.doesNotMatch(html, /web-runtime-adapter\.js(?:\?|['"])/);
 assert.doesNotMatch(html, /20260808-static-r[23]/);
 
 const assetLibraryPanel = fs.readFileSync(path.join(assetsRoot, 'AssetLibraryPanel-BHyPOGab-r4.js'), 'utf8');
-assert.match(assetLibraryPanel, /function Xt\(e\)/);
-assert.match(assetLibraryPanel, /e&&!m\.includes\(e\)&&m\.unshift\(e\)/);
+assert.match(assetLibraryPanel, /function Xt\(currentProjectId\)/);
+assert.match(assetLibraryPanel, /currentProjectId&&!m\.includes\(currentProjectId\)&&m\.unshift\(currentProjectId\)/);
 assert.match(assetLibraryPanel, /\{assets:M,refresh:O\}=Xt\(e\)/);
+const assetLibrarySyntax = childProcess.spawnSync(
+  process.execPath,
+  ['--input-type=module', '--check'],
+  { input: assetLibraryPanel, encoding: 'utf8' },
+);
+assert.equal(assetLibrarySyntax.status, 0, assetLibrarySyntax.stderr || 'asset library module syntax check failed');
 
 const reachable = new Set();
 const queue = [...starts];
