@@ -84,28 +84,40 @@
       </section>
 
       <section class="workspace view" data-view-panel="projects">
-        <div class="product-shell">
-          <header class="product-heading">
-            <div>
-              <span class="eyebrow">PROJECT LIBRARY</span>
+        <div class="product-shell project-hub-shell">
+          <header class="project-hub-header">
+            <div class="project-hub-title">
               <h2>项目管理</h2>
-              <p>在同一处查看当前账户的短剧项目与真实制作状态。</p>
+              <span class="project-hub-total" id="projectHubTotal">0 个项目</span>
+            </div>
+            <div class="project-hub-actions">
+              <button class="project-new-button" type="button" data-view="workbench">新建项目</button>
             </div>
           </header>
 
-          <div class="project-summary" id="projectSummary">
-            <article><span>全部项目</span><strong data-summary="total">0</strong></article>
-            <article><span>制作中</span><strong data-summary="active">0</strong></article>
-            <article><span>等待处理</span><strong data-summary="queued">0</strong></article>
-            <article><span>已交付</span><strong data-summary="completed">0</strong></article>
+          <div class="project-count-strip" id="projectSummary" role="group" aria-label="项目状态统计">
+            <button class="pcs-item is-active" type="button" data-count-filter="all" aria-pressed="true"><span>全部项目</span><strong data-summary="total">0</strong></button>
+            <button class="pcs-item" type="button" data-count-filter="running" aria-pressed="false"><span>制作中</span><strong data-summary="active">0</strong></button>
+            <button class="pcs-item" type="button" data-count-filter="queued" aria-pressed="false"><span>待处理</span><strong data-summary="queued">0</strong></button>
+            <button class="pcs-item" type="button" data-count-filter="completed" aria-pressed="false"><span>已交付</span><strong data-summary="completed">0</strong></button>
           </div>
 
-          <div class="project-toolbar">
-            <label class="project-search"><span>搜索</span><input id="projectSearch" type="search" placeholder="项目名称或任务编号"></label>
-            <label class="project-filter"><span>状态</span><select id="projectStatusFilter"><option value="all">全部状态</option><option value="queued">等待处理</option><option value="running">制作中</option><option value="completed">已完成</option><option value="blocked">已阻塞</option></select></label>
+          <div class="project-toolbar" id="projectToolbar">
+            <label class="project-search">
+              <svg class="project-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <span class="sr-only">搜索项目</span>
+              <input id="projectSearch" type="search" placeholder="项目名称或编号">
+            </label>
+            <div class="project-type-switch" role="group" aria-label="项目类型筛选">
+              <button class="is-active" type="button" data-project-type="all">全部</button>
+              <button type="button" data-project-type="redraw">转绘</button>
+              <button type="button" data-project-type="script">制剧</button>
+              <select id="projectTypeFilter" class="project-type-source" tabindex="-1" aria-hidden="true"><option value="all">全部</option><option value="redraw">转绘</option><option value="script">制剧</option></select>
+            </div>
+            <label class="project-filter"><span>状态</span><select id="projectStatusFilter"><option value="all">全部状态</option><option value="queued">待处理</option><option value="running">制作中</option><option value="completed">已交付</option><option value="blocked">已阻塞</option></select></label>
           </div>
 
-          <div class="project-grid project-grid-live" id="projectList" aria-live="polite"></div>
+          <div class="project-board" id="projectList" aria-live="polite"></div>
         </div>
       </section>
 
