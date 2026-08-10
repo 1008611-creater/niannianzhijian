@@ -7,7 +7,7 @@ const vm = require('vm');
 (async () => {
 const source = fs.readFileSync(require('path').join(__dirname, 'studio/assets/web-runtime-adapter-r4.js'), 'utf8');
 const studioIndex = fs.readFileSync(require('path').join(__dirname, 'studio/index.html'), 'utf8');
-assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260811-image2-channels-r2/);
+assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260811-web-assets-r3/);
 assert.match(source, /\/api\/canvas\/provider-status/);
 assert.match(source, /\/api\/projects\/.*\/canvas\/jobs/);
 assert.match(source, /\/api\/projects\/.*\/text\/jobs/);
@@ -20,6 +20,7 @@ assert.match(source, /!isWebOrigin\s*&&\s*existingBridge/);
 
 const calls = [];
 const requestBodies = [];
+const uploadRequests = [];
 const context = {
   window: {location: {search: '?step=generate', hash: '#/studio?projectId=NN-LOCAL-0001'}},
   URLSearchParams,
@@ -31,6 +32,9 @@ const context = {
   Math,
   JSON,
   Promise,
+  Blob,
+  FormData,
+  Uint8Array,
   setTimeout,
   crypto: {randomUUID: () => '00000000-0000-0000-0000-000000000000'},
   fetch: async (pathname, options = {}) => {
@@ -52,6 +56,10 @@ const context = {
       requestBodies.push(JSON.parse(options.body));
       return {ok:true,json:async() => ({job:{id:'CGJ-test',nodeType:'video',status:'running',outputAssetIds:[]}})};
     }
+    if (pathname.endsWith('/assets')) {
+      uploadRequests.push({pathname, options});
+      return {ok:true,json:async() => ({asset:{id:'CAS-1234567890abcdef12345678',downloadUrl:'/api/projects/NN-LOCAL-0001/assets/CAS-1234567890abcdef12345678/download'}})};
+    }
     throw new Error('unexpected request');
   }
 };
@@ -60,6 +68,15 @@ assert.ok(context.window.nomiDesktop);
 assert.equal(typeof context.window.nomiDesktop.tasks.runTextStream, 'function');
 assert.equal(typeof context.window.nomiDesktop.tasks.onTextEvent, 'function');
 assert.equal(typeof context.window.nomiDesktop.tasks.cancelTextStream, 'function');
+assert.equal(typeof context.window.nomiDesktop.assets.importFile, 'function');
+const imported = await context.window.nomiDesktop.assets.importFile({projectId:'NN-LOCAL-0001',fileName:'reference.png',contentType:'image/png',bytes:new Uint8Array([137,80,78,71])});
+assert.equal(imported.id, 'CAS-1234567890abcdef12345678');
+assert.equal(imported.data.url, '/api/projects/NN-LOCAL-0001/assets/CAS-1234567890abcdef12345678/download');
+assert.equal(uploadRequests.length, 1);
+assert.equal(uploadRequests[0].options.method, 'POST');
+assert.equal(uploadRequests[0].options.headers['x-niannian-project-kind'], 'redraw');
+assert.ok(uploadRequests[0].options.body instanceof FormData);
+assert.equal(uploadRequests[0].options.body.get('referenceImage').name, 'reference.png');
 await new Promise((resolve) => setTimeout(resolve, 10));
 const imageModels = await context.window.nomiDesktop.modelCatalog.listModels({kind:'image'});
 assert.deepEqual(Array.from(imageModels, (model) => [model.modelKey, model.meta.outputSizes]), [

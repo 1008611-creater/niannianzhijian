@@ -194,6 +194,30 @@
     }).filter(Boolean)));
   }
 
+  async function importProjectAsset(payload) {
+    var input = payload && typeof payload === 'object' ? payload : {};
+    var project = String(input.projectId || projectId()).trim();
+    if (!project) throw new Error('请从念念项目中打开画布后再导入素材');
+    var contentType = String(input.contentType || 'application/octet-stream').toLowerCase();
+    var fieldName = contentType.startsWith('image/')
+      ? 'referenceImage'
+      : (contentType.startsWith('video/') ? 'referenceVideo' : (contentType.startsWith('audio/') ? 'referenceAudio' : ''));
+    if (!fieldName) throw new Error('当前文件类型不能作为画布参考素材');
+    var form = new FormData();
+    form.append(fieldName, new Blob([input.bytes], {type: contentType}), String(input.fileName || 'reference-media'));
+    var response = await api('/api/projects/' + encodeURIComponent(project) + '/assets', {
+      method: 'POST',
+      headers: {'x-niannian-project-kind': canvasProjectKind()},
+      body: form
+    });
+    if (!response.asset || !response.asset.id || !response.asset.downloadUrl) throw new Error('服务器没有返回项目素材');
+    return {
+      id: response.asset.id,
+      data: {url: response.asset.downloadUrl},
+      raw: {asset: response.asset, idempotent: response.idempotent === true}
+    };
+  }
+
   function taskFromCanvasJob(job, project) {
     var type = job.nodeType === 'video' ? 'video' : 'image';
     var kind = type === 'video' ? 'text_to_video' : 'text_to_image';
@@ -427,6 +451,7 @@
   window.nomiDesktop = {
     platform: 'web',
     projects: projectsApi,
+    assets: {importFile: importProjectAsset},
     modelCatalog: {listVendors: listVendors, listModels: listModels, health: health, listMappings: async function () { return []; }},
     tasks: {
       run: runTask,
