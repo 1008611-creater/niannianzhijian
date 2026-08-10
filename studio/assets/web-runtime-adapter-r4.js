@@ -218,6 +218,41 @@
     };
   }
 
+  function browserAssetFromProjectAsset(asset) {
+    if (!asset || typeof asset !== 'object' || !asset.id) return null;
+    var contentType = String(asset.mimeType || '').toLowerCase();
+    var mediaType = contentType.startsWith('image/')
+      ? 'image'
+      : (contentType.startsWith('video/') ? 'video' : (contentType.startsWith('audio/') ? 'audio' : ''));
+    if (!mediaType) return null;
+    return {
+      id: String(asset.id),
+      name: String(asset.originalName || asset.id),
+      createdAt: asset.createdAt,
+      updatedAt: asset.updatedAt,
+      data: {
+        mediaType: mediaType,
+        contentType: contentType,
+        kind: String(asset.kind || 'project-asset'),
+        title: String(asset.originalName || ''),
+        url: String(asset.downloadUrl || '')
+      }
+    };
+  }
+
+  async function listProjectAssets(payload) {
+    var input = payload && typeof payload === 'object' ? payload : {};
+    var project = String(input.projectId || projectId()).trim();
+    if (!project) return {items: [], cursor: null};
+    var response = await api('/api/projects/' + encodeURIComponent(project) + '/assets', {
+      headers: {'x-niannian-project-kind': canvasProjectKind()}
+    });
+    var items = Array.isArray(response.assets)
+      ? response.assets.map(browserAssetFromProjectAsset).filter(Boolean)
+      : [];
+    return {items: items, cursor: null};
+  }
+
   function taskFromCanvasJob(job, project) {
     var type = job.nodeType === 'video' ? 'video' : 'image';
     var kind = type === 'video' ? 'text_to_video' : 'text_to_image';
@@ -451,7 +486,7 @@
   window.nomiDesktop = {
     platform: 'web',
     projects: projectsApi,
-    assets: {importFile: importProjectAsset},
+    assets: {importFile: importProjectAsset, list: listProjectAssets},
     modelCatalog: {listVendors: listVendors, listModels: listModels, health: health, listMappings: async function () { return []; }},
     tasks: {
       run: runTask,
