@@ -365,3 +365,28 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .auto-redraw-job-list dl div { display:flex; justify-content:space-between; gap:10px; }
 .auto-redraw-job-list dd { max-width:62%; margin:0; overflow:hidden; color:var(--nn-text); font-size:12px; text-align:right; text-overflow:ellipsis; white-space:nowrap; }
 @media (max-width:620px) { .auto-redraw-entry { display:none; } .auto-redraw-shell { width:calc(100% - 20px); margin:10px auto; } .auto-redraw-shell > header { padding:18px; } .auto-redraw-shell main { grid-template-columns:1fr; } .auto-redraw-shell form { border-right:0; border-bottom:1px solid var(--nn-line); padding:18px; } .auto-redraw-shell main > section { padding:18px; } .auto-redraw-fields { grid-template-columns:1fr; } }
+
+/* Docs and team first-level surfaces */
+.docs-view, .team-view { background: var(--nn-canvas); }
+.docs-view .docs-shell { width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding: 42px 0 64px; }
+.docs-heading { margin-bottom: 24px; }
+.docs-quick-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; padding: 10px; border: 1px solid var(--nn-line); border-radius: 6px; background: var(--nn-panel); }
+.docs-quick-nav button { min-height: 38px; padding: 0 12px; border: 1px solid var(--nn-line); border-radius: 4px; background: var(--nn-panel-quiet); color: var(--nn-text-muted); font-size: 13px; }
+.docs-quick-nav button:hover, .docs-quick-nav button:focus-visible { border-color: var(--nn-accent); color: var(--nn-text); }
+.docs-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.docs-card { position: relative; min-height: 262px; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 14px; padding: 22px; border: 1px solid var(--nn-line); border-radius: 6px; background: var(--nn-panel); transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease; }
+.docs-card:hover, .docs-card:focus-within { border-color: var(--nn-accent); background: var(--nn-panel-raised); transform: translateY(-2px); }
+.docs-card-index { align-self: start; color: var(--nn-accent); font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 800; }
+.docs-card h3 { margin: 8px 0 0; color: var(--nn-text); font-family: var(--nn-font-display); font-size: 20px; line-height: 1.25; }
+.docs-card p { margin: 10px 0 0; color: var(--nn-text-muted); font-size: 13px; line-height: 1.65; }
+.docs-card button, .docs-card .docs-card-link { align-self: end; justify-self: start; min-height: 38px; display: inline-flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--nn-line-strong); border-radius: 4px; background: transparent; color: var(--nn-text); font-size: 13px; text-decoration: none; }
+.docs-card button:hover, .docs-card button:focus-visible, .docs-card .docs-card-link:hover, .docs-card .docs-card-link:focus-visible { border-color: var(--nn-accent); color: #fff; }
+.team-view .team-shell { width: min(1180px, calc(100% - 48px)); max-width: none; margin: 0 auto; padding: 42px 0 64px; }
+@media (max-width: 900px) { .docs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .docs-view .docs-shell, .team-view .team-shell { width: calc(100% - 28px); padding: 26px 0 44px; }
+  .docs-grid { grid-template-columns: 1fr; }
+  .docs-card { min-height: 0; padding: 18px; }
+  .docs-quick-nav { overflow-x: auto; flex-wrap: nowrap; padding: 8px; }
+  .docs-quick-nav button { flex: 0 0 auto; }
+}

@@ -23,6 +23,11 @@ This directory is the canonical source for NianNian AI's Haika server execution 
   highest-value unfinished user path and its smallest executable action. Tell
   the product owner that action, why it has the highest information or delivery
   value, and the selected Skill route before executing it.
+- The plan statement is a progress update, not a pause. After telling the
+  product owner the plan, execute it immediately and keep going until the
+  in-scope result is verified. Do not wait for a second confirmation unless the
+  next action hits a hard boundary below (deployment, credential access,
+  material cost, account/permission change, irreversible external change).
 - Route the action through the narrowest applicable local Skill or verified
   GitHub method. State the Skill's exact section and only the direct
   dependencies that affect the current result; do not stack unrelated routes.

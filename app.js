@@ -119,7 +119,7 @@ function setView(viewName, { syncHash = true, scroll = "preserve" } = {}) {
     window.location.replace(projectId ? "/studio/#/studio?projectId=" + encodeURIComponent(projectId) : "/studio/");
     return;
   }
-  if (["showcase", "guide", "team"].includes(viewName)) {
+  if (["showcase", "guide"].includes(viewName)) {
     viewName = "workbench";
   }
   const panelName = viewName.startsWith("script/")
@@ -157,7 +157,7 @@ function animateTopLevelView(panelName) {
   if (!canPlayTopLevelMotion()) return;
   const panel = viewPanels.find((item) => item.dataset.viewPanel === panelName);
   if (!panel) return;
-  const targets = Array.from(panel.querySelectorAll(".hero-copy, .product-heading, .project-summary, .project-toolbar, .project-grid, .workbench-header, .workbench-deck, .page-heading, .showcase-grid, .guide-header, .guide-layout, .team-shell > *")).slice(0, 5);
+  const targets = Array.from(panel.querySelectorAll(".hero-copy, .product-heading, .project-summary, .project-toolbar, .project-grid, .workbench-header, .workbench-deck, .page-heading, .showcase-grid, .guide-header, .guide-layout, .team-shell > *, .docs-heading, .docs-quick-nav, .docs-grid > *")).slice(0, 5);
   if (!targets.length) return;
   window.gsap.killTweensOf(targets);
   panel.classList.add("view-motion-active");

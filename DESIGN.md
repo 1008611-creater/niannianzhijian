@@ -43,13 +43,19 @@ geometry:
 
 | 界面 | 权威目标图 | 必须保留的核心 |
 | --- | --- | --- |
-| 项目库 | [01-project-hub-desktop.png](docs/frontend-targets/01-project-hub-desktop.png) | 三入口、项目状态、待确认、继续动作 |
+| 首页 | [00-home-desktop.png](docs/frontend-targets/00-home-desktop.png) | 念念品牌、全屏主视觉、核心文案、主 CTA |
+| 项目库 | [01-project-hub-desktop.png](docs/frontend-targets/01-project-hub-desktop.png) | 项目状态、待确认、继续动作 |
 | Studio 画布 | [02-studio-canvas-desktop.png](docs/frontend-targets/02-studio-canvas-desktop.png) | 项目身份、保存状态、节点输入、任务检查器 |
 | 生成结果 | [03-generation-inspector-desktop.png](docs/frontend-targets/03-generation-inspector-desktop.png) | 可播放结果、输入证据、质量检查、采用/重试 |
 | 素材库 | [04-asset-library-desktop.png](docs/frontend-targets/04-asset-library-desktop.png) | 项目范围、使用关系、候选/采用/失效状态 |
 | 移动端 | [05-studio-mobile.png](docs/frontend-targets/05-studio-mobile.png) | 项目身份、当前状态、结果预览、单一主操作 |
+| 工作台 | [06-workbench-desktop.png](docs/frontend-targets/06-workbench-desktop.png) | 四等权入口、编号卡片、黑色编辑部视觉 |
+| Studio 项目库 | [07-studio-project-library-desktop.png](docs/frontend-targets/07-studio-project-library-desktop.png) | 三种开始动作、浅色 Studio 世界、来源筛选 |
+| 导演台 | [08-director-desk-desktop.png](docs/frontend-targets/08-director-desk-desktop.png) | 3D 视口、场景树、摄像机检查器、主站返回路径 |
 
 可编辑的目标图源文件为 [target-prototype.html](docs/frontend-targets/target-prototype.html)，重建脚本为 [capture-targets.js](docs/frontend-targets/capture-targets.js)。目标图变更必须与本文件和施工图同步提交。
+
+任何目标图在取得权威地位前，必须通过 [docs/frontend-inheritance-matrix.md](docs/frontend-inheritance-matrix.md) 的逐项 A/B/C/D 对照。
 
 ## 视觉世界
 
@@ -94,7 +100,7 @@ UI/UX Pro Max 的通用推荐包含紫色 AI 渐变、玻璃拟态、环境光�
 
 ### 项目库
 
-- 首屏必须出现产品名、三个等权入口、最近项目和至少一个可执行动作。
+- 首屏必须出现产品名、四个等权入口、最近项目和至少一个可执行动作。
 - 项目条目按名称、生产类型、状态、待处理事项、更新时间和继续动作排列。
 - 促销、模型新闻、社区作品和价格信息不能插入项目主路径。
 
@@ -117,6 +123,18 @@ UI/UX Pro Max 的通用推荐包含紫色 AI 渐变、玻璃拟态、环境光�
 - 默认限定当前项目，跨项目复用必须显式选择。
 - 卡片显示类型、规格、所属项目、被使用次数、确认/候选/采用/失效状态。
 - 预览、添加到画布、替换引用、下载和删除是独立动作；删除必须解释受影响引用。
+
+### 全局导航
+
+- 顶部导航固定六项，顺序为首页、工作台、导演台、项目管理、团队管理、使用文档。
+- 六项保持同一位置、选中态和路由语义；移动端折叠为菜单，不改变顺序。
+- 团队管理与使用文档在目标页面未建成前显示明确能力状态，不出现空白或假成功。
+
+### 工作台四模块
+
+- 四入口保持等权编号卡片：01 无限画布、02 一键转绘、03 一键制剧、04 智能剪辑。
+- 卡片显示真实能力状态；未具备服务端执行路径的模块标明“编辑/参考”或明确阻塞，不虚构生成能力。
+- 每块入口必须落到真实页面或明确恢复路径，禁止用静态占位代替可执行入口。
 
 ## 组件与图标
 
