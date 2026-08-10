@@ -218,8 +218,10 @@
     };
   }
 
-  function browserAssetFromProjectAsset(asset) {
+  function browserAssetFromProjectAsset(asset, fallbackProjectId) {
     if (!asset || typeof asset !== 'object' || !asset.id) return null;
+    var assetProjectId = String(asset.projectId || fallbackProjectId || '').trim();
+    if (!assetProjectId) return null;
     var contentType = String(asset.mimeType || '').toLowerCase();
     var mediaType = contentType.startsWith('image/')
       ? 'image'
@@ -227,6 +229,7 @@
     if (!mediaType) return null;
     return {
       id: String(asset.id),
+      projectId: assetProjectId,
       name: String(asset.originalName || asset.id),
       createdAt: asset.createdAt,
       updatedAt: asset.updatedAt,
@@ -235,6 +238,7 @@
         contentType: contentType,
         kind: String(asset.kind || 'project-asset'),
         title: String(asset.originalName || ''),
+        relativePath: 'project-assets/' + String(asset.id),
         url: String(asset.downloadUrl || '')
       }
     };
@@ -248,7 +252,7 @@
       headers: {'x-niannian-project-kind': canvasProjectKind()}
     });
     var items = Array.isArray(response.assets)
-      ? response.assets.map(browserAssetFromProjectAsset).filter(Boolean)
+      ? response.assets.map(function (asset) { return browserAssetFromProjectAsset(asset, project); }).filter(Boolean)
       : [];
     return {items: items, cursor: null};
   }
@@ -302,7 +306,14 @@
     };
   }
   var projectsApi = {
-    list: function () { return webProjects.slice().sort(function (a, b) { return Number(b.updatedAt || 0) - Number(a.updatedAt || 0); }); },
+    list: function () {
+      var listed = webProjects.slice().sort(function (a, b) { return Number(b.updatedAt || 0) - Number(a.updatedAt || 0); });
+      var currentProjectId = projectId();
+      if (currentProjectId && !listed.some(function (item) { return item.id === currentProjectId; })) {
+        listed.unshift({id: currentProjectId, name: '未命名项目', canvasOnly: true});
+      }
+      return listed;
+    },
     create: function (record) {
       var now = Date.now();
       var created = Object.assign({}, record || {}, {id: newWebProjectId(), createdAt: now, updatedAt: now, revision: 0, savedAt: now, canvasOnly: true});
