@@ -1,0 +1,5 @@
+Reading this as: a high-fidelity responsive redesign-preserve of NianNian AI Studio on a 390x844 phone viewport.
+
+Use the supplied mobile Studio screenshot as structural evidence. Preserve the current Studio identity, project context, one primary action, mode/state visibility, resource access, and the ability to recover or continue work. Recompose for a real 390x844 viewport with no horizontal scrolling: readable title and stage, compact but stable controls, thumb-friendly actions at least 44px, a single focused canvas/inspector surface, and a clear sticky or reachable next action. Use the confirmed NianNian material language, warm-white text, deep gold active state, and one restrained magenta accent.
+
+Do not shrink a desktop freeform canvas into illegibility, hide required status, overlap text with controls, invent provider responses, show keys, use purple gradients, or make a static mock look like a completed task. Output a polished 390x844 portrait interface direction image without browser chrome or annotations.

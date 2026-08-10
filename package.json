@@ -39,6 +39,7 @@
     "test:n05-regeneration-orchestrator": "node test_n05_regeneration_orchestrator.js",
     "test:visual-motion": "node test_web_visual_motion_system.js",
     "test:command-palette": "node test_command_palette.js",
+    "test:main-nav-team-docs": "node test_main_nav_team_docs.js",
     "test:workbench-view-transition": "node test_workbench_view_transition.js",
     "test:workspace-draft-recovery": "node test_workspace_draft_recovery.js",
     "test:visual-motion-browser": "playwright test test_web_visual_motion_browser.spec.js --reporter=line",

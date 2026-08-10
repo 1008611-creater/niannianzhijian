@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="./product.css?v=20260804-workbench-clarity-r2" />
       <link rel="stylesheet" href="./director-desk.css?v=20260805-owned-canvas-director-import-r2" />
     <link rel="stylesheet" href="./step04-delivery.css?v=20260802-step04-word-delivery-r3" />
-    <link rel="stylesheet" href="./product-system.css?v=20260727-step02-public-projection-r1" />
+<link rel="stylesheet" href="./product-system.css?v=20260810-workbench-team-docs-r1" />
     <link rel="stylesheet" href="./hero-oil-paint.css?v=20260727-step02-public-projection-r1" />
     <link rel="stylesheet" href="./amber-authority.css?v=20260802-unified-header-r3" />
   </head>
@@ -36,9 +36,11 @@
 
       <nav class="main-nav" id="primaryNavigation" aria-label="主导航">
         <button class="nav-item is-active" data-view="home">首页</button>
-        <button class="nav-item" data-view="projects">项目管理</button>
         <button class="nav-item" data-view="workbench">工作台</button>
         <button class="nav-item" data-view="director-desk">导演台</button>
+        <button class="nav-item" data-view="projects">项目管理</button>
+        <button class="nav-item" data-view="team">团队管理</button>
+        <button class="nav-item" data-view="docs">使用文档</button>
         <div class="mobile-account-actions" aria-label="账户操作">
           <button type="button" data-modal="register">注册</button>
           <button type="button" data-modal="enterprise">企业方案</button>
@@ -113,6 +115,87 @@
         </div>
       </section>
 
+      <section class="workspace view team-view" data-view-panel="team">
+        <div class="team-shell">
+          <div id="teamContent" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="workspace view docs-view" data-view-panel="docs">
+        <div class="docs-shell">
+          <header class="product-heading docs-heading">
+            <div>
+              <span class="eyebrow">USER GUIDE</span>
+              <h2>使用文档</h2>
+              <p>先了解念念 AI 的每一个界面能做什么，再选择适合你的创作路径。</p>
+            </div>
+          </header>
+          <div class="docs-quick-nav" aria-label="使用文档快速导航">
+            <button type="button" data-view="home">首页</button>
+            <button type="button" data-view="workbench">工作台</button>
+            <button type="button" data-view="director-desk">导演台</button>
+            <button type="button" data-view="projects">项目管理</button>
+            <button type="button" data-view="team">团队管理</button>
+          </div>
+          <div class="docs-grid" aria-live="polite">
+            <article class="docs-card">
+              <span class="docs-card-index" aria-hidden="true">01</span>
+              <div>
+                <span class="eyebrow">HOME</span>
+                <h3>首页</h3>
+                <p>品牌入口与电影感主视觉。点击“开始创作”进入工作台，不需要先理解模型或工作流。</p>
+              </div>
+              <button type="button" data-view="home">查看首页 <b aria-hidden="true">&#8594;</b></button>
+            </article>
+            <article class="docs-card">
+              <span class="docs-card-index" aria-hidden="true">02</span>
+              <div>
+                <span class="eyebrow">WORKBENCH</span>
+                <h3>工作台</h3>
+                <p>四个等权入口：无限画布、一键转绘、一键制剧、智能剪辑。每个入口都有明确能力状态与下一步。</p>
+              </div>
+              <button type="button" data-view="workbench">打开工作台 <b aria-hidden="true">&#8594;</b></button>
+            </article>
+            <article class="docs-card">
+              <span class="docs-card-index" aria-hidden="true">03</span>
+              <div>
+                <span class="eyebrow">DIRECTOR DESK</span>
+                <h3>导演台</h3>
+                <p>在 3D 视口中组织角色、机位与场景，生成分镜草稿并准备视频任务，结果回到项目交付。</p>
+              </div>
+              <button type="button" data-view="director-desk">打开导演台 <b aria-hidden="true">&#8594;</b></button>
+            </article>
+            <article class="docs-card">
+              <span class="docs-card-index" aria-hidden="true">04</span>
+              <div>
+                <span class="eyebrow">PROJECT LIBRARY</span>
+                <h3>项目管理</h3>
+                <p>查看全部项目、制作中、等待处理与已交付状态，从最近项目一步继续当前任务。</p>
+              </div>
+              <button type="button" data-view="projects">打开项目管理 <b aria-hidden="true">&#8594;</b></button>
+            </article>
+            <article class="docs-card">
+              <span class="docs-card-index" aria-hidden="true">05</span>
+              <div>
+                <span class="eyebrow">TEAM WORKSPACE</span>
+                <h3>团队管理</h3>
+                <p>查看当前账户的工作区边界、项目归属与协作入口；成员与权限能力将按产品确认继续补齐。</p>
+              </div>
+              <button type="button" data-view="team">查看团队工作区 <b aria-hidden="true">&#8594;</b></button>
+            </article>
+            <article class="docs-card">
+              <span class="docs-card-index" aria-hidden="true">06</span>
+              <div>
+                <span class="eyebrow">SHORT DRAMA</span>
+                <h3>无限画布</h3>
+                <p>组织脚本、素材、关键帧、图像与视频任务。文本模型配置完成后，节点可检查、生成、采用与下载。</p>
+              </div>
+              <a class="docs-card-link" href="/studio/#/studio">进入无限画布 <b aria-hidden="true">&#8594;</b></a>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section class="workspace view workspace-tool-view" data-view-panel="redraw-intake" aria-label="一键转绘">
         <div class="workspace-tool-shell" id="redrawIntakeContent" aria-live="polite"></div>
       </section>
@@ -153,7 +236,7 @@
       <button class="wizard-close" type="button" data-close-script-drama-wizard aria-label="关闭">×</button>
       <div class="wizard-intro">
         <span class="eyebrow">SHORT DRAMA</span>
-        <h2 id="scriptDramaWizardTitle">一键短剧</h2>
+        <h2 id="scriptDramaWizardTitle">一键制剧</h2>
       </div>
       <form id="scriptDramaCreateForm" class="project-create-form">
         <label class="form-field form-field-wide"><span>项目名称</span><input name="name" required maxlength="80" placeholder="例如：离婚当天，被白月光拐进民政局"></label>
@@ -209,8 +292,8 @@
 
     <script src="./vendor/gsap-3.13.0.min.js?v=3.13.0"></script>
     <script src="./vendor/gsap-flip-3.13.0.min.js?v=3.13.0"></script>
-    <script src="./app.js?v=20260807-local-auth-r1"></script>
-    <script src="./mvp-step02-r13.js?v=20260804-workbench-clarity-r2" defer></script>
+<script src="./app.js?v=20260810-workbench-team-docs-r1"></script>
+<script src="./mvp-step02-r13.js?v=20260810-workbench-team-docs-r1" defer></script>
     <script src="./mvp-step03-r1.js?v=20260727-step02-public-projection-r1" defer></script>
     <script src="./mvp-step01-ledger-r1.js?v=20260727-step02-public-projection-r1" defer></script>
     <script src="./mvp-step01-story-r1.js?v=20260727-step02-public-projection-r1" defer></script>

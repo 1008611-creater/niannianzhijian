@@ -1,0 +1,5 @@
+Reading this as: a high-fidelity redesign-preserve of NianNian AI's director desk for shot blocking and camera planning.
+
+Use the supplied director-desk screenshot as structural evidence. Preserve the host navigation and return-to-workbench path, director/camera view switch, scene-object tree, 3D viewport, camera property inspector, FOV and coordinate controls, scene save, storyboard draft, video-task preparation, delivery-page action, screenshot capture, and object visibility/lock semantics. Improve visual craft with a professional film-previsualization desk: stable dark viewport, readable neutral panels, one gold active state, restrained magenta selection, clear tool grouping, realistic grid depth, and enough workspace for scene reasoning.
+
+Do not replace the current 3D route with a static illustration, invent a server-side 3D generation capability, expose provider details or keys, use purple gradients, decorative orbs, fake scene results, or hide the return and delivery paths. Output a polished 1440x900 interface direction image without browser chrome or annotations; real 3D behavior remains the implementation acceptance boundary.

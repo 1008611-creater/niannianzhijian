@@ -1,0 +1,40 @@
+{
+  "schema_version": "niannian_online_readback_evidence_v1",
+  "captured_at": "2026-08-10",
+  "origin": "https://ai.cauai.fun",
+  "read_only": true,
+  "online_parity_claimed": false,
+  "deployment_authorized": false,
+  "routes": [
+    {
+      "path": "/",
+      "status": "observed",
+      "evidence": "Browser readback showed title '念念 AI - AI短剧创作平台', global navigation, start-creation action, and login/register entry."
+    },
+    {
+      "path": "/#/projects",
+      "status": "observed-fallback",
+      "evidence": "Unauthenticated readback returned the homepage; authenticated project management remains pending-verification."
+    },
+    {
+      "path": "/#/workbench",
+      "status": "observed-fallback",
+      "evidence": "Unauthenticated readback returned the homepage; authenticated workbench remains pending-verification."
+    },
+    {
+      "path": "/studio/#/studio",
+      "status": "observed",
+      "evidence": "Readback showed Studio project-library actions, project search/recent-project surface, and the text-model-not-connected state."
+    },
+    {
+      "path": "/#/director-desk",
+      "status": "observed-entry",
+      "evidence": "Readback showed the director-desk entry, return-to-workbench control, and iframe host; inner 3D behavior remains pending-verification."
+    }
+  ],
+  "not_evidence": [
+    "No cookies, credentials, private responses, user media, or provider raw responses were read or stored.",
+    "No route observation proves a real generated Word or video delivery.",
+    "No route observation claims online parity with the canonical source."
+  ]
+}

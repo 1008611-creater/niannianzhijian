@@ -1,0 +1,5 @@
+Reading this as: a high-fidelity redesign-preserve of NianNian AI's current Studio canvas for creators who repeatedly build shots and assets.
+
+Use the supplied Studio canvas screenshot as structural evidence. Preserve the current NianNian canvas family, project breadcrumb, 创作/生成/预览 modes, left resource groups, node graph and connections, minimap and zoom controls, bottom generation timeline, save state, and the AI generation side panel. Improve legibility and hierarchy with a restrained dark production surface, warm-white labels, deep-gold active state, one magenta selection accent, stable node dimensions, clear input/output ports, and enough negative space for actual work.
+
+Do not replace the canvas with a different app shell, restore #canvas or owned-canvas-director-import, invent unsupported node capabilities, expose provider details or keys, use fake jobs, purple AI gradients, glass cards, decorative orbs, or make the screenshot itself the interface. Keep every protected control readable at 1440x900 and output a polished interface direction image without browser chrome or annotations.

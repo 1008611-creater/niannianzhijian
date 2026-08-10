@@ -21,7 +21,7 @@ const launcherRenderer = source.slice(launcherStart, launcherEnd);
   'data-open-script-drama-wizard',
   '无限画布',
   '一键转绘',
-  '一键短剧',
+  '一键制剧',
   '智能剪辑',
   'https://edit.cauai.fun/'
 ].forEach(token => assert(launcherRenderer.includes(token), `missing workbench launcher contract: ${token}`));

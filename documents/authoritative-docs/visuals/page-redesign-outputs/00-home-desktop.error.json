@@ -1,0 +1,12 @@
+{
+  "reference": "docs/frontend-targets/00-home-desktop.png",
+  "prompt": "documents/authoritative-docs/visuals/page-redesign-prompts/00-home-desktop.txt",
+  "model": "gpt-image-2",
+  "size": "2048x1152",
+  "channel": "krill",
+  "status": 403,
+  "error_type": "forbidden_error",
+  "message": "your token is not authorized for any channel serving this model",
+  "generated_output": false,
+  "captured_at": "2026-08-10"
+}

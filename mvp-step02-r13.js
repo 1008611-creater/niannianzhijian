@@ -616,8 +616,11 @@
   function commandPaletteItems() {
     const navigation = [
       {id:'view:home', group:'页面', title:'首页', detail:'回到创作入口', type:'view', hash:'#home'},
+      {id:'view:workbench', group:'页面', title:'工作台', detail:'选择创作方式', type:'view', hash:'#workbench'},
+      {id:'view:director-desk', group:'页面', title:'导演台', detail:'3D 导演台与分镜准备', type:'view', hash:'#director-desk'},
       {id:'view:projects', group:'页面', title:'项目管理', detail:'查看所有项目', type:'view', hash:'#projects'},
-      {id:'view:workbench', group:'页面', title:'工作台', detail:'继续项目制作', type:'view', hash:'#workbench'}
+      {id:'view:team', group:'页面', title:'团队管理', detail:'查看团队工作区', type:'view', hash:'#team'},
+      {id:'view:docs', group:'页面', title:'使用文档', detail:'了解各界面功能', type:'view', hash:'#docs'}
     ];
     const creation = state.user ? [
       {id:'create:script', group:'新建', title:'新建小说短剧', detail:'从小说或剧本开始', type:'create-script'}
@@ -3135,7 +3138,7 @@
     return '<section class="workbench-launcher" aria-label="选择创作方式">'
       + '<a class="workbench-launch-card is-canvas" href="' + escapeHtml(canvasHref) + '">'
       + '<span class="workbench-launch-index" aria-hidden="true">01</span>'
-      + '<span class="workbench-launch-copy"><span class="workbench-launch-kicker">NOMI</span><strong>无限画布</strong></span>'
+      + '<span class="workbench-launch-copy"><span class="workbench-launch-kicker">念念画布</span><strong>无限画布</strong></span>'
       + '<span class="workbench-launch-arrow" aria-hidden="true">&#8594;</span>'
       + '</a>'
       + '<button class="workbench-launch-card" type="button" data-open-redraw-intake>'
@@ -3145,7 +3148,7 @@
       + '</button>'
       + '<button class="workbench-launch-card" type="button" data-open-script-drama-wizard>'
       + '<span class="workbench-launch-index" aria-hidden="true">03</span>'
-      + '<span class="workbench-launch-copy"><span class="workbench-launch-kicker">SCRIPT TO DRAMA</span><strong>一键短剧</strong></span>'
+      + '<span class="workbench-launch-copy"><span class="workbench-launch-kicker">SCRIPT TO DRAMA</span><strong>一键制剧</strong></span>'
       + '<span class="workbench-launch-arrow" aria-hidden="true">&#8594;</span>'
       + '</button>'
       + '<a class="workbench-launch-card" href="https://edit.cauai.fun/">'

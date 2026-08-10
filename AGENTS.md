@@ -23,6 +23,11 @@ This directory is the canonical source for NianNian AI's Haika server execution 
   highest-value unfinished user path and its smallest executable action. Tell
   the product owner that action, why it has the highest information or delivery
   value, and the selected Skill route before executing it.
+- The plan statement is a progress update, not a pause. After telling the
+  product owner the plan, execute it immediately and keep going until the
+  in-scope result is verified. Do not wait for a second confirmation unless the
+  next action hits a hard boundary below (deployment, credential access,
+  material cost, account/permission change, irreversible external change).
 - Route the action through the narrowest applicable local Skill or verified
   GitHub method. State the Skill's exact section and only the direct
   dependencies that affect the current result; do not stack unrelated routes.
@@ -144,6 +149,58 @@ When a task says `继续`, continue from the current approved scope and this dir
   Their acceptance criteria and ownership remain in GitHub Issues #6 through
   #10; do not describe the product as public-ready until those applicable
   outcomes are actually delivered.
+
+## Frontend Authority And Stage Gates
+
+- `PRODUCT.md` owns product truth, `DESIGN.md` owns durable visual and
+  interaction decisions, `FRONTEND_EXECUTION_PLAN.md` owns the current stage
+  order and acceptance evidence, and `docs/frontend-targets/` owns the target
+  interface images. Read all four before a frontend redesign, new surface, or
+  structural Studio change. Do not begin implementation when the current stage
+  has no named user result, target image, material states, responsive behavior,
+  and completion evidence.
+- For any reference-derived redesign, use this exact route and state it before
+  execution:
+
+  ```text
+  真实页面或当前实现证据
+  -> Hallmark study：references/study.md
+  -> UI/UX Pro Max：Workflow Step 1-4
+  -> Impeccable：shape / audit / polish
+  -> 目标图、实现、桌面与移动端证据
+  ```
+
+  Reference sites are evidence only. Never pixel-clone their layout, copy
+  proprietary assets or text, or let their model/provider taxonomy replace
+  NianNian's user language.
+- `Impeccable shape` confirms the bounded Operate-mode surface before code;
+  `audit` and `polish` are post-implementation quality gates. UI/UX Pro Max
+  recommendations are subordinate to `PRODUCT.md`, `DESIGN.md`, the protected
+  NianNian surfaces, and verified project constraints. Generic AI purple,
+  glassmorphism, glow, marketing heroes, and card-heavy dashboards are not
+  authority for this product.
+- Every frontend Issue and pull request must name exactly one stage from
+  `FRONTEND_EXECUTION_PLAN.md`, one primary user result, the matching target
+  image, affected files/API contracts, protected surfaces, material states,
+  desktop/mobile proof, and anything not verified. Keep one bounded surface per
+  change; a shared-shell or API-contract change must be isolated and reviewed
+  as its own change.
+- Target images define information hierarchy, state visibility, action
+  placement, and responsive retention, not fabricated backend capability.
+  Production UI must replace every example value with real project data and
+  must not turn the target image into a static mock, fake success state, empty
+  fallback, or placeholder workflow.
+- After implementation, verify the real local browser path at the target
+  viewport in `DESIGN.md`, plus the relevant clean-browser save/refresh,
+  loaded assets, API response, task recovery, and user-visible result. A test,
+  screenshot, HTTP `200`, queued task, or internal receipt alone is not
+  completion; the requested user action and readable project result are the
+  acceptance boundary.
+- A design change must not silently alter the approved homepage, Logo, current
+  canvas family, director desk, asset library, Image2/H3 adapters, Step01-Step04,
+  project data, or production routes. When real behavior conflicts with a
+  target image, preserve the working product, document the conflict, and update
+  the authority in a separate approved design change before broadening scope.
 
 ## Professional Website Development Skill
 

@@ -1,16 +1,16 @@
-const CACHE_NAME = 'niannian-app-shell-20260809-studio-module-bypass-r4';
+const CACHE_NAME = 'niannian-app-shell-20260810-workbench-team-docs-r1';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/styles.css?v=20260728-header-logo-removed-r1',
   '/product.css?v=20260727-media-direct-r1',
   '/video-batch-gate/video-batch-panel.css?v=20260727-video-batch-cost-gate-r1',
-  '/product-system.css?v=20260727-media-direct-r1',
+  '/product-system.css?v=20260810-workbench-team-docs-r1',
   '/hero-oil-paint.css?v=20260727-media-direct-r1',
   '/vendor/gsap-3.13.0.min.js?v=3.13.0',
   '/vendor/gsap-flip-3.13.0.min.js?v=3.13.0',
-  '/app.js?v=20260807-local-auth-r1',
-  '/mvp-step02-r13.js?v=20260804-workbench-clarity-r2',
+  '/app.js?v=20260810-workbench-team-docs-r1',
+  '/mvp-step02-r13.js?v=20260810-workbench-team-docs-r1',
   '/mvp-step03-r1.js?v=20260727-media-direct-r1',
   '/video-batch-gate/video-batch-panel.js?v=20260727-video-batch-cost-gate-r1',
   '/video-batch-gate/video-batch-integrated.js?v=20260727-video-batch-cost-gate-r1',

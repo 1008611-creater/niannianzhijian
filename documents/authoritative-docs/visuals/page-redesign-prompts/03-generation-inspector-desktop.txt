@@ -1,0 +1,5 @@
+Reading this as: a high-fidelity redesign-preserve of NianNian AI's generation inspector, where creators need confidence about inputs, readiness, cost boundaries, and recovery.
+
+Use the supplied generation-inspector screenshot as structural evidence. Preserve the current inspector location and purpose, input completeness/readiness, model and specification controls, generation action, adoption/result state, error recovery actions, and relationship to the Studio canvas and timeline. Improve the visual system with high-contrast warm-white typography, deep-black surface, gold primary action, restrained magenta status emphasis, explicit field grouping, stable control heights, and a calm business-language status hierarchy.
+
+Never reveal API keys, provider IDs, raw responses, signed URLs, internal paths, fake success, fake cost figures, or unsupported controls. Do not turn the inspector into a generic settings dashboard or a modal-only flow. Output a polished 1440x900 interface direction image with legible Chinese labels and no browser chrome or annotations; the real implementation remains HTML and real API state.

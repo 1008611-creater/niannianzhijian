@@ -1,0 +1,12 @@
+{
+  "reference": "docs/frontend-targets/00-home-desktop.png",
+  "prompt": "documents/authoritative-docs/visuals/page-redesign-prompts/00-home-desktop.txt",
+  "model": "gpt-image-2",
+  "size": "2048x1152",
+  "channel": "meinianda",
+  "status": 429,
+  "error_type": "invalid_request_error",
+  "message": "No active tokens available in the pool",
+  "generated_output": false,
+  "captured_at": "2026-08-10"
+}

@@ -1,0 +1,5 @@
+Reading this as: a high-fidelity redesign-preserve of NianNian AI's Studio project library, intentionally distinct from the dark main-site shell.
+
+Use the supplied Studio project-library screenshot as structural evidence. Preserve the light Studio visual world, 念念 项目库 identity, three start actions 新建空白项目 / 打开已有文件夹 / 60 秒预览, source filters, recent project cards, search, continue and delete semantics, and the real project/session boundary. Improve hierarchy, spacing, typography, thumbnail treatment, empty/loading/error states, and action clarity while keeping a restrained editorial workspace rather than a marketing page.
+
+Do not darken it into the main-site dashboard, invent project data, fake generation completion, expose provider details or credentials, add decorative card nesting, or replace real actions with screenshot text. Output a polished 1440x900 interface direction image with readable Chinese labels and no browser chrome or annotations.

@@ -1,97 +1,163 @@
 ---
 name: "念念 AI"
-description: "项目级 AI 视频生产工作台的视觉与交互合同"
+description: "受控 AI 视频生产工作台的视觉与交互合同"
+mode: "operate"
+dials:
+  variance: 5
+  motion: 3
+  density: 8
 colors:
-  workspace: "#000000"
-  surface: "#18181B"
-  surface-raised: "#27272A"
-  foreground: "#FAFAFA"
-  muted: "#A1A1AA"
-  border: "#3F3F46"
-  action: "#F8FAFC"
-  action-text: "#18181B"
-  destructive: "#EF4444"
+  workspace: "#09090A"
+  surface: "#141416"
+  surfaceRaised: "#1B1B1E"
+  border: "#303034"
+  foreground: "#F6F6F4"
+  muted: "#A3A3A8"
+  brand: "#F23BA7"
+  success: "#5ECB91"
+  warning: "#E8B45C"
+  danger: "#EE6A6A"
+  info: "#71A7EF"
 typography:
-  display:
-    fontFamily: "Inter, system-ui, sans-serif"
-    fontWeight: 600
-    lineHeight: 1.2
-    letterSpacing: "0"
-  body:
-    fontFamily: "Inter, system-ui, sans-serif"
-    fontWeight: 400
-    lineHeight: 1.5
-    letterSpacing: "0"
-rounded:
-  control: "4px"
-  panel: "6px"
-spacing:
-  tight: "8px"
-  standard: "16px"
-  section: "24px"
-components:
-  button-primary:
-    backgroundColor: "{colors.action}"
-    textColor: "{colors.action-text}"
-    rounded: "{rounded.control}"
-    padding: "10px 16px"
-  button-secondary:
-    backgroundColor: "transparent"
-    textColor: "{colors.foreground}"
-    rounded: "{rounded.control}"
-    padding: "10px 16px"
-  tool-panel:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.foreground}"
-    rounded: "{rounded.panel}"
+  ui: '"Noto Sans SC", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif'
+  weightBody: 400
+  weightLabel: 500
+  weightHeading: 650
+geometry:
+  controlRadius: "5px"
+  panelRadius: "6px"
+  baseSpacing: "8px"
 ---
 
-## Overview
+# 念念 AI 设计权威
 
-**Creative North Star: "电影感留在首页，生产决策留给工具。"** 念念 AI 是项目级视频生产工具，不是通用 AI 营销页。用户进入项目后，应先识别项目与当前动作，再看到真实状态、证据、下一步和交付物。
+## 创意北极星
 
-**The Protected Surface Rule.** 首页、已经由用户批准的工作台三入口、导演台和 Step01-Step04 是既有视觉证据。新功能不得借由共享 CSS、通用脚本或路由清理改变它们；需要重做时必须另行建立同一项目数据下的桌面与移动端对比。
+**电影感留在首页，生产决策留给工具。** 念念不是通用 AI 模型市场，也不是卡片式功能展厅。用户进入生产区后，项目、输入、状态、下一动作和结果必须比品牌装饰更清楚。
 
-**The Truthful Tool Rule.** 不用 mock、演示数据、Provider 原始回执或文件存在状态伪装生成完成。只有网站可读取的项目产物才可显示为交付。
+目标界面不是对 OiiOii、LibTV 或 RunningHub 的拼接。三站只提供公开证据，具体取舍见 [三站参考研究](docs/frontend-reference-study.md)。念念吸收它们的直接创作入口、高密度项目管理和真实作品证据，拒绝促销横幅、入口堆叠、模型品牌主导和卡片瀑布。
 
-## Colors
+## 权威目标图
 
-新建项目工具页使用近黑工作区、层级化深灰面板、暖白内容和中性灰边界。白色动作色只强调一个当前操作；红色只表示破坏性操作或明确失败。新页面不引入紫色、玫红、靛蓝、装饰渐变、玻璃拟态或环境光球。
+实现时以下图片定义目标结构与信息优先级；可因真实数据和现有组件做小范围适配，但不得删除图中表达的核心证据与动作。
 
-**The Neutral Evidence Rule.** 状态必须同时依靠文案、图标或结构表达，不能只依赖颜色。已批准旧页面中的历史色彩不扩散为新页面规范。
+| 界面 | 权威目标图 | 必须保留的核心 |
+| --- | --- | --- |
+| 首页 | [00-home-desktop.png](docs/frontend-targets/00-home-desktop.png) | 念念品牌、全屏主视觉、核心文案、主 CTA |
+| 项目库 | [01-project-hub-desktop.png](docs/frontend-targets/01-project-hub-desktop.png) | 项目状态、待确认、继续动作 |
+| Studio 画布 | [02-studio-canvas-desktop.png](docs/frontend-targets/02-studio-canvas-desktop.png) | 项目身份、保存状态、节点输入、任务检查器 |
+| 生成结果 | [03-generation-inspector-desktop.png](docs/frontend-targets/03-generation-inspector-desktop.png) | 可播放结果、输入证据、质量检查、采用/重试 |
+| 素材库 | [04-asset-library-desktop.png](docs/frontend-targets/04-asset-library-desktop.png) | 项目范围、使用关系、候选/采用/失效状态 |
+| 移动端 | [05-studio-mobile.png](docs/frontend-targets/05-studio-mobile.png) | 项目身份、当前状态、结果预览、单一主操作 |
+| 工作台 | [06-workbench-desktop.png](docs/frontend-targets/06-workbench-desktop.png) | 四等权入口、编号卡片、黑色编辑部视觉 |
+| Studio 项目库 | [07-studio-project-library-desktop.png](docs/frontend-targets/07-studio-project-library-desktop.png) | 三种开始动作、浅色 Studio 世界、来源筛选 |
+| 导演台 | [08-director-desk-desktop.png](docs/frontend-targets/08-director-desk-desktop.png) | 3D 视口、场景树、摄像机检查器、主站返回路径 |
 
-## Typography
+可编辑的目标图源文件为 [target-prototype.html](docs/frontend-targets/target-prototype.html)，重建脚本为 [capture-targets.js](docs/frontend-targets/capture-targets.js)。目标图变更必须与本文件和施工图同步提交。
 
-采用现有本地可用的无衬线字体栈。项目身份和当前动作使用紧凑清晰的标题层级；证据、状态、时间和元信息保持可扫读，不使用营销式巨型标题或人为缩小的小字。
+任何目标图在取得权威地位前，必须通过 [docs/frontend-inheritance-matrix.md](docs/frontend-inheritance-matrix.md) 的逐项 A/B/C/D 对照。
 
-**The Operational Hierarchy Rule.** 工具页的阅读顺序固定为：项目身份、当前动作、真实状态、下一动作、交付或恢复。长解释文字不是默认内容。
+## 视觉世界
 
-## Layout
+### 物理场景
 
-桌面端工具页为高密度、稳定轨道的操作界面；移动端按项目身份、当前状态、主操作、证据列表的顺序折叠。工作台首屏只保留三个等权入口。画布保持空间连续性，侧栏、检查器和浮层不能遮挡退出、保存、错误与主要操作。
+创作者在偏暗的剪辑环境中连续工作数小时，屏幕需要安静、稳定、能快速区分素材和状态，而不是持续发光或争夺注意力。
 
-**The Stable Geometry Rule.** 固定格式控件、工具栏、节点、预览与状态区必须有稳定尺寸约束；加载、长项目名、错误文本或状态变化不能推挤画布和主操作。所有新页面在 `390px` 不得出现横向滚动。
+### 色彩策略
 
-## Elevation & Depth
+- 生产页面使用近黑工作区、分层深灰面板、暖白正文和中性灰边界。
+- 品牌粉只标识当前选择、焦点和少量关键路径，不作为大面积背景或通用成功色。
+- 白色填充按钮只留给当前页面唯一主操作。
+- 绿色表示真实完成，蓝色表示进行中，琥珀表示需要处理，红色表示失败或破坏性动作。
+- 状态必须同时有文案、图标或结构，不能只靠颜色。
 
-以层级面板、细边框和轻微阴影表达深度，而非大面积悬浮卡片。模态框、工具检查器和画布浮层可以高于工作区；页面分区不是漂浮卡片堆叠。
+UI/UX Pro Max 的通用推荐包含紫色 AI 渐变、玻璃拟态、环境光和双字体组合，这些与念念既有品牌和 Operate 模式冲突，明确不采用。保留其密度 `8/10`、动效 `3/10`、WCAG、状态反馈和 React 实现建议。
 
-## Shapes
+### 字体
 
-控件使用克制的小圆角，面板最多 `6px`。图标按钮保持稳定的正方形触控区，图标来自一致图标库；只有明确命令可使用文字按钮。
+- 简体中文优先使用 Noto Sans SC 或本地等价无衬线字体；不依赖远程字体才能读清页面。
+- 页面标题 18-22px，面板标题 13-15px，正文 12-14px，辅助信息不低于 11px。
+- 标题用 600-650，控件与标签用 500，正文用 400；不使用负字距。
+- 项目名和错误文本允许换行或截断并提供完整查看，不能推挤主操作。
 
-## Components
+## 布局系统
 
-- 主按钮：每页只有一个与当前任务对应的主操作；加载和禁用状态不改变尺寸。
-- 次按钮与图标按钮：用于返回、关闭、缩放、撤销、重做、过滤和检查；陌生图标必须有悬停提示。
-- 节点：标题、输入/输出端口、状态和结果引用清晰分层；节点存储资产 ID 与任务 ID，不展示私有 URL 或 Provider 细节。
-- 状态：排队中、处理中、需要处理、已完成、失败与恢复动作必须为业务语言。
-- 交付项：仅展示当前项目且网站可读的 Word、图片、视频或其他媒体；打开、播放和下载是独立的真实动作。
+### 桌面
 
-## Do's and Don'ts
+- 项目库采用 `218px` 稳定侧栏、`66px` 顶栏和高密度内容区。
+- Studio 采用 `56px` 顶栏、`60px` 工具栏、可缩放画布和 `326-408px` 检查器。
+- 固定轨道只在该断点稳定，不用视口宽度缩放字体或节点。
+- 页面分区使用边界和轨道，不把每个区域做成悬浮卡片，也不嵌套卡片。
 
-- 保持首页不动；新产品页沿用黑白近黑、紧凑、安静、可扫描的工具方向。
-- 为键盘焦点、错误、空状态、权限拒绝、长文本和 `prefers-reduced-motion` 提供完整状态。
-- 动效只解释节点连接、任务状态、导入完成、面板切换和镜头预览；只使用 `transform` 与 `opacity`，时长约 150-220ms。
-- 不新增“第四个入口”、假指标、装饰性徽章、营销段落或低价值演示界面。
-- 不把浏览器本地状态、Provider Key、签名链接、文件路径、任务编号、SHA 或内部提示词显示给用户。
+### 移动端
+
+- `390px` 目标顺序固定为：项目身份、当前阶段、真实状态、结果或输入、质量证据、主操作。
+- 移动端不呈现可自由拖拽的完整桌面画布；改用当前节点/镜头的线性任务视图。
+- 底部导航最多四项，主操作在安全区上方保持稳定高度。
+- 不允许横向滚动、工具栏遮挡、长文本覆盖相邻内容或小于 44px 的主要触控目标。
+
+## 页面合同
+
+### 项目库
+
+- 首屏必须出现产品名、四个等权入口、最近项目和至少一个可执行动作。
+- 项目条目按名称、生产类型、状态、待处理事项、更新时间和继续动作排列。
+- 促销、模型新闻、社区作品和价格信息不能插入项目主路径。
+
+### Studio 画布
+
+- 顶栏始终显示项目和镜头身份、保存状态、撤销/重做、预览和主操作。
+- 节点分为标题、业务状态、输入/输出端口、核心内容和结果引用；端口与加载状态不能改变节点尺寸。
+- 选中节点的检查器必须解释输入是否完整、输出规格、任务状态和完成后去向。
+- 画布缩放、居中、迷你地图和退出路径必须在所有节点状态下可用。
+
+### 生成检查器
+
+- 生成前：显示真实输入证据、输出规格、可预见费用或额度信息和提交动作。
+- 生成中：显示可离开页面的持久状态、取消或返回路径，不要求用户保持标签页打开。
+- 生成后：先展示可播放/可读取结果，再展示质量检查，最后提供采用、重新生成和下载。
+- 失败：使用用户业务语言，保留输入和已有产物，并给出最窄恢复动作。
+
+### 素材库
+
+- 默认限定当前项目，跨项目复用必须显式选择。
+- 卡片显示类型、规格、所属项目、被使用次数、确认/候选/采用/失效状态。
+- 预览、添加到画布、替换引用、下载和删除是独立动作；删除必须解释受影响引用。
+
+### 全局导航
+
+- 顶部导航固定六项，顺序为首页、工作台、导演台、项目管理、团队管理、使用文档。
+- 六项保持同一位置、选中态和路由语义；移动端折叠为菜单，不改变顺序。
+- 团队管理与使用文档在目标页面未建成前显示明确能力状态，不出现空白或假成功。
+
+### 工作台四模块
+
+- 四入口保持等权编号卡片：01 无限画布、02 一键转绘、03 一键制剧、04 智能剪辑。
+- 卡片显示真实能力状态；未具备服务端执行路径的模块标明“编辑/参考”或明确阻塞，不虚构生成能力。
+- 每块入口必须落到真实页面或明确恢复路径，禁止用静态占位代替可执行入口。
+
+## 组件与图标
+
+- 使用 Lucide 或项目现有一致图标库；图标按钮提供可访问名称和陌生图标提示。
+- 主按钮每页一个，加载/禁用/完成状态不改变尺寸。
+- 选项集合用菜单、标签页或分段控件；布尔设置用开关/复选框；数值用输入、步进器或滑杆。
+- 卡片圆角最多 `6px`；卡片只用于项目、素材、结果和明确的工具容器。
+- 错误、空状态、加载、成功和权限状态均提供主动作或明确退出路径。
+
+## 动效
+
+- 只为节点连接、任务状态变化、面板切换、素材导入和结果出现提供动效。
+- 默认 150-220ms，只使用 `transform` 与 `opacity`；大范围页面进入最多 300-400ms。
+- 不使用持续漂浮、光球、环境呼吸、无意义滚动揭示或动画化背景。
+- 支持 `prefers-reduced-motion`，关闭非必要动画后功能和层级保持完整。
+
+## 无障碍与响应式
+
+- 目标 WCAG 2.1 AA；正文对比度至少 4.5:1，UI 边界和大文本至少 3:1。
+- 所有功能可由键盘访问；弹窗管理焦点并在关闭后返回触发点。
+- 动态任务状态使用 `aria-live`，输入不能只依赖 placeholder 作为标签。
+- 每次 UI 阶段至少验证 `1440x900` 与 `390x844`；共享壳变化再验证 `768px` 和 `1024px`。
+
+## 受保护表面
+
+首页、Logo、当前念念画布、素材库、Image2、H3、导演台、Step01-Step04 和现有 API 适配是已确认基线。目标图用于分阶段收敛，不授权一次性替换共享 CSS、路由、数据格式或现有生产行为。任何冲突先以真实功能和当前项目数据为准，再通过单独设计变更更新目标图与合同。
