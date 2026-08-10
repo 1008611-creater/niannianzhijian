@@ -36,8 +36,9 @@ test.beforeAll(async () => {
       ...process.env,
       DATA_DIR: dataDir,
       PORT: String(port),
-      NIANNIAN_TEXT_API_KEY: '',
-      NIANNIAN_TEXT_PROVIDER_SUBMIT: 'off',
+      NIANNIAN_TEXT_API_KEY: 'test-ready-text-provider-key',
+      NIANNIAN_TEXT_MODEL: 'gpt-5.6-luna',
+      NIANNIAN_TEXT_PROVIDER_SUBMIT: 'on',
       NIANNIAN_RUNNINGHUB_SUBMIT: 'off'
     },
     stdio: ['ignore', 'pipe', 'pipe']
@@ -92,6 +93,34 @@ test('Studio loads from a clean browser with one canonical module graph', async 
   expect(loadedModuleUrls.filter(url => /index-M-8MrEH2-r28-19b89ec-r4\.js/.test(url))).toHaveLength(1);
   expect(loadedModuleUrls.filter(url => /NomiStudioApp-DDB0IgSO-r28-19b89ec-r4\.js/.test(url))).toHaveLength(1);
   expect(failures).toEqual([]);
+
+  await context.close();
+});
+
+test('Studio project library reads a ready server text model', async ({browser}) => {
+  const context = await browser.newContext({viewport: {width: 1440, height: 900}});
+  await context.addCookies([{name: 'niannian_session', value: sessionToken, url: baseUrl}]);
+  const page = await context.newPage();
+
+  await page.goto(baseUrl + '/studio/', {waitUntil: 'networkidle'});
+  await expect(page.getByRole('button', {name: /新建空白项目/})).toBeVisible();
+  await expect(page.locator('[data-model-banner]')).toHaveCount(0);
+  await expect.poll(async () => page.evaluate(() => window.nomiDesktop?.modelCatalog
+    ?.listModels({kind: 'text'})
+    .some(model => model.modelKey === 'gpt-5.6-luna') === true)).toBe(true);
+
+  await context.close();
+});
+
+test('Studio project library keeps text readiness readable on mobile', async ({browser}) => {
+  const context = await browser.newContext({viewport: {width: 390, height: 844}});
+  await context.addCookies([{name: 'niannian_session', value: sessionToken, url: baseUrl}]);
+  const page = await context.newPage();
+
+  await page.goto(baseUrl + '/studio/', {waitUntil: 'networkidle'});
+  await expect(page.getByRole('button', {name: /新建空白项目/})).toBeVisible();
+  await expect(page.locator('[data-model-banner]')).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
   await context.close();
 });
