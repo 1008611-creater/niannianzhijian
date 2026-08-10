@@ -7,7 +7,7 @@ const vm = require('vm');
 (async () => {
 const source = fs.readFileSync(require('path').join(__dirname, 'studio/assets/web-runtime-adapter-r4.js'), 'utf8');
 const studioIndex = fs.readFileSync(require('path').join(__dirname, 'studio/index.html'), 'utf8');
-assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260811-web-assets-r4/);
+assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260811-web-assets-r5/);
 assert.match(source, /\/api\/canvas\/provider-status/);
 assert.match(source, /\/api\/projects\/.*\/canvas\/jobs/);
 assert.match(source, /\/api\/projects\/.*\/text\/jobs/);
@@ -75,6 +75,7 @@ assert.equal(typeof context.window.nomiDesktop.tasks.onTextEvent, 'function');
 assert.equal(typeof context.window.nomiDesktop.tasks.cancelTextStream, 'function');
 assert.equal(typeof context.window.nomiDesktop.assets.importFile, 'function');
 assert.equal(typeof context.window.nomiDesktop.assets.list, 'function');
+assert.deepEqual(Array.from(context.window.nomiDesktop.projects.list(), (project) => project.id), ['NN-LOCAL-0001']);
 const imported = await context.window.nomiDesktop.assets.importFile({projectId:'NN-LOCAL-0001',fileName:'reference.png',contentType:'image/png',bytes:new Uint8Array([137,80,78,71])});
 assert.equal(imported.id, 'CAS-1234567890abcdef12345678');
 assert.equal(imported.data.url, '/api/projects/NN-LOCAL-0001/assets/CAS-1234567890abcdef12345678/download');
@@ -85,10 +86,10 @@ assert.ok(uploadRequests[0].options.body instanceof FormData);
 assert.equal(uploadRequests[0].options.body.get('referenceImage').name, 'reference.png');
 const listed = await context.window.nomiDesktop.assets.list({projectId:'NN-LOCAL-0001'});
 assert.equal(listed.cursor, null);
-assert.deepEqual(Array.from(listed.items, (asset) => [asset.id, asset.name, asset.data.mediaType, asset.data.url]), [
-  ['CAS-111111111111111111111111', 'reference.png', 'image', '/api/projects/NN-LOCAL-0001/assets/CAS-111111111111111111111111/download'],
-  ['CAS-222222222222222222222222', 'result.mp4', 'video', '/api/projects/NN-LOCAL-0001/assets/CAS-222222222222222222222222/download'],
-  ['CAS-333333333333333333333333', 'voice.mp3', 'audio', '/api/projects/NN-LOCAL-0001/assets/CAS-333333333333333333333333/download']
+assert.deepEqual(Array.from(listed.items, (asset) => [asset.id, asset.projectId, asset.name, asset.data.mediaType, asset.data.relativePath, asset.data.url]), [
+  ['CAS-111111111111111111111111', 'NN-LOCAL-0001', 'reference.png', 'image', 'project-assets/CAS-111111111111111111111111', '/api/projects/NN-LOCAL-0001/assets/CAS-111111111111111111111111/download'],
+  ['CAS-222222222222222222222222', 'NN-LOCAL-0001', 'result.mp4', 'video', 'project-assets/CAS-222222222222222222222222', '/api/projects/NN-LOCAL-0001/assets/CAS-222222222222222222222222/download'],
+  ['CAS-333333333333333333333333', 'NN-LOCAL-0001', 'voice.mp3', 'audio', 'project-assets/CAS-333333333333333333333333', '/api/projects/NN-LOCAL-0001/assets/CAS-333333333333333333333333/download']
 ]);
 await new Promise((resolve) => setTimeout(resolve, 10));
 const imageModels = await context.window.nomiDesktop.modelCatalog.listModels({kind:'image'});
