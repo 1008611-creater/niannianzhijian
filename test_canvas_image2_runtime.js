@@ -35,6 +35,25 @@ async function run() {
     assert.equal(completed.outputAssetIds.length,1);
     assert.equal((await assetService.listOwned('USR-RUNTIME','NN-RUNTIME','redraw')).length,2);
     assert.equal(jobService.publicJob(completed).providerTaskId, undefined);
+
+    const yunfeiPrepared = await jobService.create({ownerId:'USR-RUNTIME',projectId:'NN-RUNTIME',projectKind:'redraw',nodeId:'image-node-yunfei',nodeType:'image',model:'yunfei-gpt-image-2-hd',prompt:'中文产品主视觉高清版',inputAssetIds:[input.asset.id],resolution:'4k',aspectRatio:'16:9',idempotencyKey:'runtime-image2-yunfei'});
+    const yunfeiAdapter = {
+      dryRun: () => ({endpoint:'test://yunfei'}),
+      submit: async (task, references) => {
+        assert.equal(task.output_size, '3840x2160');
+        assert.equal(references.length, 1);
+        return {taskId:'inline-yunfei-001',payload:{result:{b64_json:output.toString('base64')}}};
+      },
+      query: async (taskId, payload) => {
+        assert.equal(taskId, 'inline-yunfei-001');
+        return {status:'completed',inlineImages:[payload.result.b64_json],imageUrls:[]};
+      }
+    };
+    const yunfeiRuntime = createCanvasImage2Runtime({jobService,assetService,enabled:true,adapters:{runninghub:adapter,'yunfei-hd':yunfeiAdapter}});
+    await yunfeiRuntime.submit('USR-RUNTIME','NN-RUNTIME',yunfeiPrepared.job.id);
+    const yunfeiCompleted = await yunfeiRuntime.reconcile('USR-RUNTIME','NN-RUNTIME',yunfeiPrepared.job.id);
+    assert.equal(yunfeiCompleted.status, 'succeeded');
+    assert.equal(yunfeiCompleted.outputAssetIds.length, 1);
     console.log('CANVAS_IMAGE2_RUNTIME_CONTRACT_OK');
   } finally { await fsp.rm(root,{recursive:true,force:true}); }
 }

@@ -1,5 +1,7 @@
 const crypto = require('crypto');
 const {createRunningHubAdapter} = require('./niannian_runninghub_image_adapter');
+const {createYunfeiImage2Adapter} = require('./niannian_yunfei_image2_adapter');
+const {resolveImage2Channel} = require('./niannian_canvas_image2_channels');
 
 function runtimeError(code, message, httpStatus = 409) {
   const error = new Error(message || code);
@@ -9,8 +11,8 @@ function runtimeError(code, message, httpStatus = 409) {
 }
 
 function publicFailure(error) {
-  if (error?.code === 'RUNNINGHUB_CREDENTIAL_NOT_CONFIGURED') return '图像渠道尚未配置，暂时不能提交。';
-  if (error?.code === 'RUNNINGHUB_NETWORK_UNCERTAIN') return '生成请求状态待确认，请稍后查看任务状态。';
+  if (['RUNNINGHUB_CREDENTIAL_NOT_CONFIGURED', 'YUNFEI_CREDENTIAL_NOT_CONFIGURED'].includes(error?.code)) return '所选图像渠道尚未配置，暂时不能提交。';
+  if (['RUNNINGHUB_NETWORK_UNCERTAIN', 'YUNFEI_NETWORK_UNCERTAIN'].includes(error?.code)) return '生成请求状态待确认，请稍后查看任务状态。';
   return '图像生成暂未完成，请检查输入后重试。';
 }
 
@@ -21,7 +23,11 @@ function formatForMime(mime) {
 function createCanvasImage2Runtime(options = {}) {
   const jobs = options.jobService;
   const assets = options.assetService;
-  const adapter = options.adapter || createRunningHubAdapter(options.runningHub || {});
+  const adapters = {
+    runninghub: options.adapters?.runninghub || options.adapter || createRunningHubAdapter(options.runningHub || {}),
+    'yunfei-1k': options.adapters?.['yunfei-1k'] || createYunfeiImage2Adapter({baseUrl:'https://img.yunfei.best', ...(options.yunfei1k || {})}),
+    'yunfei-hd': options.adapters?.['yunfei-hd'] || createYunfeiImage2Adapter({baseUrl:'https://img.yunfei.best', ...(options.yunfeiHd || {})})
+  };
   const enabled = options.enabled === true;
   if (!jobs || !assets) throw new Error('canvas Image2 runtime requires job and asset services');
 
@@ -35,9 +41,26 @@ function createCanvasImage2Runtime(options = {}) {
     return result;
   }
 
+  function adapterFor(job) {
+    const provider = job.imageProvider || resolveImage2Channel(job.imageChannel)?.provider;
+    const adapter = adapters[provider] || adapters[job.imageChannel] || (job.imageChannel === 'runninghub-gpt-image-2' ? adapters.runninghub : null);
+    if (!adapter) throw runtimeError('CANVAS_IMAGE2_CHANNEL_NOT_CONFIGURED', '所选图像渠道尚未配置', 503);
+    return adapter;
+  }
+
+  function taskFor(job) {
+    return {
+      prompt: job.prompt,
+      resolution: job.resolution || '2k',
+      aspect_ratio: job.aspectRatio || '1:1',
+      output_size: job.outputSize || null,
+      prompt_sha256: crypto.createHash('sha256').update(job.prompt || '', 'utf8').digest('hex')
+    };
+  }
+
   function dryRun(job) {
     if (job.nodeType !== 'image') throw runtimeError('CANVAS_IMAGE2_NODE_INVALID', '当前任务不是作图任务', 422);
-    return adapter.dryRun({prompt:job.prompt,resolution:job.resolution || '2k',aspect_ratio:job.aspectRatio || '1:1',prompt_sha256:crypto.createHash('sha256').update(job.prompt || '', 'utf8').digest('hex')}, []);
+    return adapterFor(job).dryRun(taskFor(job), []);
   }
 
   async function submit(ownerId, projectId, jobId) {
@@ -48,9 +71,10 @@ function createCanvasImage2Runtime(options = {}) {
     if (job.providerTaskId) return job;
     if (job.status !== 'awaiting_authorization') throw runtimeError('CANVAS_JOB_STATE_INVALID', '当前任务不能重复提交', 409);
     const references = await ownedReferences(job);
+    const adapter = adapterFor(job);
     await jobs.updateOwned(ownerId, projectId, jobId, {status:'queued',providerSubmitState:'submitting',publicError:null});
     try {
-      const submitted = await adapter.submit({prompt:job.prompt,resolution:job.resolution || '2k',aspect_ratio:job.aspectRatio || '1:1',prompt_sha256:crypto.createHash('sha256').update(job.prompt || '', 'utf8').digest('hex')}, references.map(asset => asset.storedPath));
+      const submitted = await adapter.submit(taskFor(job), references.map(asset => asset.storedPath));
       return await jobs.updateOwned(ownerId, projectId, jobId, {status:'queued',providerSubmitState:'accepted',providerTaskId:submitted.taskId,providerPayload:submitted.payload,publicError:null});
     } catch (error) {
       const unknown = error?.code === 'RUNNINGHUB_NETWORK_UNCERTAIN';
@@ -63,10 +87,18 @@ function createCanvasImage2Runtime(options = {}) {
     if (!job) throw runtimeError('CANVAS_JOB_NOT_FOUND', '任务不存在', 404);
     if (job.nodeType !== 'image' || !job.providerTaskId || ['succeeded','failed','review'].includes(job.status)) return job;
     try {
-      const result = await adapter.query(job.providerTaskId);
+      const adapter = adapterFor(job);
+      const result = await adapter.query(job.providerTaskId, job.providerPayload);
       if (result.status === 'generating') return await jobs.updateOwned(ownerId, projectId, jobId, {status:'running',providerSubmitState:'running',publicError:null});
       if (result.status === 'failed') return await jobs.updateOwned(ownerId, projectId, jobId, {status:'failed',providerSubmitState:'failed',publicError:'图像生成失败，请检查输入后重试。'});
       const outputAssetIds = [];
+      for (let index = 0; index < (result.inlineImages || []).length; index += 1) {
+        const bytes = Buffer.from(result.inlineImages[index], 'base64');
+        const format = formatForMime(require('./niannian_runninghub_image_adapter').imageMime(bytes));
+        if (!format) throw runtimeError('CANVAS_IMAGE2_OUTPUT_INVALID', '图像输出格式无效', 502);
+        const stored = await assets.registerBuffer({ownerId:job.ownerId,projectId:job.projectId,projectKind:job.projectKind,kind:'generated_image',format,bytes,originalName:`canvas-image-${job.id.slice(-8)}-${index + 1}.${format === 'jpeg' ? 'jpg' : format}`});
+        outputAssetIds.push(stored.asset.id);
+      }
       for (let index = 0; index < result.imageUrls.length; index += 1) {
         const media = await adapter.download(result.imageUrls[index]);
         const format = formatForMime(media.mime);
