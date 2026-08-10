@@ -6,6 +6,8 @@ const vm = require('vm');
 
 (async () => {
 const source = fs.readFileSync(require('path').join(__dirname, 'studio/assets/web-runtime-adapter-r4.js'), 'utf8');
+const studioIndex = fs.readFileSync(require('path').join(__dirname, 'studio/index.html'), 'utf8');
+assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260811-image2-channels-r1/);
 assert.match(source, /\/api\/canvas\/provider-status/);
 assert.match(source, /\/api\/projects\/.*\/canvas\/jobs/);
 assert.match(source, /\/api\/projects\/.*\/text\/jobs/);
