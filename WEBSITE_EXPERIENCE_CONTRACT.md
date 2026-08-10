@@ -1,6 +1,6 @@
 # 念念 AI 网站体验与动效合同
 
-> **当前适用范围（2026-08-05）：** 本文的真实交付、无障碍、焦点、动效降级和媒体真实性要求仍然有效；页面地图、工作台结构、视觉色彩和已撤下入口不再作为 `ai.cauai.fun` 的产品决策依据。主站的唯一工程总图见 [`../authority/NIANNIAN_AI_ENGINEERING_AUTHORITY.md`](../authority/NIANNIAN_AI_ENGINEERING_AUTHORITY.md)。如两者冲突，以该工程权威文档和用户最新明确决定为准。
+> **当前适用范围（2026-08-10）：** 本文的真实交付、无障碍、焦点、动效降级和媒体真实性要求仍然有效。主站当前已上线的结构为六项导航（首页、工作台、导演台、项目管理、团队管理、使用文档）与工作台四入口（无限画布、一键转绘、一键制剧、智能剪辑），项目管理列表已能展示当前账户真实转绘与小说项目。产品事实以 [PRODUCT.md](PRODUCT.md)、视觉与交互以 [DESIGN.md](DESIGN.md)、阶段顺序与验收以 [FRONTEND_EXECUTION_PLAN.md](FRONTEND_EXECUTION_PLAN.md)、工程边界以 [authority/NIANNIAN_AI_ENGINEERING_AUTHORITY.md](authority/NIANNIAN_AI_ENGINEERING_AUTHORITY.md) 为准；如冲突，按上述顺序以更权威者为准，并与用户最新明确决定对齐。
 
 ## 目标
 
