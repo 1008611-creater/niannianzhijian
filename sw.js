@@ -1,4 +1,4 @@
-const CACHE_NAME = 'niannian-app-shell-20260810-workbench-team-docs-r1';
+const CACHE_NAME = 'niannian-app-shell-20260810-project-library-rows-r1';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -10,7 +10,7 @@ const APP_SHELL = [
   '/vendor/gsap-3.13.0.min.js?v=3.13.0',
   '/vendor/gsap-flip-3.13.0.min.js?v=3.13.0',
   '/app.js?v=20260810-workbench-team-docs-r1',
-  '/mvp-step02-r13.js?v=20260810-workbench-team-docs-r1',
+  '/mvp-step02-r13.js?v=20260810-project-library-rows-r1',
   '/mvp-step03-r1.js?v=20260727-media-direct-r1',
   '/video-batch-gate/video-batch-panel.js?v=20260727-video-batch-cost-gate-r1',
   '/video-batch-gate/video-batch-integrated.js?v=20260727-video-batch-cost-gate-r1',
