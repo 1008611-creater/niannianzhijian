@@ -8,7 +8,7 @@ const path = require('path');
 const projectRoot = __dirname;
 const assetsRoot = path.join(projectRoot, 'studio', 'assets');
 const releaseTag = 'r4';
-const moduleCacheVersion = '20260811-static-r5';
+const moduleCacheVersion = '20260811-static-r6';
 const adapterCacheVersion = '20260811-web-assets-r5';
 const starts = ['index-M-8MrEH2-r28-19b89ec-r4.js', 'web-runtime-adapter-r4.js'];
 
@@ -74,6 +74,7 @@ for (const name of reachable) {
   assert.doesNotMatch(source, /index-M-8MrEH2-r27\.js|NomiStudioApp-DDB0IgSO-r27\.js/);
   assert.doesNotMatch(source, /\?v=20260808-static-r[123](?:["')])/);
   assert.doesNotMatch(source, /\?v=20260809-static-r4(?:["')])/);
+  assert.doesNotMatch(source, /\?v=20260811-static-r5(?:["')])/);
 }
 
 const serviceWorker = fs.readFileSync(path.join(projectRoot, 'sw.js'), 'utf8');
