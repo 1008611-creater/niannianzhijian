@@ -131,6 +131,13 @@ async function run() {
   assert.equal(h3Job.body.job.durationSeconds, 5);
   assert.equal(Object.hasOwn(h3Job.body.job, 'providerTaskId'), false);
 
+  const animateJob = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-animate-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'video-node-001',model:'runninghub-animate-motion-transfer',prompt:'',inputAssetIds:['asset-image-001','asset-video-001'],aspectRatio:'9:16',durationSeconds:5})});
+  assert.equal(animateJob.response.status, 201);
+  assert.equal(animateJob.body.job.model, 'runninghub-animate-motion-transfer');
+  assert.equal(animateJob.body.job.videoChannel, 'animate-transfer');
+  assert.equal(animateJob.body.job.videoChannelLabel, '动作迁移');
+  assert.equal(Object.hasOwn(animateJob.body.job, 'providerTaskId'), false);
+
   const h3DefaultPortrait = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-h3-default-portrait-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'video-node-default-001',model:'h3',prompt:'默认竖屏回归',inputAssetIds:['asset-001'],durationSeconds:5})});
   assert.equal(h3DefaultPortrait.response.status, 201);
   assert.equal(h3DefaultPortrait.body.job.aspectRatio, '9:16');

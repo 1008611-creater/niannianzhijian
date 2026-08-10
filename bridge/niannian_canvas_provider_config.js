@@ -28,6 +28,8 @@ function readCanvasProviderConfig(env = process.env) {
     [CHANNELS['yunfei-gpt-image-2-hd'].id]: yunfeiHdSubmitEnabled
   });
   const videoSubmitEnabled = credentialConfigured && baseUrlValid && isOn(env.NIANNIAN_CANVAS_H3_SUBMIT);
+  const animateCredentialConfigured = isConfigured(env.NIANNIAN_RUNNINGHUB_ANIMATE_API_KEY);
+  const animateSubmitEnabled = animateCredentialConfigured && baseUrlValid && isOn(env.NIANNIAN_CANVAS_ANIMATE_SUBMIT);
   return Object.freeze({
     provider,
     baseUrl,
@@ -41,7 +43,9 @@ function readCanvasProviderConfig(env = process.env) {
     yunfeiHdBaseUrl,
     yunfei1kSubmitEnabled,
     yunfeiHdSubmitEnabled,
-    videoSubmitEnabled
+    videoSubmitEnabled,
+    animateCredentialConfigured,
+    animateSubmitEnabled
   });
 }
 
@@ -53,7 +57,8 @@ function publicCanvasProviderStatus(env = process.env) {
     credentialConfigured: config.credentialConfigured,
     imageSubmitEnabled: config.imageSubmitEnabled,
     imageChannels: config.imageChannels,
-    videoSubmitEnabled: config.videoSubmitEnabled
+    videoSubmitEnabled: config.videoSubmitEnabled,
+    animateSubmitEnabled: config.animateSubmitEnabled
   };
 }
 

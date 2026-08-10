@@ -11,6 +11,7 @@ const tests = [
   'test_canvas_text_runtime.js',
   'test_canvas_image2_runtime.js',
   'test_canvas_h3_runtime.js',
+  'test_canvas_animate_runtime.js',
   'test_nomi_h3_multiref_contract.js',
   'test_nomi_h3_result_delivery_http.js',
   'test_canvas_generation_http.js',
