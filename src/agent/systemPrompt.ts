@@ -303,7 +303,8 @@ Required pattern: **browse_library to discover an id, then edit_item to place it
 # Visual understanding and verification
 - **Unified retrieval:** use search_media when discovering project footage by visual concept and/or spoken phrase. It returns separately ranked visual/spoken hits with source time ranges and excludes stale source revisions; inspect the chosen range before editing.
 - **Asset OCR:** when visible on-screen text, product labels, or price cards matter, call analyze_asset with kind=ocr on the imported asset first; then use search_media modalities:["metadata"] to retrieve the persisted OCR text. OCR results are source-revision-bound and must be regenerated after relinking.
-- **Asset vision analysis:** when finding product demonstrations, people on camera, brands, actions, or settings matters, call analyze_asset with kind=vision on an imported asset (and an appropriate timeMs for long videos), then use search_media modalities:["metadata"] to retrieve its persisted tags/entities/scenes. It requires the user's configured OpenAI-compatible vision provider; do not claim visual tags exist before analysis succeeds.
+- **Whole-video understanding:** when narrative order, conflict, actions, scene changes, or clip selection across a video matters, call analyze_asset with kind=video. It uses the administrator-configured native Gemini provider, returns real source time ranges, and persists a searchable summary/scenes. A successful HTTP response without VIDEO token evidence is rejected. Use kind=vision only for one selected frame.
+- **Asset vision analysis:** when one frame's product, person, brand, action, or setting matters, call analyze_asset with kind=vision (and timeMs for videos), then use search_media modalities:["metadata"] to retrieve persisted tags/entities/scenes. It requires the configured OpenAI-compatible vision provider; do not claim visual tags exist before analysis succeeds.
 - **MiMo text transcription:** analyze_asset with kind=mimo-asr writes only searchable material speech text for context and metadata retrieval. It has no word-level timestamps: never treat it as read_transcript, captions, delete_text, clean_script, or timeline-edit evidence.
 - **Source selection:** view_asset_frames(assetId, sourceTimesMs? | count?/fromSeconds?/toSeconds?) inspects **raw media-pool footage**, not the timeline. For long media, start with count=12 for a contact-sheet scan, then narrow the range. /media/uploads uses ffmpeg; browser frame extraction may inspect a blob placeholder while upload is in progress.
 - **Timeline verification:** after visual edits such as motion graphics, text, transitions, zoom, filters, aspect ratio, or captions, use view_timeline_frames to **visually confirm** the composite, including uncommitted drafts. Multiple frames are combined into a labeled contact sheet.
@@ -358,4 +359,33 @@ export function buildAgentSystemPrompt(
     creativeModePrompt(findSkill(ctx.getCreativeMode())),
     PRODUCT_IDENTITY_PROMPT,
   ], editorStatePrompt(ctx));
+}
+
+/**
+ * A short operational prompt for providers whose context window is smaller
+ * than the full editor manual. Tool schemas remain authoritative; this prompt
+ * only supplies the minimum routing rules for the narrated-short workflow.
+ */
+export function buildCompactAgentSystemPrompt(
+  ctx: AgentContext,
+  settings: AgentSettings = loadAgentSettings(),
+): string {
+  const skill = findSkill(ctx.getCreativeMode());
+  const state = editorStatePrompt(ctx);
+  const caps = capabilitiesPrompt(currentCaps(), ctx.getApprovalMode?.() ?? 'manual');
+  const selectedSkill = skill
+    ? `\nSelected workflow: ${skill.slug}. Follow it only when it is relevant; load it before taking a skill-specific action.\n`
+    : '';
+  return [
+    'You are 念念智剪, a professional Chinese video-editing agent. Use the available tools; never invent a completed edit.',
+    'Work from the current editor state and any @ asset reference. The referenced asset id/name is authoritative; do not use unselected media.',
+    'For a narrated short: inspect source frames, choose explicit beats, call assemble_rough_cut with source in/out and approved Chinese narration, then render_rough_cut_voiceover with provider=mimo and a configured voiceId. After audio succeeds call prepare_rough_cut_captions (Qwen forced alignment), optionally submit_music then wait with track_progress and place_rough_cut_bgm, then check_rough_cut_ready and view_timeline_frames.',
+    'MiMo ASR text is not timing data. Never fabricate subtitle timestamps or use duration-based captions. Do not call a paid tool until its confirmation is granted. If a tool returns an error, correct the input or report the exact unresolved error.',
+    'Keep responses concise in Chinese. Ask only for a missing creative choice or provider voice id that the editor cannot determine.',
+    selectedSkill,
+    `Current settings: ${JSON.stringify(settings)}`,
+    caps,
+    PRODUCT_IDENTITY_PROMPT,
+    state,
+  ].join('\n');
 }

@@ -23,6 +23,7 @@ export {
 import type { AgentContext } from './context';
 import type { AgentModelChoice } from './model-selection';
 import { TOOL_SCHEMAS } from './tools';
+import { ASK_MODE_TOOL_SCHEMAS } from './ask-mode-tools';
 import {
   getLanguageModel,
   getLanguageModelProviderOptions,
@@ -54,6 +55,7 @@ import type {
   LLMMessage,
   RunAgentOptions,
 } from './runtime';
+import type { AgentToolSchema } from './tool-schema';
 
 const MAX_TOOL_TURNS = 30;
 type ToolResultOutput = ToolResultPart['output'];
@@ -99,8 +101,9 @@ function createAgentTools(
   settings: AgentSettings,
   onSkillGuard?: (info: RuntimeGuardRequest) => Promise<GuardDecision>,
   onFollowup?: () => void,
+  schemas: readonly AgentToolSchema[] = TOOL_SCHEMAS,
 ): ToolSet {
-  return Object.fromEntries(TOOL_SCHEMAS.map((schema) => [
+  return Object.fromEntries(schemas.map((schema) => [
     schema.name,
     tool({
       description: schema.description,
@@ -151,6 +154,7 @@ export async function runApiAgent(
   maxOutputTokens: number,
   opts?: RunAgentOptions,
   dependencies: ApiRuntimeDependencies = {},
+  toolSchemas: readonly AgentToolSchema[] = TOOL_SCHEMAS,
 ): Promise<LLMMessage[]> {
   let conv = normalizeLlmMessages(messages);
   const settings = loadAgentSettings();
@@ -189,7 +193,7 @@ export async function runApiAgent(
       emitVisibleText(report);
       return { role: 'assistant', content: report };
     };
-    const tools = opts?.askOnly || !choice.capabilities.supportsTools.value
+    const tools = !choice.capabilities.supportsTools.value
       ? {}
       : createAgentTools(
           ctx,
@@ -197,6 +201,7 @@ export async function runApiAgent(
           settings,
           opts?.onSkillGuard,
           () => { askedFollowup = true; },
+          opts?.askOnly ? ASK_MODE_TOOL_SCHEMAS : toolSchemas,
         );
 
     try {
@@ -248,6 +253,7 @@ export async function runApiAgent(
           tools,
           maxOutputTokens,
           maxRetries: 0,
+          ...(opts?.operationId ? { headers: { 'x-niannian-operation-id': opts.operationId } } : {}),
           abortSignal: opts?.signal,
           // Guard against hanging model calls: first token within 30s, each
           // step capped at 2min, tool executions at 30s (all local store ops

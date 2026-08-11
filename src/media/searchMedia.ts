@@ -26,7 +26,7 @@ export interface SpokenMediaSearchHit extends MediaSearchHitBase {
 export interface MetadataMediaSearchHit extends MediaSearchHitBase {
   modality: 'metadata';
   text: string;
-  field: 'ocr' | 'transcript' | 'tag' | 'entity' | 'scene';
+  field: 'ocr' | 'transcript' | 'video-summary' | 'tag' | 'entity' | 'scene';
 }
 
 export type MediaSearchHit = VisualMediaSearchHit | SpokenMediaSearchHit | MetadataMediaSearchHit;

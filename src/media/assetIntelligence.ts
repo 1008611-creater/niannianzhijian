@@ -14,7 +14,7 @@ export interface AssetMetadataDocument {
   assetId: string;
   sourceRevision: string;
   text: string;
-  field: 'ocr' | 'transcript' | 'tag' | 'entity' | 'scene';
+  field: 'ocr' | 'transcript' | 'video-summary' | 'tag' | 'entity' | 'scene';
   startMs: number;
   endMs: number;
 }
@@ -34,6 +34,7 @@ export function assetMetadataDocuments(assets: readonly MediaAsset[]): AssetMeta
     };
     add(asset.intelligence.ocrText, 'ocr');
     add(asset.intelligence.transcriptText, 'transcript');
+    add(asset.intelligence.videoSummary, 'video-summary');
     for (const tag of asset.intelligence.tags ?? []) add(tag, 'tag');
     for (const entity of asset.intelligence.entities ?? []) add(entity.label, 'entity', entity.startMs, entity.endMs);
     for (const scene of asset.intelligence.scenes ?? []) add(scene.label, 'scene', scene.startMs, scene.endMs);

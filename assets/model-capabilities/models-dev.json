@@ -7585,6 +7585,36 @@
         "reasoning": true,
         "reasoningEfforts": []
       }
+    },
+    "tokenrhythm": {
+      "deepseek-v4-flash": {
+        "contextWindowTokens": 1000000,
+        "maxInputTokens": null,
+        "maxOutputTokens": 384000,
+        "input": [
+          "text"
+        ],
+        "supportsTools": true,
+        "reasoning": true,
+        "reasoningEfforts": [
+          "high",
+          "max"
+        ]
+      },
+      "deepseek-v4-pro": {
+        "contextWindowTokens": 1000000,
+        "maxInputTokens": null,
+        "maxOutputTokens": 384000,
+        "input": [
+          "text"
+        ],
+        "supportsTools": true,
+        "reasoning": true,
+        "reasoningEfforts": [
+          "high",
+          "max"
+        ]
+      }
     }
   }
 }

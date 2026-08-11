@@ -6,9 +6,15 @@ type NextFunction = (error?: unknown) => void;
 type EditorUser = { id: string; email: string };
 type Ticket = { v: 1; userId: string; email: string; exp: number; nonce?: string };
 
+export interface EditorAccess {
+  readonly user: EditorUser | null;
+  readonly authenticated: boolean;
+  readonly admin: boolean;
+}
+
 const SESSION_COOKIE = 'niannian_editor_session';
 const MAIN_ORIGIN = () => (process.env.NIANNIAN_MAIN_ORIGIN?.trim() || 'https://ai.cau.fun').replace(/\/+$/, '');
-const EDITOR_ORIGIN = () => (process.env.NIANNIAN_EDITOR_ORIGIN?.trim() || 'https://edit.cau.fun').replace(/\/+$/, '');
+const EDITOR_ORIGIN = () => (process.env.NIANNIAN_EDITOR_ORIGIN?.trim() || 'https://edit.cauai.fun').replace(/\/+$/, '');
 
 function secret(): string | null {
   const value = process.env.NIANNIAN_EDITOR_SSO_SECRET?.trim();
@@ -21,6 +27,18 @@ function localWslDev(): boolean { return process.env.LOCAL_WSL_DEV === '1'; }
 
 function localWslUser(): EditorUser | null {
   return localWslDev() ? { id: 'local-wsl-user', email: 'local-wsl@example.invalid' } : null;
+}
+
+function adminEntries(): Set<string> {
+  return new Set((process.env.NIANNIAN_EDITOR_ADMIN_IDS || '')
+    .split(',').map((value) => value.trim().toLowerCase()).filter(Boolean));
+}
+
+function isAdmin(user: EditorUser | null): boolean {
+  if (!user) return false;
+  if (localWslDev() && user.id === 'local-wsl-user') return true;
+  const allowed = adminEntries();
+  return allowed.has(user.id.toLowerCase()) || allowed.has(user.email.toLowerCase());
 }
 
 function json(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
@@ -65,6 +83,15 @@ function issueSession(user: EditorUser): string {
 
 function currentUser(req: IncomingMessage): EditorUser | null {
   return verifyTicket(cookies(req)[SESSION_COOKIE]) || localWslUser();
+}
+
+export function editorAccess(req: IncomingMessage): EditorAccess {
+  const user = currentUser(req);
+  return { user, authenticated: Boolean(user), admin: isAdmin(user) };
+}
+
+export function accountIntegrationEnabled(): boolean {
+  return integrationEnabled();
 }
 
 function validReturnTo(value: string | null): string {
@@ -138,6 +165,8 @@ async function guard(step: string, req: IncomingMessage, res: ServerResponse, ne
 }
 
 const guardedRoutes: Array<[string, string]> = [
+  ['/llm', 'agent_llm'],
+  ['/api/codex/turn', 'agent_codex'],
   ['/api/mimo-asr/transcribe', 'mimo_asr'],
   ['/api/mimo-qwen-asr/transcribe', 'mimo_qwen_asr'],
   ['/api/openai-asr/transcribe', 'openai_asr'],
@@ -145,6 +174,7 @@ const guardedRoutes: Array<[string, string]> = [
   ['/generate/voice', 'mimo_tts'],
   ['/api/asset-intelligence/ocr', 'ocr'],
   ['/api/asset-intelligence/vision', 'vision'],
+  ['/api/asset-intelligence/video', 'video_understanding'],
   ['/api/qwen-forced-aligner/align', 'forced_align'],
   ['/api/detect-scenes', 'scene_detection'],
   ['/generate/image', 'image_generation'],
@@ -163,7 +193,7 @@ export function niannianAccountPlugin(): Plugin {
         if (req.method !== 'GET') return json(res, 405, {error:'method not allowed'});
         const user = currentUser(req);
         if (integrationEnabled() && !user) return json(res, 401, {error:'请先登录念念 AI'});
-        return json(res, 200, {integrated:integrationEnabled(), user});
+        return json(res, 200, {integrated:integrationEnabled(), user, admin: isAdmin(user)});
       });
       server.middlewares.use('/api/niannian-auth/credits', (req, res) => {
         if (req.method !== 'GET') return json(res, 405, {error:'method not allowed'});
@@ -172,6 +202,15 @@ export function niannianAccountPlugin(): Plugin {
         if (!user) return json(res, 401, {error:'请先登录念念 AI'});
         if (localWslDev()) return json(res, 200, {integrated:true, balance:0});
         void balance(user).then((value) => json(res, 200, {integrated:true, balance:value})).catch(() => json(res, 503, {error:'积分服务暂不可用'}));
+      });
+      // Hosted Codex credentials and account actions belong to the administrator.
+      server.middlewares.use('/api/codex', (req, res, next) => {
+        if (!integrationEnabled()) return next();
+        if (req.method === 'GET') return next();
+        const access = editorAccess(req);
+        if (!access.user) return json(res, 401, {error:'请先登录念念 AI'});
+        if (!access.admin) return json(res, 403, {error:'仅管理员可以管理 Agent 凭据'});
+        return next();
       });
       for (const [path, step] of guardedRoutes) server.middlewares.use(path, (req, res, next) => { void guard(step, req, res, next); });
     },

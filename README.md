@@ -264,7 +264,7 @@ Only add the model or media-service credentials you actually use to `.env.local`
 
 ### Built-in Agent authentication
 
-- **API keys:** open **Settings → Agent model**, choose a provider, and save its API key and model. Keys remain server-side.
+- **API keys (self-hosted administrator):** the administrator configures hosted providers under **Settings → Agent model**. In hosted Niannian mode, ordinary signed-in users do not see or enter API URLs or keys; they use the platform's configured capabilities and are billed through the account.
 - **ChatGPT subscription:** install the official Codex CLI 0.146.0 or newer, then open **Settings → Agent model → OpenAI · Codex**. Sign in through the browser or device-code flow, load the account's models, choose a model-specific reasoning effort (or keep its default), and select Codex from the chat model picker. OpenChatCut uses a dedicated Codex profile; the official CLI owns credential storage, token renewal, and logout, while OAuth tokens are never exposed to the browser.
 - **Claude subscription:** OpenChatCut does not collect Claude OAuth credentials. Use Claude Code through the local MCP connection below. The built-in Agent can use Anthropic through an API key.
 

@@ -54,6 +54,16 @@ try {
   assert.match(overflowing.error ?? '', /exceeds its matching visual beat/);
   assert.equal(overflowing.overflowing?.[0]?.voiceDurationInFrames, 45);
   assert.equal(current.timelines[0]?.items.some((item) => item.kind === 'audio'), false, 'overflowing narration never mutates the timeline');
+
+  current = {
+    version: 3,
+    assets: [{ id: 'asset-demo', name: 'demo.mp4', kind: 'video', src: '/media/uploads/demo.mp4', durationInFrames: 300, sourceRevision: 'rev-1' }],
+    mediaFolders: [], timelines: [timeline], activeTimelineId: timeline.id,
+  };
+  const defaults = await execRoughCutVoiceoverTool('render_rough_cut_voiceover', {}, ctx) as { ok?: boolean; provider?: string; voiceId?: string };
+  assert.equal(defaults.ok, true, 'narrated-short workflow can use its product defaults');
+  assert.equal(defaults.provider, 'mimo');
+  assert.equal(defaults.voiceId, '冰糖');
 } finally {
   globalThis.fetch = originalFetch;
 }

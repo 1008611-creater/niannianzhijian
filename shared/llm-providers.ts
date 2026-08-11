@@ -115,6 +115,15 @@ export const LLM_PROVIDER_PRESETS = [
     defaultModel: 'deepseek-v4-flash',
   },
   {
+    id: 'mcgrox',
+    label: 'McGrox',
+    protocol: 'openai-compatible',
+    baseUrl: 'https://mcgrox.top/v1',
+    // The relay exposes its own catalog; this common compatible model is only
+    // a fallback until the user tests the endpoint and selects an actual id.
+    defaultModel: 'gpt-4o-mini',
+  },
+  {
     id: 'ollama',
     label: 'Ollama (Local)',
     protocol: 'openai-compatible',

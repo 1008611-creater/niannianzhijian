@@ -1,6 +1,7 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import { theme } from './theme';
 import { Dashboard } from './components/Dashboard';
+import { QuickHome, type QuickRecipeInput } from './components/QuickHome';
 import {
   listProjects, loadProject, createProject, renameProject, duplicateProject,
   randomProjectName, docFromTimeline, hasProjectHistory, type ProjectMeta,
@@ -28,8 +29,9 @@ const emptyState = (): TimelineState => ({
 const emptyDoc = (): ProjectDoc => docFromTimeline(emptyState());
 const seedDoc = async (): Promise<ProjectDoc> => docFromTimeline((await import('./editor/initial')).INITIAL);
 
-type Route = { name: 'dashboard' } | { name: 'editor'; id: string };
+type Route = { name: 'dashboard' } | { name: 'editor'; id: string } | { name: 'quick' };
 function parseHash(): Route {
+  if (window.location.hash === '#/quick') return { name: 'quick' };
   const m = window.location.hash.match(/^#\/editor\/(.+)$/);
   return m ? { name: 'editor', id: m[1] } : { name: 'dashboard' };
 }
@@ -125,7 +127,7 @@ class EditorLoadBoundary extends Component<EditorLoadBoundaryProps, EditorLoadBo
 }
 
 // Load one project's timeline, then mount the editor for it.
-function EditorLoader({ meta, onHome, onRename }: { meta: ProjectMeta; onHome: () => void; onRename: (name: string) => void }) {
+function EditorLoader({ meta, onHome, onRename, recipe, onRecipeConsumed }: { meta: ProjectMeta; onHome: () => void; onRename: (name: string) => void; recipe?: QuickRecipeInput; onRecipeConsumed?: () => void }) {
   const t = useT();
   const [initial, setInitial] = useState<ProjectDoc | null>(null);
   useEffect(() => {
@@ -141,7 +143,7 @@ function EditorLoader({ meta, onHome, onRename }: { meta: ProjectMeta; onHome: (
       retryLabel={t('刷新重试')}
       homeLabel={t('返回工程列表')}
     >
-      <Suspense fallback={<Splash text={t('加载编辑器…')} />}><Editor initial={initial} project={meta} onHome={onHome} onRename={onRename} /></Suspense>
+      <Suspense fallback={<Splash text={t('加载编辑器…')} />}><Editor initial={initial} project={meta} onHome={onHome} onRename={onRename} initialRecipe={recipe} onRecipeConsumed={onRecipeConsumed} /></Suspense>
     </EditorLoadBoundary>
   );
 }
@@ -151,6 +153,7 @@ export default function App() {
   const [accountReady, setAccountReady] = useState(false);
   const [projects, setProjects] = useState<ProjectMeta[] | null>(null);
   const [route, setRoute] = useState<Route>(parseHash());
+  const [pendingRecipe, setPendingRecipe] = useState<QuickRecipeInput | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -205,6 +208,35 @@ export default function App() {
         meta={meta}
         onHome={() => go('#/')}
         onRename={async (name) => { await renameProject(meta.id, name); refresh(); }}
+        recipe={pendingRecipe ?? undefined}
+        onRecipeConsumed={() => setPendingRecipe(null)}
+      />
+    );
+  }
+
+  if (route.name === 'quick') {
+    return (
+      <QuickHome
+        projects={projects}
+        onOpen={(id) => go(`#/editor/${id}`)}
+        onNew={async () => {
+          const m = await createProject(randomProjectName(), emptyDoc());
+          await refresh();
+          go(`#/editor/${m.id}`);
+        }}
+        onStartRecipe={async (input) => {
+          const platformLabel = input.platform === 'douyin' ? '抖音' : input.platform === 'kuaishou' ? '快手' : '视频号';
+          const workflowRunId = crypto.randomUUID();
+          const m = await createProject('短剧片段精修', emptyDoc(), {
+            description: `recipeId=short-drama-refine; recipeVersion=1; styleId=complete-conflict; workflowRunId=${workflowRunId}; platform=${platformLabel}; requestedDurationSeconds=${input.durationSeconds}; status=importing`,
+          });
+          setPendingRecipe({ ...input, workflowRunId });
+          // Enter the real project as soon as its document is committed.  A
+          // slow shared-index refresh must not leave the quick recipe dialog
+          // stuck on "正在打开工程…".
+          setProjects((current) => [m, ...(current ?? []).filter((item) => item.id !== m.id)]);
+          go(`#/editor/${m.id}`);
+        }}
       />
     );
   }

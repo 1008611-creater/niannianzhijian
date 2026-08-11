@@ -53,6 +53,7 @@ import { trackDeletePlan } from './trackDelete';
 import { TrackContextMenu } from './TrackContextMenu';
 import { closeCaptionTrackGaps, trackClearPlan } from './trackContextOperations';
 import {
+  seekTimelineFromPointer,
   timelineGestureHasDragged,
   timelinePointerShouldSeek,
   timelineSeekFrameAtClientX,
@@ -579,8 +580,7 @@ export function Timeline({
 
   const seekTo = (clientX: number) => {
     const f = Math.max(0, Math.min(frameFromClientX(clientX), total - 1));
-    playerRef.current?.seekTo(f);
-    paintPlayhead(f);
+    seekTimelineFromPointer(playerRef.current, f, paintPlayhead);
   };
 
   const seekFrame = (f: number) => {
@@ -650,7 +650,10 @@ export function Timeline({
     seekGestureRef.current = null;
     if (!timelinePointerShouldSeek(gesture.button, pickMode, gesture.dragged)) return;
     const frame = frameAtClientX(event.clientX);
-    if (frame !== null) seekFrame(frame);
+    if (frame !== null) {
+      const clamped = Math.max(0, Math.min(frame, total - 1));
+      seekTimelineFromPointer(playerRef.current, clamped, paintPlayhead);
+    }
   };
   useEffect(() => () => onHoverPreviewFrameChange?.(null), [onHoverPreviewFrameChange]);
 

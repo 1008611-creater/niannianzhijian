@@ -20,6 +20,7 @@ import {
   uploadDir,
   type ResolvedUploadFile,
 } from '../media-dir.ts';
+import { resolveProductAsset } from '../product-assets.ts';
 import { safePublicFetch } from '../safe-public-fetch.ts';
 
 const MAX_MATERIALIZED_MEDIA_BYTES = 10 * 1024 * 1024 * 1024;
@@ -272,6 +273,13 @@ async function checkLocalReference(
   }
   if (!pathname.startsWith('/')) {
     return issueFor(reference, 'unsupported_source', `Relative media source is not mapped for export: ${reference.source}`);
+  }
+  // Product-bundled media lives under repo `assets/` and is served at the
+  // root by productAssetsPlugin. Resolve it from the same authoritative
+  // mapping before falling back to the user-only public directory.
+  const productAsset = resolveProductAsset(pathname);
+  if (productAsset) {
+    return null;
   }
   const candidate = resolve(options.publicDirectory, `.${pathname}`);
   const escaped = relative(options.publicDirectory, candidate);

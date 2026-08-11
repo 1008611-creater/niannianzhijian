@@ -8,6 +8,10 @@ RUNTIME_DIR="$ROOT/local-wsl-dev/runtime"
 DATA_DIR="$ROOT/local-wsl-dev/data"
 EDITOR_PORT="${EDITOR_PORT:-5199}"
 MAIN_PORT="${MAIN_PORT:-3026}"
+# Local quick-mode verification uses the already-provisioned development
+# TokenRhythm key when present. No credential is stored in this repository.
+LOCAL_LLM_PROVIDER="${LOCAL_LLM_PROVIDER:-tokenrhythm}"
+LOCAL_LLM_MODEL="${LOCAL_LLM_MODEL:-deepseek-v4-flash}"
 
 mkdir -p "$RUNTIME_DIR" "$DATA_DIR/editor-media" "$DATA_DIR/editor-cache" "$DATA_DIR/main"
 
@@ -70,7 +74,7 @@ MAIN_COMMAND="set -a; [[ -f .env.local ]] && source .env.local; set +a; export A
 # the repository but read the runtime copy from WSL's native filesystem so a
 # first alignment does not stream multi-gigabyte weights through /mnt.
 QWEN_NATIVE_ROOT="${QWEN_FORCED_ALIGNER_NATIVE_ROOT:-$HOME/.cache/niannianzhijian/qwen-forced-aligner}"
-EDITOR_COMMAND="export LOCAL_WSL_DEV=1 MEDIA_DIR='$DATA_DIR/editor-media' HF_ENDPOINT='${HF_ENDPOINT:-https://hf-mirror.com}' QWEN_FORCED_ALIGNER_NATIVE_ROOT='$QWEN_NATIVE_ROOT' NIANNIAN_MAIN_ORIGIN=http://127.0.0.1:${MAIN_PORT} NIANNIAN_EDITOR_ORIGIN=http://127.0.0.1:${EDITOR_PORT} NIANNIAN_EDITOR_SSO_SECRET=local-wsl-editor-sso-secret-20260807 NIANNIAN_EDITOR_STEP_PRICES='mimo_asr:0,mimo_qwen_asr:0,forced_align:0,mimo_tts:0,export:0' RESOURCE_PREVIEW_TOKEN=local-wsl-preview; exec npm run dev -- --host 0.0.0.0 --port ${EDITOR_PORT}"
+EDITOR_COMMAND="export LOCAL_WSL_DEV=1 MEDIA_DIR='$DATA_DIR/editor-media' HF_ENDPOINT='${HF_ENDPOINT:-https://hf-mirror.com}' QWEN_FORCED_ALIGNER_NATIVE_ROOT='$QWEN_NATIVE_ROOT' NIANNIAN_MAIN_ORIGIN=http://127.0.0.1:${MAIN_PORT} NIANNIAN_EDITOR_ORIGIN=http://127.0.0.1:${EDITOR_PORT} NIANNIAN_EDITOR_SSO_SECRET=local-wsl-editor-sso-secret-20260807 LLM_PROVIDER='${LOCAL_LLM_PROVIDER}' LLM_MODEL='${LOCAL_LLM_MODEL}' NIANNIAN_EDITOR_STEP_PRICES='agent_llm:0,agent_codex:0,mimo_asr:0,mimo_qwen_asr:0,openai_asr:0,assemblyai_asr:0,forced_align:0,mimo_tts:0,ocr:0,vision:0,video_understanding:0,scene_detection:0,image_generation:0,video_generation:0,music_generation:0,sound_generation:0,export:0' RESOURCE_PREVIEW_TOKEN=local-wsl-preview; exec npm run dev -- --host 0.0.0.0 --port ${EDITOR_PORT}"
 
 start_one "main" "$MAIN_DIR" "$MAIN_COMMAND" "http://127.0.0.1:${MAIN_PORT}/"
 start_one "editor" "$EDITOR_DIR" "$EDITOR_COMMAND" "http://127.0.0.1:${EDITOR_PORT}/api/niannian-auth/session"

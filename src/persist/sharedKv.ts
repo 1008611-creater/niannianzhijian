@@ -3,6 +3,7 @@ const STORE = 'kv';
 const MIGRATION_KEY = '__openchatcut_shared_store_v1__';
 const API_PATH = '/api/project-store';
 const memoryStore = new Map<string, unknown>();
+const REMOTE_REQUEST_TIMEOUT_MS = 3_000;
 
 interface StoreSnapshot {
   version: 1;
@@ -97,8 +98,19 @@ function validSnapshot(value: unknown): value is StoreSnapshot {
   return isRecord(value) && value.version === 1 && isRecord(value.entries);
 }
 
+/** A local browser must remain usable when a desktop proxy stalls loopback API calls. */
+async function remoteFetch(path: string, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), REMOTE_REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(path, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 async function requestSnapshot(path = '', init?: RequestInit): Promise<StoreSnapshot> {
-  const response = await fetch(`${API_PATH}${path}`, {
+  const response = await remoteFetch(`${API_PATH}${path}`, {
     cache: 'no-store',
     ...init,
     headers: { 'Content-Type': 'application/json', ...init?.headers },
@@ -110,7 +122,7 @@ async function requestSnapshot(path = '', init?: RequestInit): Promise<StoreSnap
 }
 
 async function requestEntry(key: string): Promise<EntryResponse> {
-  const response = await fetch(`${API_PATH}/entry?key=${encodeURIComponent(key)}`, { cache: 'no-store' });
+  const response = await remoteFetch(`${API_PATH}/entry?key=${encodeURIComponent(key)}`, { cache: 'no-store' });
   if (!response.ok) throw new Error(`project index request failed: ${response.status}`);
   const value: unknown = await response.json();
   if (!isRecord(value) || typeof value.found !== 'boolean') throw new Error('invalid project index response');
@@ -210,7 +222,7 @@ export async function kvSet(key: string, value: unknown): Promise<void> {
   remoteKnown.add(key);
   remoteCache = { ...remoteCache, [key]: value };
   try {
-    const response = await fetch(`${API_PATH}/entry`, {
+    const response = await remoteFetch(`${API_PATH}/entry`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key, value }),

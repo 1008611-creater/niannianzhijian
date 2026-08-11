@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { keyStatus, setKeys } from '../keystore.ts';
 import { runProbe } from '../key-probes.ts';
+import { accountIntegrationEnabled, editorAccess } from './niannian-account.ts';
 import {
   checkMediaDir,
   DEFAULT_UPLOAD_DIR,
@@ -44,8 +45,13 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
 /** keyStatus + absolute path to the current asset directory. FCPXML export goes to /media/uploads/<name>
  * Convert to real disk path, otherwise every asset in NLE will be offline; the directory changes with MEDIA_DIR,
  * Only the server knows, so it is returned to the front-end along with the settings (non-key, can be disclosed). */
-function settingsBody() {
-  return { ...keyStatus(), mediaDir: uploadDir() };
+function settingsBody(admin: boolean) {
+  const status = keyStatus();
+  if (admin) return { ...status, admin: true, mediaDir: uploadDir() };
+  const models = Object.fromEntries(
+    Object.entries(status.models).filter(([name]) => !name.endsWith('_BASE_URL') && name !== 'MEDIA_DIR'),
+  );
+  return { keys: status.keys, caps: status.caps, models, admin: false, mediaDir: uploadDir() };
 }
 
 export function settingsPlugin(): Plugin {
@@ -54,7 +60,17 @@ export function settingsPlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use('/api/keys', async (req, res) => {
         try {
-          if (req.method === 'GET') { sendJson(res, 200, settingsBody()); return; }
+          const access = editorAccess(req);
+          if (accountIntegrationEnabled() && !access.user) {
+            sendJson(res, 401, { error: '请先登录念念 AI' });
+            return;
+          }
+          const canManage = !accountIntegrationEnabled() || access.admin;
+          if (req.method === 'GET') { sendJson(res, 200, settingsBody(canManage)); return; }
+          if (!canManage) {
+            sendJson(res, 403, { error: '仅管理员可以配置平台 API' });
+            return;
+          }
           // POST /api/keys/test: "Test connection" detection. overrides = unsaved temporary values of the panel,
           // Only this detection takes effect and does not fall into keystore / .env.local; the result will never contain the key value.
           if (req.method === 'POST' && req.url === '/test') {
@@ -81,7 +97,7 @@ export function settingsPlugin(): Plugin {
               );
             }
             await setKeys(patch);
-            sendJson(res, 200, settingsBody());
+            sendJson(res, 200, settingsBody(true));
             return;
           }
           sendJson(res, 405, { error: 'method not allowed — use GET or POST' });

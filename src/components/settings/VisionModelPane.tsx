@@ -40,6 +40,7 @@ const PROVIDER_LABELS: Record<LlmProvider, string> = {
   mistral: 'Mistral',
   openrouter: 'OpenRouter',
   tokenrhythm: 'TokenRhythm',
+  mcgrox: 'McGrox',
   ollama: 'Ollama',
   lmstudio: 'LM Studio',
 };

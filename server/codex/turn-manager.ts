@@ -113,8 +113,7 @@ function dynamicToolResult(body: CodexToolResultRequest): Record<string, unknown
   };
 }
 
-function dynamicTools(tools: readonly CodexAgentToolSpec[], askOnly: boolean): unknown[] {
-  if (askOnly) return [];
+function dynamicTools(tools: readonly CodexAgentToolSpec[]): unknown[] {
   return tools.map((tool) => ({
     type: 'function',
     name: tool.name,
@@ -147,7 +146,7 @@ function threadStartParams(request: CodexTurnRequest): Record<string, unknown> {
     sandbox: 'read-only',
     ephemeral: true,
     baseInstructions: baseInstructions(request),
-    dynamicTools: dynamicTools(request.tools, request.askOnly === true),
+    dynamicTools: dynamicTools(request.tools),
     config: {
       features: Object.fromEntries(
         CODEX_DISABLED_FEATURES.map((feature) => [feature, false]),

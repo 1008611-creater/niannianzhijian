@@ -103,7 +103,11 @@ const proxyPort = await listen(proxy);
 try {
   const first = await fetch(`http://127.0.0.1:${proxyPort}/llm/chat/completions?stream=true`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-openchatcut-provider': 'kimi' },
+    headers: {
+      'content-type': 'application/json', 'x-openchatcut-provider': 'kimi',
+      origin: 'http://127.0.0.1:5199', referer: 'http://127.0.0.1:5199/',
+      'sec-fetch-site': 'same-origin', 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty',
+    },
     body: '{"model":"compatible"}',
   });
   assert.equal(first.status, 200);

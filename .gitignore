@@ -25,10 +25,13 @@ test-results/
 *.bak
 *.orig
 *.rej
+__pycache__/
 /.cache/
 /.tmp/
 /tmp/
 /temp/
+/.tmp-chrome-quick/
+/.tmp-edge-profile/
 
 # export output
 /out.*

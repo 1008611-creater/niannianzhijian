@@ -70,4 +70,34 @@ try {
 } finally {
   globalThis.fetch = originalFetch;
 }
+
+current = { ...current, kind: 'video', name: 'demo.mp4', src: '/media/uploads/demo.mp4', durationInFrames: 180 };
+globalThis.fetch = (async () => new Response(JSON.stringify({
+  summary: '视频依次显示红绿蓝三种颜色', tags: ['颜色变化'], model: 'gemini-3.5-flash-lite', videoTokens: 378,
+  segments: [
+    { startMs: 0, endMs: 2_000, label: '红色画面' },
+    { startMs: 2_000, endMs: 4_000, label: '绿色画面' },
+    { startMs: 4_000, endMs: 6_000, label: '蓝色画面' },
+  ],
+}), { status: 200, headers: { 'Content-Type': 'application/json' } })) as typeof fetch;
+try {
+  const ctx = {
+    getDoc: () => ({ assets: [current] }),
+    commands: { editMediaAsset: (_id: string, patch: Partial<MediaAsset>) => { current = { ...current, ...patch }; } },
+  } as unknown as AgentContext;
+  const result = await execAssetIntelligenceTool('analyze_asset', {
+    assetId: 'asset-1', kind: 'video', prompt: '识别颜色变化',
+  }, ctx) as { ok?: boolean; videoTokens?: number; segments?: Array<{ sourceRange?: string }> };
+  assert.equal(result.ok, true);
+  assert.equal(result.videoTokens, 378);
+  assert.equal(result.segments?.length, 3);
+  assert.equal(result.segments?.[0]?.sourceRange, '00:00.000-00:02.000');
+  assert.equal(current.intelligence?.videoSummary, '视频依次显示红绿蓝三种颜色');
+  assert.equal(current.intelligence?.scenes?.[1]?.label, '绿色画面');
+  assert.equal(current.intelligence?.modelVersions?.['video-vision'], 'gemini-3.5-flash-lite');
+  assert.equal(current.intelligence?.ocrText, 'SALE', 'whole-video understanding preserves OCR');
+  assert.equal(current.intelligence?.transcriptText, '这是一段商品口播', 'whole-video understanding preserves ASR text');
+} finally {
+  globalThis.fetch = originalFetch;
+}
 console.log('asset-intelligence-tools.verify: ok');

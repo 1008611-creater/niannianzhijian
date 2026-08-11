@@ -14,6 +14,8 @@ const MAX_JSON_BYTES = 32 * 1024;
 const OCR_TIMEOUT_MS = 60_000;
 const VISION_TIMEOUT_MS = 75_000;
 const MAX_VISION_IMAGE_BYTES = 12 * 1024 * 1024;
+const VIDEO_UNDERSTANDING_TIMEOUT_MS = 180_000;
+const MAX_INLINE_VIDEO_BYTES = 18 * 1024 * 1024;
 const IMAGE_EXTENSIONS = new Set(['.avif', '.bmp', '.gif', '.heic', '.jpeg', '.jpg', '.png', '.tif', '.tiff', '.webp']);
 const VISION_IMAGE_EXTENSIONS = new Set(['.jpeg', '.jpg', '.png', '.webp']);
 const VISION_ENTITY_KINDS = new Set(['product', 'person', 'brand', 'scene', 'text']);
@@ -24,6 +26,9 @@ export interface AssetIntelligenceOptions {
   visionBaseUrl: string;
   visionApiKey: string;
   visionModel: string;
+  videoBaseUrl: string;
+  videoApiKey: string;
+  videoModel: string;
 }
 
 export interface LocalOcrResult {
@@ -51,6 +56,20 @@ export interface VisionAnalysisResult {
   scenes: VisionScene[];
   model: string;
   sampleTimeMs?: number;
+}
+
+export interface VideoUnderstandingSegment {
+  startMs: number;
+  endMs: number;
+  label: string;
+}
+
+export interface VideoUnderstandingResult {
+  summary: string;
+  tags: string[];
+  segments: VideoUnderstandingSegment[];
+  model: string;
+  videoTokens: number;
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
@@ -170,17 +189,21 @@ function uniqueLabels(values: readonly string[], maximum: number): string[] {
   }).slice(0, maximum);
 }
 
-/** Parse only the small public metadata contract returned by a compatible vision model. */
-export function parseVisionAnalysis(content: string): Omit<VisionAnalysisResult, 'model' | 'sampleTimeMs'> {
+function parseJsonObject(content: string, errorMessage: string): Record<string, unknown> {
   const stripped = content.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   let value: unknown;
   try {
     value = JSON.parse(stripped);
   } catch {
-    throw new Error('视觉模型未返回有效 JSON');
+    throw new Error(errorMessage);
   }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('视觉模型返回格式无效');
-  const record = value as Record<string, unknown>;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(errorMessage);
+  return value as Record<string, unknown>;
+}
+
+/** Parse only the small public metadata contract returned by a compatible vision model. */
+export function parseVisionAnalysis(content: string): Omit<VisionAnalysisResult, 'model' | 'sampleTimeMs'> {
+  const record = parseJsonObject(content, '视觉模型未返回有效 JSON');
   const tags = uniqueLabels((Array.isArray(record.tags) ? record.tags : [])
     .map((item) => normalizedLabel(item, 80)).filter((item): item is string => Boolean(item)), 32);
   const entities = (Array.isArray(record.entities) ? record.entities : []).flatMap((item) => {
@@ -199,6 +222,105 @@ export function parseVisionAnalysis(content: string): Omit<VisionAnalysisResult,
       ? { confidence: normalizedConfidence(row.confidence) } : {}) }] : [];
   }).slice(0, 16);
   return { tags, entities, scenes };
+}
+
+export function parseVideoUnderstanding(content: string): Omit<VideoUnderstandingResult, 'model' | 'videoTokens'> {
+  const record = parseJsonObject(content, '视频理解模型未返回有效 JSON');
+  const summary = normalizedLabel(record.summary, 4_000);
+  if (!summary) throw new Error('视频理解模型未返回摘要');
+  const segments = (Array.isArray(record.segments) ? record.segments : []).flatMap((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+    const row = item as Record<string, unknown>;
+    const startMs = Math.max(0, Math.round(Number(row.startMs)));
+    const endMs = Math.max(startMs + 1, Math.round(Number(row.endMs)));
+    const label = normalizedLabel(row.label, 800);
+    return Number.isFinite(startMs) && Number.isFinite(endMs) && label ? [{ startMs, endMs, label }] : [];
+  }).slice(0, 120);
+  if (!segments.length) throw new Error('视频理解模型未返回可用时间段');
+  return {
+    summary,
+    tags: uniqueLabels((Array.isArray(record.tags) ? record.tags : [])
+      .map((item) => normalizedLabel(item, 80)).filter((item): item is string => Boolean(item)), 48),
+    segments,
+  };
+}
+
+function videoUnderstandingPrompt(customPrompt?: string): string {
+  const focus = normalizedLabel(customPrompt, 600);
+  return [
+    'Analyze the complete attached video for a professional short-video editor.',
+    'Return JSON only: {"summary":string,"tags":[string],"segments":[{"startMs":number,"endMs":number,"label":string}]}.',
+    'Cover the full duration in chronological segments. Each label should concisely combine visible action, subjects, scene changes, readable on-screen text, and important audio or dialogue when present.',
+    'Use Chinese. Use real millisecond ranges from the video. Do not invent unseen content, identify private people, or infer protected traits.',
+    'Choose boundaries useful for clip selection; keep segments <= 120 and tags <= 48.',
+    ...(focus ? [`Editing focus: ${focus}`] : []),
+  ].join(' ');
+}
+
+async function prepareInlineVideo(input: string, directory: string): Promise<string> {
+  const original = await stat(input);
+  if (original.size <= MAX_INLINE_VIDEO_BYTES) return input;
+  const output = join(directory, 'video-understanding.mp4');
+  await run(ffmpegBin(), [
+    '-nostdin', '-hide_banner', '-loglevel', 'error', '-y', '-i', input,
+    '-map', '0:v:0', '-map', '0:a?', '-vf', 'scale=min(640\\,iw):-2',
+    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '36',
+    '-c:a', 'aac', '-b:a', '40k', '-movflags', '+faststart', output,
+  ], VIDEO_UNDERSTANDING_TIMEOUT_MS);
+  const compressed = await stat(output);
+  if (compressed.size > MAX_INLINE_VIDEO_BYTES) {
+    throw new Error('视频过长，低码率分析副本仍超过 18MB；请先截取需要理解的片段');
+  }
+  return output;
+}
+
+export async function runVideoUnderstanding(
+  input: string,
+  options: AssetIntelligenceOptions,
+  prompt?: string,
+): Promise<VideoUnderstandingResult> {
+  if (!existsSync(input)) throw new Error('素材文件不存在');
+  if (!options.videoApiKey.trim()) throw new Error('尚未配置 Gemini API Key');
+  const model = options.videoModel.trim() || 'gemini-3.5-flash-lite';
+  const baseUrl = options.videoBaseUrl.trim().replace(/\/+$/, '').replace(/\/openai$/i, '');
+  if (!/\/v1beta$/i.test(baseUrl)) throw new Error('Gemini Base URL 必须以 /v1beta 结尾');
+  const temp = await mkdtemp(join(tmpdir(), 'openchatcut-video-understanding-'));
+  try {
+    const source = await prepareInlineVideo(input, temp);
+    const video = await readFile(source);
+    const response = await fetch(`${baseUrl}/models/${encodeURIComponent(model)}:generateContent`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(VIDEO_UNDERSTANDING_TIMEOUT_MS),
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': options.videoApiKey.trim() },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [
+          { text: videoUnderstandingPrompt(prompt) },
+          { inlineData: { mimeType: 'video/mp4', data: video.toString('base64') } },
+        ] }],
+        generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 8_192, temperature: 0.1 },
+      }),
+    });
+    if (!response.ok) throw new Error(`Gemini 视频理解请求失败（HTTP ${response.status}）`);
+    const body = await response.json().catch(() => null) as Record<string, unknown> | null;
+    const details = (body?.usageMetadata as { promptTokensDetails?: unknown } | undefined)?.promptTokensDetails;
+    const videoTokens = (Array.isArray(details) ? details : []).reduce((total, item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return total;
+      const row = item as Record<string, unknown>;
+      return String(row.modality).toUpperCase() === 'VIDEO' ? total + Math.max(0, Number(row.tokenCount) || 0) : total;
+    }, 0);
+    if (videoTokens <= 0) throw new Error('渠道未返回 VIDEO token，无法确认模型看到完整视频');
+    const candidates = body?.candidates;
+    const parts = Array.isArray(candidates) && candidates[0] && typeof candidates[0] === 'object'
+      ? ((candidates[0] as { content?: { parts?: unknown } }).content?.parts) : undefined;
+    const content = (Array.isArray(parts) ? parts : []).map((part) => (
+      part && typeof part === 'object' && !Array.isArray(part) && typeof (part as { text?: unknown }).text === 'string'
+        ? String((part as { text: string }).text) : ''
+    )).join('').trim();
+    if (!content) throw new Error('Gemini 视频理解未返回分析内容');
+    return { ...parseVideoUnderstanding(content), model, videoTokens };
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
 }
 
 function visionPrompt(customPrompt?: string): string {
@@ -327,6 +449,24 @@ export function assetIntelligencePlugin(options: AssetIntelligenceOptions): Plug
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           server.config.logger.error(`[asset-intelligence:vision] ${message}`);
+          sendJson(res, 400, { error: message });
+        }
+      });
+      server.middlewares.use('/api/asset-intelligence/video', async (req, res) => {
+        if (req.method !== 'POST') { sendJson(res, 405, { error: 'method not allowed - use POST' }); return; }
+        try {
+          const body = await readJson(req);
+          const input = uploadPath(String(body.src ?? ''));
+          if (!input) throw new Error('src must be a local /media/uploads path');
+          const result = await runVideoUnderstanding(
+            input,
+            options,
+            typeof body.prompt === 'string' ? body.prompt : undefined,
+          );
+          sendJson(res, 200, result);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          server.config.logger.error(`[asset-intelligence:video] ${message}`);
           sendJson(res, 400, { error: message });
         }
       });

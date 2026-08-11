@@ -47,6 +47,14 @@ export interface AssetVisionResult {
   sampleTimeMs?: number;
 }
 
+export interface AssetVideoUnderstandingResult {
+  summary: string;
+  tags: string[];
+  segments: Array<{ startMs: number; endMs: number; label: string }>;
+  model: string;
+  videoTokens: number;
+}
+
 export interface AssetMimoAsrResult {
   text: string;
   language: 'auto' | 'zh' | 'en';
@@ -131,6 +139,35 @@ export async function requestAssetVision(asset: MediaAsset, options: AssetVision
   };
 }
 
+export async function requestAssetVideoUnderstanding(
+  asset: MediaAsset,
+  prompt?: string,
+): Promise<AssetVideoUnderstandingResult> {
+  const response = await fetch('/api/asset-intelligence/video', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ src: asset.src, prompt }),
+  });
+  const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+  if (!response.ok) throw new Error(typeof body.error === 'string' ? body.error : `Video understanding failed (${response.status})`);
+  const segments = (Array.isArray(body.segments) ? body.segments : []).flatMap((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+    const row = item as Record<string, unknown>;
+    const startMs = Math.max(0, Math.round(Number(row.startMs)));
+    const endMs = Math.max(startMs + 1, Math.round(Number(row.endMs)));
+    const label = labels([row.label], 1)[0];
+    return Number.isFinite(startMs) && Number.isFinite(endMs) && label ? [{ startMs, endMs, label }] : [];
+  }).slice(0, 120);
+  const summary = typeof body.summary === 'string' ? body.summary.replace(/\s+/g, ' ').trim().slice(0, 4_000) : '';
+  if (!summary || !segments.length) throw new Error('Video understanding returned no usable timeline');
+  return {
+    summary,
+    tags: labels(body.tags, 48),
+    segments,
+    model: typeof body.model === 'string' && body.model.trim() ? body.model.trim().slice(0, 160) : 'unknown',
+    videoTokens: Math.max(0, Math.round(Number(body.videoTokens) || 0)),
+  };
+}
+
 function currentIntelligence(asset: MediaAsset): AssetIntelligence | undefined {
   const intelligence = asset.intelligence;
   return intelligence?.version === 1 && intelligence.sourceRevision === sourceRevisionOf(asset) ? intelligence : undefined;
@@ -179,5 +216,28 @@ export function visionIntelligenceFor(asset: MediaAsset, result: AssetVisionResu
     scenes: result.scenes.map((scene, index) => ({
       id: `vision-${startMs}-${index}`, startMs, endMs, label: scene.label, ...(scene.confidence !== undefined ? { confidence: scene.confidence } : {}),
     })),
+  };
+}
+
+export function videoIntelligenceFor(
+  asset: MediaAsset,
+  result: AssetVideoUnderstandingResult,
+  now = Date.now(),
+): AssetIntelligence {
+  const existing = currentIntelligence(asset);
+  const durationMs = assetDurationMs(asset);
+  return {
+    ...existing,
+    version: 1,
+    sourceRevision: sourceRevisionOf(asset),
+    analyzedAt: now,
+    modelVersions: { ...existing?.modelVersions, 'video-vision': result.model || 'unknown' },
+    videoSummary: result.summary,
+    tags: labels([...(existing?.tags ?? []), ...result.tags], 48),
+    scenes: result.segments.map((segment, index) => {
+      const startMs = Math.min(durationMs - 1, Math.max(0, segment.startMs));
+      const endMs = Math.min(durationMs, Math.max(startMs + 1, segment.endMs));
+      return { id: `video-vision-${startMs}-${index}`, startMs, endMs, label: segment.label };
+    }),
   };
 }
