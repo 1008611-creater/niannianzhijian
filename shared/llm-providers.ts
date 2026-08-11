@@ -192,6 +192,24 @@ export function normalizeOpenAiApiMode(value: unknown): OpenAiApiMode {
   return value === 'chat' ? 'chat' : DEFAULT_OPENAI_API_MODE;
 }
 
+/**
+ * OpenAI's official endpoint supports Responses by default. Compatible relays
+ * commonly expose only Chat Completions, so an unset mode must not send them a
+ * Responses request that can fail as an opaque 404/405/503.
+ */
+export function defaultOpenAiApiModeForBaseUrl(value: unknown): OpenAiApiMode {
+  const baseUrl = typeof value === 'string' ? value.trim().replace(/\/+$/, '') : '';
+  if (!baseUrl) return DEFAULT_OPENAI_API_MODE;
+  try {
+    const url = new URL(baseUrl);
+    return url.hostname.toLowerCase() === 'api.openai.com'
+      ? DEFAULT_OPENAI_API_MODE
+      : 'chat';
+  } catch {
+    return 'chat';
+  }
+}
+
 export function providerApiPath(
   provider: unknown,
   openAiApiMode: unknown = DEFAULT_OPENAI_API_MODE,

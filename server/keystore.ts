@@ -13,6 +13,7 @@ import { decodePersistedEnvValue, mergeEnvText } from "./env-text.ts";
 export { mergeEnvText } from "./env-text.ts";
 import {
   LLM_PROVIDER_PRESETS,
+  defaultOpenAiApiModeForBaseUrl,
   llmProviderConfigNames,
   normalizeLlmProvider,
 } from "../shared/llm-providers.ts";
@@ -404,6 +405,12 @@ export function keyStatus(): KeyStatus {
       source: set ? (envSeeded.has(name) ? "env" : "runtime") : "none",
     };
     if (NON_SECRET_NAMES.has(name)) models[name] = getKey(name);
+  }
+  // A custom OpenAI-compatible relay generally implements Chat Completions,
+  // while the official endpoint defaults to Responses. Keep an explicit admin
+  // choice untouched; infer a safe protocol only when the mode is unset.
+  if (!models.LLM_OPENAI_API_MODE) {
+    models.LLM_OPENAI_API_MODE = defaultOpenAiApiModeForBaseUrl(getKey("LLM_OPENAI_BASE_URL"));
   }
   return { keys, caps: computeCaps(), models };
 }
