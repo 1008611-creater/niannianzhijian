@@ -49,6 +49,17 @@ async function run() {
     assert.equal(queried.status, 'completed');
     assert.deepEqual(queried.usage, {consumeCoins:9,consumeMoney:null});
 
+    const pendingAdapter = createRunningHubAnimateAdapter({
+      apiKey:'test-consumer-key',
+      fetchImpl:async () => ({
+        ok:true,
+        json:async () => ({taskId:'provider-animate-pending',status:'RUNNING',usage:null,results:null})
+      })
+    });
+    const pending = await pendingAdapter.query('provider-animate-pending');
+    assert.equal(pending.status, 'generating');
+    assert.deepEqual(pending.usage, {consumeCoins:null,consumeMoney:null});
+
     const prepared = await jobs.create({
       ownerId:'USR-A',projectId:'NN-A',projectKind:'redraw',nodeId:'animate-node',nodeType:'video',
       model:'runninghub-animate-motion-transfer',prompt:'',inputAssetIds:[image.asset.id,video.asset.id],
