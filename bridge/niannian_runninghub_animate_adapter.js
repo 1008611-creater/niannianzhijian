@@ -29,7 +29,7 @@ function providerError(value) {
 }
 
 function safeUsage(value) {
-  const usage = value && typeof value.usage === 'object' ? value.usage : {};
+  const usage = value?.usage && typeof value.usage === 'object' ? value.usage : {};
   return {
     consumeCoins: usage.consumeCoins ?? null,
     consumeMoney: usage.consumeMoney ?? null
