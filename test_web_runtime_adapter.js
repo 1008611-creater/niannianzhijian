@@ -7,7 +7,7 @@ const vm = require('vm');
 (async () => {
 const source = fs.readFileSync(require('path').join(__dirname, 'studio/assets/web-runtime-adapter-r4.js'), 'utf8');
 const studioIndex = fs.readFileSync(require('path').join(__dirname, 'studio/index.html'), 'utf8');
-assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260811-animate-r1/);
+assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260811-animate-dual-r1/);
 assert.match(source, /\/api\/canvas\/provider-status/);
 assert.match(source, /\/api\/projects\/.*\/canvas\/jobs/);
 assert.match(source, /\/api\/projects\/.*\/text\/jobs/);
@@ -18,6 +18,7 @@ assert.match(source, /aspectRatio: video\s*\n\s*\? \(extras\.aspectRatio && extr
 assert.doesNotMatch(source, /RUNNINGHUB_API_KEY|apiKey\s*:/);
 assert.match(source, /!isWebOrigin\s*&&\s*existingBridge/);
 assert.match(source, /runninghub-animate-motion-transfer/);
+assert.match(source, /runninghub-animate-ai-app/);
 assert.match(source, /archetype:\s*\{id: 'happyhorse', modeId: 'edit'\}/);
 
 const calls = [];
@@ -102,7 +103,8 @@ assert.deepEqual(Array.from(imageModels, (model) => [model.modelKey, model.meta.
 ]);
 const videoModels = await context.window.nomiDesktop.modelCatalog.listModels({kind:'video'});
 assert.deepEqual(Array.from(videoModels, (model) => [model.modelKey, model.meta.archetype && model.meta.archetype.id, model.meta.archetype && model.meta.archetype.modeId]), [
-  ['runninghub-animate-motion-transfer', 'happyhorse', 'edit']
+  ['runninghub-animate-motion-transfer', 'happyhorse', 'edit'],
+  ['runninghub-animate-ai-app', 'happyhorse', 'edit']
 ]);
 const vendors = await context.window.nomiDesktop.modelCatalog.listVendors();
 assert.equal(vendors.length, 4);
@@ -131,10 +133,14 @@ assert.equal(requestBodies[3].confirmProviderSpend, true);
 const animateFromArchetype = await context.window.nomiDesktop.tasks.run({request:{kind:'image_to_video',prompt:'动作迁移',extras:{nodeId:'animate-node-2',modelAlias:'runninghub-animate-motion-transfer',archetypeInput:{reference_image:'CAS-image-002',video_url:'CAS-video-002'}}}});
 assert.equal(animateFromArchetype.id, 'CGJ-test');
 assert.deepEqual(requestBodies[4].inputAssetIds, ['CAS-image-002', 'CAS-video-002']);
+const animateAiApp = await context.window.nomiDesktop.tasks.run({request:{kind:'image_to_video',prompt:'',extras:{nodeId:'animate-node-3',modelKey:'runninghub-animate-ai-app',referenceImages:['CAS-image-003'],referenceVideos:['CAS-video-003']}}});
+assert.equal(animateAiApp.id, 'CGJ-test');
+assert.equal(requestBodies[6].model, 'runninghub-animate-ai-app');
+assert.deepEqual(requestBodies[6].inputAssetIds, ['CAS-image-003', 'CAS-video-003']);
 const imageTask = await context.window.nomiDesktop.tasks.run({request:{kind:'image_edit',prompt:'1K 节点回归',extras:{nodeId:'image-node-1',modelKey:'yunfei-gpt-image-2-1k',resolution:'1k',aspectRatio:'1:1'}}});
 assert.equal(imageTask.id, 'CGJ-test');
-assert.equal(requestBodies[6].model, 'yunfei-gpt-image-2-1k');
-assert.equal(requestBodies[6].resolution, '1k');
-assert.equal(requestBodies[6].aspectRatio, '1:1');
+assert.equal(requestBodies[8].model, 'yunfei-gpt-image-2-1k');
+assert.equal(requestBodies[8].resolution, '1k');
+assert.equal(requestBodies[8].aspectRatio, '1:1');
 console.log('WEB_RUNTIME_ADAPTER_CONTRACT_OK');
 })().catch((error) => { console.error(error); process.exitCode = 1; });

@@ -23,7 +23,7 @@ async function waitForServer() {
     }
     await new Promise(resolve => setTimeout(resolve, 150));
   }
-  throw new Error(`Studio test server did not start: ${lastError?.message || serverOutput.slice(-1000)}`);
+  throw new Error(`Studio test server did not start: ${lastError?.message || 'health check failed'}\n${serverOutput.slice(-2000)}`);
 }
 
 test.beforeAll(async () => {
@@ -76,6 +76,8 @@ test('Studio loads from a clean browser with one canonical module graph', async 
   const response = await page.goto(baseUrl + '/studio/', {waitUntil: 'networkidle'});
   expect(response?.ok()).toBe(true);
   await expect(page.locator('#root')).not.toBeEmpty();
+  const skipIntro = page.getByRole('button', {name: /跳过/});
+  if (await skipIntro.isVisible({timeout: 2000}).catch(() => false)) await skipIntro.click();
   const newProject = page.getByRole('button', {name: /新建空白项目/});
   await expect(newProject).toBeVisible();
   await newProject.click();

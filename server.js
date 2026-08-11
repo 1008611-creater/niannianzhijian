@@ -7366,7 +7366,7 @@ async function generationNodeForProject(project, projectKind, nodeId) {
 
 function canvasGenerationSubmitEnabled(jobOrNodeType) {
   const nodeType = typeof jobOrNodeType === 'string' ? jobOrNodeType : jobOrNodeType?.nodeType;
-  if (nodeType === 'video') return typeof jobOrNodeType === 'object' && jobOrNodeType.videoChannel === 'animate-transfer'
+  if (nodeType === 'video') return typeof jobOrNodeType === 'object' && canvasVideoChannels.isAnimateVideoChannel(jobOrNodeType.videoChannel)
     ? canvasAnimateRuntime.enabled
     : canvasH3Runtime.enabled;
   const imageChannel = typeof jobOrNodeType === 'object' ? jobOrNodeType.imageChannel : null;
@@ -7530,7 +7530,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       if (!job) return json(response, 404, {code:'CANVAS_JOB_NOT_FOUND',error:'任务不存在'});
       if (job.nodeType === 'image' && canvasImage2Runtime.enabled && ['queued','running'].includes(job.status)) job = await canvasImage2Runtime.reconcile(user.id, projectId, jobId);
       if (job.nodeType === 'video' && ['queued','running'].includes(job.status)) {
-        if (job.videoChannel === 'animate-transfer' && canvasAnimateRuntime.enabled) job = await canvasAnimateRuntime.reconcile(user.id, projectId, jobId);
+        if (canvasVideoChannels.isAnimateVideoChannel(job.videoChannel) && canvasAnimateRuntime.enabled) job = await canvasAnimateRuntime.reconcile(user.id, projectId, jobId);
         else if (canvasH3Runtime.enabled) job = await canvasH3Runtime.reconcile(user.id, projectId, jobId);
       }
       return json(response, 200, publicCanvasGenerationResponse(job));
@@ -7539,7 +7539,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       const job = await canvasGenerationJobService.getOwned(user.id, projectId, jobId);
       if (!job) return json(response, 404, {code:'CANVAS_JOB_NOT_FOUND',error:'任务不存在'});
       const providerSubmitEnabled = canvasGenerationSubmitEnabled(job);
-      const providerDryRun = job.videoChannel === 'animate-transfer' ? await canvasAnimateRuntime.dryRun(job) : null;
+      const providerDryRun = canvasVideoChannels.isAnimateVideoChannel(job.videoChannel) ? await canvasAnimateRuntime.dryRun(job) : null;
       return json(response, 200, {
         code:'CANVAS_GENERATION_DRY_RUN_READY',
         job:canvasGenerationJobService.publicJob(job, {providerSubmitEnabled}),
@@ -7560,7 +7560,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         return json(response, 202, {code:'CANVAS_GENERATION_SUBMITTED',job:canvasGenerationJobService.publicJob(submitted, {providerSubmitEnabled:true}),providerSubmitEnabled:true,providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),spendRequested:true});
       }
       if (job.nodeType === 'video') {
-        const runtime = job.videoChannel === 'animate-transfer' ? canvasAnimateRuntime : canvasH3Runtime;
+        const runtime = canvasVideoChannels.isAnimateVideoChannel(job.videoChannel) ? canvasAnimateRuntime : canvasH3Runtime;
         if (!runtime.enabled) return json(response, 409, {code:'CANVAS_PROVIDER_SUBMIT_DISABLED',error:'视频生成尚未启用，当前任务仅完成准备'});
         const submitted = await runtime.submit(user.id, projectId, jobId);
         return json(response, 202, {code:'CANVAS_GENERATION_SUBMITTED',job:canvasGenerationJobService.publicJob(submitted, {providerSubmitEnabled:true}),providerSubmitEnabled:true,providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),spendRequested:true});

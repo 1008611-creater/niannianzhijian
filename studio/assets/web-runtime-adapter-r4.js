@@ -97,12 +97,13 @@
     };
   }
 
-  function providerAnimateModel(status) {
+  function providerAnimateModel(status, route) {
+    var aiApp = route === 'ai-app';
     return {
-      modelKey: 'runninghub-animate-motion-transfer',
-      modelAlias: 'runninghub-animate-motion-transfer',
+      modelKey: aiApp ? 'runninghub-animate-ai-app' : 'runninghub-animate-motion-transfer',
+      modelAlias: aiApp ? 'runninghub-animate-ai-app' : 'runninghub-animate-motion-transfer',
       vendorKey: 'runninghub',
-      labelZh: 'RunningHub 动作迁移',
+      labelZh: aiApp ? '动作迁移（AI 应用）' : '动作迁移（工作流）',
       kind: 'video',
       enabled: true,
       pricing: {cost: 0, enabled: status.animateSubmitEnabled === true, specCosts: []},
@@ -152,7 +153,10 @@
       models.push(providerModel('image', status, channel));
     });
     if (status.credentialConfigured === true && status.videoSubmitEnabled === true) models.push(providerModel('video', status));
-    if (status.animateSubmitEnabled === true) models.push(providerAnimateModel(status));
+    if (status.animateSubmitEnabled === true) {
+      models.push(providerAnimateModel(status, 'workflow'));
+      models.push(providerAnimateModel(status, 'ai-app'));
+    }
     if (status.text?.credentialConfigured === true && status.text?.modelConfigured === true && status.text?.submitEnabled === true) models.push(providerModel('text', status));
     return {vendors: vendors, models: models};
   }
@@ -217,8 +221,13 @@
 
   function isAnimateTransfer(extras) {
     return [extras && extras.modelKey, extras && extras.modelAlias].some(function (value) {
-      return String(value || '').trim().toLowerCase() === 'runninghub-animate-motion-transfer';
+      return ['runninghub-animate-motion-transfer','runninghub-animate-ai-app'].includes(String(value || '').trim().toLowerCase());
     });
+  }
+
+  function animateModel(extras) {
+    var values = [extras && extras.modelKey, extras && extras.modelAlias].map(function (value) { return String(value || '').trim().toLowerCase(); });
+    return values.includes('runninghub-animate-ai-app') ? 'runninghub-animate-ai-app' : 'runninghub-animate-motion-transfer';
   }
 
   function animateAssetIds(extras) {
@@ -514,7 +523,7 @@
       body: JSON.stringify({
         projectKind: canvasProjectKind(),
         nodeId: nodeId,
-        model: animateTransfer ? 'runninghub-animate-motion-transfer' : (video ? 'h3' : (extras.modelKey || extras.modelAlias || 'runninghub-gpt-image-2')),
+        model: animateTransfer ? animateModel(extras) : (video ? 'h3' : (extras.modelKey || extras.modelAlias || 'runninghub-gpt-image-2')),
         prompt: request.prompt || '',
         inputAssetIds: animateTransfer ? animateAssetIds(extras) : assetIds(extras),
         resolution: extras.resolution || '2k',

@@ -9,8 +9,16 @@ const {findTaskId, statusOf} = require('./niannian_runninghub_h3_adapter');
 
 const WORKFLOW_ID = '2083071192579264514';
 const ENDPOINT = '/openapi/v2/run/workflow/' + WORKFLOW_ID;
+const AI_APP_ID = '1975951975441412098';
+const AI_APP_ENDPOINT = '/task/openapi/ai-app/run';
 const INSTANCE_TYPE = 'plus';
 const INPUTS = Object.freeze({image:Object.freeze({nodeId:'299',fieldName:'image'}),video:Object.freeze({nodeId:'275',fieldName:'video'})});
+const AI_APP_DEFAULT_NODES = Object.freeze([
+  ['535','select','1'],['293','select','1'],['497','value','false'],['297','value','1.0000000000000002'],
+  ['370','value','false'],['361','value','1.0000000000000002'],['271','value','false'],['265','value','0.8000000000000002'],
+  ['266','value','0.20000000000000004'],['499','value','0'],['422','value','840'],['264','value','30'],
+  ['470','select','2'],['452','value','false'],['451','value','9'],['450','value','16']
+].map(item => Object.freeze({nodeId:item[0],fieldName:item[1],fieldValue:item[2]})));
 
 function adapterError(code, message, httpStatus = 502) {
   const error = new Error(message || code);
@@ -20,16 +28,21 @@ function adapterError(code, message, httpStatus = 502) {
 }
 
 function providerError(value) {
-  const code = value && typeof value === 'object' ? (value.errorCode ?? value.code) : null;
-  const message = value && typeof value === 'object' ? String(value.errorMessage ?? value.message ?? '').trim().toLowerCase() : '';
-  if (code == null || ['', '0', 'success', 'ok'].includes(String(code).toLowerCase()) || ['success', 'ok'].includes(message)) return null;
-  const error = adapterError('RUNNINGHUB_PROVIDER_REJECTED', 'RunningHub 拒绝了动作迁移请求');
-  error.providerCode = String(code).replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 64) || 'unknown';
-  return error;
+  const candidates = [value, value?.data].filter(item => item && typeof item === 'object');
+  for (const payload of candidates) {
+    const code = payload.errorCode ?? payload.code;
+    const message = String(payload.errorMessage ?? payload.message ?? '').trim().toLowerCase();
+    if (code == null || ['', '0', 'success', 'ok'].includes(String(code).toLowerCase()) || ['success', 'ok'].includes(message)) continue;
+    const error = adapterError('RUNNINGHUB_PROVIDER_REJECTED', 'RunningHub 拒绝了动作迁移请求');
+    error.providerCode = String(code).replace(/[^A-Za-z0-9._:-]/g, '').slice(0, 64) || 'unknown';
+    return error;
+  }
+  return null;
 }
 
 function safeUsage(value) {
-  const usage = value?.usage && typeof value.usage === 'object' ? value.usage : {};
+  const payload = value?.data && typeof value.data === 'object' ? value.data : value;
+  const usage = payload?.usage && typeof payload.usage === 'object' ? payload.usage : {};
   return {
     consumeCoins: usage.consumeCoins ?? null,
     consumeMoney: usage.consumeMoney ?? null
@@ -37,7 +50,8 @@ function safeUsage(value) {
 }
 
 function videoUrls(value) {
-  const results = Array.isArray(value?.results) ? value.results : [];
+  const payload = value?.data && typeof value.data === 'object' ? value.data : value;
+  const results = Array.isArray(payload?.results) ? payload.results : [];
   return [...new Set(results
     .filter(item => item && typeof item.url === 'string' && (!item.outputType || /^(mp4|mov|webm)$/i.test(String(item.outputType))))
     .map(item => item.url)
@@ -60,12 +74,14 @@ function createRunningHubAnimateAdapter(options = {}) {
     return value;
   }
 
-  async function jsonRequest(endpoint, payload, mode) {
+  async function jsonRequest(endpoint, payload, mode, includeAuthorization = true) {
     let response;
     try {
+      const headers = {'content-type':'application/json',accept:'application/json','user-agent':'niannian-runninghub-animate/1.0'};
+      if (includeAuthorization) headers.authorization = 'Bearer ' + key();
       response = await fetchImpl(baseUrl + endpoint, {
         method:'POST',
-        headers:{authorization:'Bearer ' + key(),'content-type':'application/json',accept:'application/json','user-agent':'niannian-runninghub-animate/1.0'},
+        headers,
         body:JSON.stringify(payload),
         signal:AbortSignal.timeout(timeoutMs)
       });
@@ -79,25 +95,46 @@ function createRunningHubAnimateAdapter(options = {}) {
     return value;
   }
 
-  async function upload(asset) {
+  function uploadReference(value, channel) {
+    if (typeof value === 'string') return value;
+    if (channel === 'animate-ai-app') return value?.fileName || value?.downloadUrl || value?.url || '';
+    return value?.downloadUrl || value?.fileName || value?.url || '';
+  }
+
+  async function upload(asset, channel) {
     const cacheKey = [asset.sha256, asset.bytes, asset.mimeType].join(':');
     const cached = uploadCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) return cached.reference;
-    const reference = await uploadImpl({
+    if (cached && cached.expiresAt > Date.now()) return uploadReference(cached.value, channel);
+    const value = await uploadImpl({
       baseUrl,
       apiKey:key(),
       asset,
       timeoutMs,
       agent
     });
+    const reference = uploadReference(value, channel);
     if (typeof reference !== 'string' || !reference) throw adapterError('RUNNINGHUB_ANIMATE_UPLOAD_REFERENCE_MISSING', 'RunningHub 未返回动作迁移素材引用');
-    uploadCache.set(cacheKey, {reference,expiresAt:Date.now() + uploadCacheTtlMs});
+    uploadCache.set(cacheKey, {value,expiresAt:Date.now() + uploadCacheTtlMs});
     return reference;
   }
 
-  function dryRun() {
+  function dryRun(channel = 'animate-transfer') {
+    if (channel === 'animate-ai-app') return {
+      channel,
+      entryType:'ai_app',
+      webappId:AI_APP_ID,
+      endpoint:AI_APP_ENDPOINT,
+      payload:{
+        webappId:AI_APP_ID,
+        instanceType:INSTANCE_TYPE,
+        nodeInfoList:[...AI_APP_DEFAULT_NODES.map(item => ({...item})),
+          {...INPUTS.image,fieldValue:'DRY_RUN_UPLOAD:image'},
+          {...INPUTS.video,fieldValue:'DRY_RUN_UPLOAD:video'}]
+      }
+    };
     return {
-      channel:'animate-transfer',
+      channel,
+      entryType:'workflow',
       workflowId:WORKFLOW_ID,
       endpoint:ENDPOINT,
       payload:{
@@ -112,17 +149,21 @@ function createRunningHubAnimateAdapter(options = {}) {
     };
   }
 
-  async function submit(imageAsset, videoAsset) {
-    const [imageReference, videoReference] = await Promise.all([upload(imageAsset), upload(videoAsset)]);
-    const payload = dryRun().payload;
-    payload.nodeInfoList = [
+  async function submit(imageAsset, videoAsset, channel = 'animate-transfer') {
+    const selected = channel === 'animate-ai-app' ? 'animate-ai-app' : 'animate-transfer';
+    const [imageReference, videoReference] = await Promise.all([upload(imageAsset, selected), upload(videoAsset, selected)]);
+    const spec = dryRun(selected);
+    const payload = spec.payload;
+    payload.nodeInfoList = payload.nodeInfoList.filter(item => ![INPUTS.image.nodeId + '.' + INPUTS.image.fieldName, INPUTS.video.nodeId + '.' + INPUTS.video.fieldName].includes(item.nodeId + '.' + item.fieldName));
+    payload.nodeInfoList.push(
       {...INPUTS.image,fieldValue:imageReference},
       {...INPUTS.video,fieldValue:videoReference}
-    ];
-    const response = await jsonRequest(ENDPOINT, payload, 'submit');
+    );
+    if (selected === 'animate-ai-app') payload.apiKey = key();
+    const response = await jsonRequest(spec.endpoint, payload, 'submit', selected !== 'animate-ai-app');
     const taskId = findTaskId(response);
     if (!taskId) throw adapterError('RUNNINGHUB_ANIMATE_TASK_ID_MISSING', 'RunningHub 未返回动作迁移任务标识');
-    return {taskId,channel:'animate-transfer',payload:{workflowId:WORKFLOW_ID,instanceType:INSTANCE_TYPE,inputCount:2}};
+    return {taskId,channel:selected,payload:{entryType:spec.entryType,workflowId:spec.workflowId || null,webappId:spec.webappId || null,instanceType:INSTANCE_TYPE,inputCount:2}};
   }
 
   async function query(taskId) {
@@ -145,7 +186,7 @@ function createRunningHubAnimateAdapter(options = {}) {
     return {bytes,mime:format === 'webm' ? 'video/webm' : 'video/mp4',format};
   }
 
-  return {dryRun,submit,query,download,constants:{workflowId:WORKFLOW_ID,endpoint:ENDPOINT,instanceType:INSTANCE_TYPE,inputs:INPUTS}};
+  return {dryRun,submit,query,download,constants:{workflowId:WORKFLOW_ID,endpoint:ENDPOINT,aiAppId:AI_APP_ID,aiAppEndpoint:AI_APP_ENDPOINT,instanceType:INSTANCE_TYPE,inputs:INPUTS,aiAppDefaults:AI_APP_DEFAULT_NODES}};
 }
 
 async function uploadHttp1({baseUrl, apiKey, asset, timeoutMs, agent}) {
@@ -185,9 +226,13 @@ async function uploadHttp1({baseUrl, apiKey, asset, timeoutMs, agent}) {
   });
   const rejected = providerError(value);
   if (rejected) throw rejected;
-  const reference = value?.data?.download_url || value?.data?.fileName || value?.data?.url;
-  if (typeof reference !== 'string' || !reference) throw adapterError('RUNNINGHUB_ANIMATE_UPLOAD_REFERENCE_MISSING', 'RunningHub 未返回动作迁移素材引用');
-  return reference;
+  const upload = {
+    downloadUrl:value?.data?.download_url || null,
+    fileName:value?.data?.fileName || null,
+    url:value?.data?.url || null
+  };
+  if (!upload.downloadUrl && !upload.fileName && !upload.url) throw adapterError('RUNNINGHUB_ANIMATE_UPLOAD_REFERENCE_MISSING', 'RunningHub 未返回动作迁移素材引用');
+  return upload;
 }
 
-module.exports = {createRunningHubAnimateAdapter, uploadHttp1, safeUsage, videoUrls, WORKFLOW_ID, INSTANCE_TYPE, INPUTS};
+module.exports = {createRunningHubAnimateAdapter, uploadHttp1, safeUsage, videoUrls, WORKFLOW_ID, AI_APP_ID, INSTANCE_TYPE, INPUTS, AI_APP_DEFAULT_NODES};

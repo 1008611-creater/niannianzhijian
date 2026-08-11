@@ -7,7 +7,7 @@ const path = require('path');
 const {createCanvasAssetService} = require('./bridge/niannian_canvas_assets');
 const {createCanvasGenerationJobService} = require('./bridge/niannian_canvas_generation_jobs');
 const {createCanvasAnimateRuntime, verifiedConsumerUsage} = require('./bridge/niannian_canvas_animate_runtime');
-const {createRunningHubAnimateAdapter, WORKFLOW_ID} = require('./bridge/niannian_runninghub_animate_adapter');
+const {createRunningHubAnimateAdapter, WORKFLOW_ID, AI_APP_ID, AI_APP_DEFAULT_NODES} = require('./bridge/niannian_runninghub_animate_adapter');
 
 async function run() {
   const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'niannian-canvas-animate-'));
@@ -20,6 +20,7 @@ async function run() {
 
     const uploadCalls = [];
     const submitBodies = [];
+    const aiAppBodies = [];
     const providerAdapter = createRunningHubAnimateAdapter({
       apiKey:'test-consumer-key',
       uploadImpl:async ({asset}) => { uploadCalls.push(asset.id); return 'mock/' + asset.id; },
@@ -28,6 +29,11 @@ async function run() {
           assert.equal(init.headers.authorization, 'Bearer test-consumer-key');
           submitBodies.push(JSON.parse(init.body));
           return {ok:true,json:async () => ({taskId:'provider-animate-001',status:'RUNNING'})};
+        }
+        if (String(url).endsWith('/task/openapi/ai-app/run')) {
+          assert.equal(init.headers.authorization, undefined);
+          aiAppBodies.push(JSON.parse(init.body));
+          return {ok:true,json:async () => ({code:0,data:{taskId:'provider-ai-app-001',taskStatus:'RUNNING'}})};
         }
         if (String(url).endsWith('/openapi/v2/query')) {
           return {ok:true,json:async () => ({taskId:'provider-animate-001',status:'SUCCESS',usage:{consumeCoins:9,consumeMoney:null},results:[{url:'https://provider.invalid/result.mp4',outputType:'mp4'}]})};
@@ -45,6 +51,21 @@ async function run() {
     assert.equal(uploadCalls.length, 2, 'provider upload cache reuses both website assets');
     assert.equal(submitBodies.length, 2, 'adapter does not hide explicit caller submissions');
     assert.equal(submitBodies[0].instanceType, 'plus');
+    const aiAppDryRun = providerAdapter.dryRun('animate-ai-app');
+    assert.equal(aiAppDryRun.webappId, AI_APP_ID);
+    assert.equal(aiAppDryRun.endpoint, '/task/openapi/ai-app/run');
+    assert.equal(aiAppDryRun.payload.nodeInfoList.length, AI_APP_DEFAULT_NODES.length + 2);
+    const submittedAiApp = await providerAdapter.submit(
+      {...image.asset,storedPath:(await assets.getOwned('USR-A','NN-A',image.asset.id)).storedPath},
+      {...video.asset,storedPath:(await assets.getOwned('USR-A','NN-A',video.asset.id)).storedPath},
+      'animate-ai-app'
+    );
+    assert.equal(submittedAiApp.taskId, 'provider-ai-app-001');
+    assert.equal(uploadCalls.length, 2, 'both routes reuse the same uploaded project assets');
+    assert.equal(aiAppBodies.length, 1);
+    assert.equal(aiAppBodies[0].webappId, AI_APP_ID);
+    assert.equal(aiAppBodies[0].apiKey, 'test-consumer-key');
+    assert.deepEqual(aiAppBodies[0].nodeInfoList.slice(-2).map(item => `${item.nodeId}.${item.fieldName}`), ['299.image','275.video']);
     const queried = await providerAdapter.query('provider-animate-001');
     assert.equal(queried.status, 'completed');
     assert.deepEqual(queried.usage, {consumeCoins:9,consumeMoney:null});
@@ -73,9 +94,10 @@ async function run() {
       jobService:jobs,assetService:assets,enabled:true,
       adapter:{
         dryRun:() => dryRun,
-        submit:async (imageAsset, videoAsset) => {
+        submit:async (imageAsset, videoAsset, channel) => {
           assert.equal(imageAsset.kind, 'reference_image');
           assert.equal(videoAsset.kind, 'reference_video');
+          assert.equal(channel, 'animate-transfer');
           submitCount += 1;
           await new Promise(resolve => setTimeout(resolve, 20));
           return {taskId:'provider-runtime-001',payload:{workflowId:WORKFLOW_ID,instanceType:'plus',inputCount:2}};
@@ -112,6 +134,31 @@ async function run() {
     assert.deepEqual(verifiedConsumerUsage({consumeCoins:1,consumeMoney:0}), {consumeCoins:1,consumeMoney:0});
     assert.throws(() => verifiedConsumerUsage({consumeCoins:0,consumeMoney:null}), error => error.code === 'CANVAS_ANIMATE_BILLING_UNVERIFIED');
     assert.throws(() => verifiedConsumerUsage({consumeCoins:1,consumeMoney:'0.1'}), error => error.code === 'CANVAS_ANIMATE_BILLING_UNVERIFIED');
+
+    const aiAppPrepared = await jobs.create({
+      ownerId:'USR-A',projectId:'NN-A',projectKind:'redraw',nodeId:'animate-ai-app-node',nodeType:'video',
+      model:'runninghub-animate-ai-app',prompt:'',inputAssetIds:[image.asset.id,video.asset.id],
+      aspectRatio:'9:16',durationSeconds:5,idempotencyKey:'animate-ai-app-job-0001'
+    });
+    assert.equal(aiAppPrepared.job.videoChannel, 'animate-ai-app');
+    assert.equal(jobs.publicJob(aiAppPrepared.job).model, 'runninghub-animate-ai-app');
+    let aiAppRuntimeRoute = null;
+    const aiAppRuntime = createCanvasAnimateRuntime({
+      jobService:jobs,assetService:assets,enabled:true,
+      adapter:{
+        dryRun:(channel) => providerAdapter.dryRun(channel),
+        submit:async (_imageAsset, _videoAsset, channel) => {
+          aiAppRuntimeRoute = channel;
+          return {taskId:'provider-runtime-ai-app-001',payload:{entryType:'ai_app',webappId:AI_APP_ID,instanceType:'plus',inputCount:2}};
+        },
+        query:async () => ({status:'generating',videoUrls:[],usage:{consumeCoins:null,consumeMoney:null}}),
+        download:async () => { throw new Error('not reached'); }
+      }
+    });
+    const aiAppRuntimeDryRun = await aiAppRuntime.dryRun(aiAppPrepared.job);
+    assert.equal(aiAppRuntimeDryRun.entryType, 'ai_app');
+    await aiAppRuntime.submit('USR-A','NN-A',aiAppPrepared.job.id);
+    assert.equal(aiAppRuntimeRoute, 'animate-ai-app');
 
     const invalid = await jobs.create({
       ownerId:'USR-A',projectId:'NN-A',projectKind:'redraw',nodeId:'animate-invalid',nodeType:'video',
