@@ -76,7 +76,7 @@ try {
   assert(packageManifest.files.includes('scripts/probe_step02_mcgrox.js'));
   assert.equal(packageManifest.files.some(file => file.startsWith('bridge/mac-employee-training/')), false);
   assert.equal(packageManifest.files.includes('bridge/video_channel_evidence_registry.json'), false);
-  assert(packageManifest.files.includes('bridge/mac-skill-bundles/niannian-mac-production-skills-v1.manifest.json'));
+  assert.equal(packageManifest.files.some(file => file.startsWith('bridge/mac-skill-bundles/')), false);
   assert(packageManifest.files.includes('docs/shot-review-contract/contract-manifest.json'));
   assert(packageManifest.files.includes('docs/shot-review-contract/schemas/shot-review-model.schema.json'));
   assert.equal(packageManifest.files.some(file => /^(?:data-local|data|output|logs|\.local)(?:\/|$)/.test(file)), false);
