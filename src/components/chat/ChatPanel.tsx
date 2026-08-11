@@ -3,6 +3,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
@@ -19,7 +20,7 @@ import { ExternalProposalCard } from './ExternalProposalCard';
 import { thinkingPhrase } from './thinkingPhrases';
 import { onSelectionRef, refPromptToken, setSelectionRefMode } from '../../agent/selection-refs';
 import { shouldBlockAutoApply } from '../../agent/skills/costGuard';
-import { getAgentModelSnapshot, isAgentModelReady } from '../../agent/model-selection';
+import { getAgentModelSnapshot, isAgentModelReady, subscribeAgentModels } from '../../agent/model-selection';
 import { ProposalCard } from './ProposalCard';
 import { ChatMessage } from './ChatMessage';
 import { ToolGroupRow } from './ToolGroupRow';
@@ -84,7 +85,7 @@ interface ChatPanelProps {
   /** show a proposal's draft result in the player (null = show committed state) */
   onPreviewState: (state: TimelineState | null) => void;
   /** prefill the composer (library "generated with AI"); bump the number to re-seed */
-  seed?: { text: string; nonce: number; references?: RefItem[]; autoSubmit?: boolean } | null;
+  seed?: { text: string; nonce: number; references?: RefItem[]; autoSubmit?: boolean; autoApply?: boolean } | null;
   /** active creative-mode skill id (agent_skill), or null */
   creativeMode: string | null;
   onCreativeModeChange: (id: string | null) => void;
@@ -98,6 +99,15 @@ interface ChatPanelProps {
       onFailure?: (asset: MediaAsset | null, error: unknown) => void;
     },
   ) => Promise<MediaAsset>;
+  /** Product-facing progress for Quick mode. Tool names stay internal. */
+  onRunStateChange?: (state: AgentRunState) => void;
+}
+
+export interface AgentRunState {
+  running: boolean;
+  liveTool?: string;
+  proposalPending: boolean;
+  error?: string;
 }
 
 // Run time: The number of seconds of real-time jumps during AI thinking/execution (keep two decimal places). Mount and start the table,
@@ -127,14 +137,14 @@ const GUARD_SKILL_LABELS = {
   'high-cost-operation': '高成本 / 长时或不可逆操作',
 } as const;
 
-export function ChatPanel({ ctx, projectId, collapsed, onToggleCollapse, onPreviewState, seed, creativeMode, onCreativeModeChange, onImportMedia }: ChatPanelProps) {
+export function ChatPanel({ ctx, projectId, collapsed, onToggleCollapse, onPreviewState, seed, creativeMode, onCreativeModeChange, onImportMedia, onRunStateChange }: ChatPanelProps) {
   const t = useT();
   const [autoApply, setAutoApply] = useState<boolean>(() => loadChatAutoApply(projectId));
   const {
     messages, running, send, stop, enhance, proposal, applyProposal, rejectProposal, clearHistory,
     proposalStale, forceApplyProposal, reProposeStale, pendingGuard, liveTool, contextUsage,
     changeLog, rollbackChangeSession, canRollbackChangeSession,
-  } = useAgent(ctx, projectId, autoApply);
+  } = useAgent(ctx, projectId, autoApply || !!seed?.autoApply);
   useEffect(() => {
     if (!collapsed) void preloadAgentRuntime().catch(() => undefined);
   }, [collapsed]);
@@ -163,6 +173,14 @@ export function ChatPanel({ ctx, projectId, collapsed, onToggleCollapse, onPrevi
   const pendingAttachmentCount = pendingChatAttachmentCount(attachmentLifecycle);
   const [selecting, setSelecting] = useState(false);
   const [pasteError, setPasteError] = useState<string | null>(null);
+  const [seedError, setSeedError] = useState<string | undefined>();
+  const submittedSeedNonceRef = useRef<number | null>(null);
+  const agentModelSnapshot = useSyncExternalStore(
+    subscribeAgentModels,
+    getAgentModelSnapshot,
+    getAgentModelSnapshot,
+  );
+  const agentModelReady = isAgentModelReady(agentModelSnapshot);
   const [visibleMessageCount, setVisibleMessageCount] = useState(MESSAGE_WINDOW_SIZE);
   const [changeLogSlot, setChangeLogSlot] = useState<HTMLElement | null>(null);
   useEffect(() => {
@@ -239,6 +257,7 @@ export function ChatPanel({ ctx, projectId, collapsed, onToggleCollapse, onPrevi
   // Collecting thinking (this round of assistant bubbles only have thoughts, no text yet) → The bottom indication is changed to a dim light "Thinking...";
   // When there is no thinking data, the original random scene phrase is retained.
   const lastMsg = messages[messages.length - 1];
+  const lastError = lastMsg?.role === 'error' ? lastMsg.text : undefined;
   const streamingThinking = running && lastMsg?.role === 'assistant' && !!lastMsg.thinking && !lastMsg.text;
   const visibleFrom = Math.max(0, messages.length - visibleMessageCount);
   const visibleMessages = messages.slice(visibleFrom);
@@ -295,16 +314,25 @@ export function ChatPanel({ ctx, projectId, collapsed, onToggleCollapse, onPrevi
 
   // clear any preview when the proposal is resolved (applied/rejected)
   useEffect(() => { if (!proposal) onPreviewState(null); }, [proposal, onPreviewState]);
+  useEffect(() => {
+    onRunStateChange?.({
+      running,
+      liveTool: liveTool?.name,
+      proposalPending: !!proposal,
+      ...(lastError || seedError ? { error: lastError || seedError } : {}),
+    });
+  }, [lastError, liveTool?.name, onRunStateChange, proposal, running, seedError]);
 
   // Settings·Auto-apply: when on, apply the proposal (all ops) as soon as it arrives.
   // cost guard: high-cost tools still require the proposal card — except in
   // YOLO mode, where the user chose full automation for this project.
   useEffect(() => {
-    if (!proposal || !autoApply) return;
-    if (shouldBlockAutoApply(proposal, autoApply)) return;
+    const shouldAutoApply = autoApply || !!seed?.autoApply;
+    if (!proposal || !shouldAutoApply) return;
+    if (shouldBlockAutoApply(proposal, shouldAutoApply)) return;
     const all = new Set(proposal.options[0].operations.map((_, i) => i));
     applyProposal(all);
-  }, [proposal, autoApply, applyProposal]);
+  }, [proposal, autoApply, applyProposal, seed?.autoApply]);
 
   const submit = () => {
     const modelReady = isAgentModelReady(getAgentModelSnapshot());
@@ -325,32 +353,27 @@ export function ChatPanel({ ctx, projectId, collapsed, onToggleCollapse, onPrevi
     clearComposerDraft(projectId);
   };
   useEffect(() => {
-    if (!seed?.autoSubmit) return;
-    let attempts = 0;
-    let timer: number | undefined;
-    const sendSeed = () => {
-      const modelReady = isAgentModelReady(getAgentModelSnapshot());
-      if (running || !modelReady || pendingChatAttachmentCount(attachmentLifecycleRef.current) > 0) {
-        if (attempts < 24) {
-          attempts += 1;
-          timer = window.setTimeout(sendSeed, 250);
-        }
-        return;
-      }
-      const referencesForMessage = seed.references ?? [];
-      const sendText = referencesForMessage.length
-        ? `${seed.text}${seed.text && !seed.text.endsWith(' ') ? ' ' : ''}${referencesForMessage.map((reference) => refPromptToken(reference)).join(' ')}`
-        : seed.text;
-      send(sendText, { askOnly: false, references: referencesForMessage });
-      setInput('');
-      commitSelectedRefs([]);
-      clearComposerDraft(projectId);
-    };
-    timer = window.setTimeout(sendSeed, 150);
-    return () => { if (timer !== undefined) window.clearTimeout(timer); };
-  // The nonce is the explicit one-shot trigger from Quick mode.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seed?.nonce]);
+    if (!seed?.autoSubmit || !agentModelReady || running || pendingAttachmentCount > 0) return;
+    if (submittedSeedNonceRef.current === seed.nonce) return;
+    submittedSeedNonceRef.current = seed.nonce;
+    setSeedError(undefined);
+    const referencesForMessage = seed.references ?? [];
+    const sendText = referencesForMessage.length
+      ? `${seed.text}${seed.text && !seed.text.endsWith(' ') ? ' ' : ''}${referencesForMessage.map((reference) => refPromptToken(reference)).join(' ')}`
+      : seed.text;
+    send(sendText, { askOnly: false, references: referencesForMessage, autoApply: !!seed.autoApply });
+    setInput('');
+    commitSelectedRefs([]);
+    clearComposerDraft(projectId);
+  }, [agentModelReady, commitSelectedRefs, pendingAttachmentCount, projectId, running, seed, send]);
+  useEffect(() => {
+    if (!seed?.autoSubmit || agentModelReady || submittedSeedNonceRef.current === seed.nonce) return;
+    setSeedError(undefined);
+    const timer = window.setTimeout(() => {
+      setSeedError('智能剪辑服务暂时没有准备好，请重新制作。');
+    }, 30_000);
+    return () => window.clearTimeout(timer);
+  }, [agentModelReady, seed?.autoSubmit, seed?.nonce]);
   const runEnhance = async () => {
     const modelReady = isAgentModelReady(getAgentModelSnapshot());
     if (

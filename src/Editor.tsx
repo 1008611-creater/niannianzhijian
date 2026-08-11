@@ -5,7 +5,7 @@ import { ExportDialog } from './export/ExportDialog';
 import { createExportJobStore } from './export/backgroundExportStore';
 import { resumePersistedServerExports } from './export/serverExportOperation';
 import { TopBar } from './components/TopBar';
-import { ChatPanel } from './components/chat/ChatPanel';
+import { ChatPanel, type AgentRunState } from './components/chat/ChatPanel';
 import { LibraryPanel } from './library/LibraryPanel';
 import { PreviewPanel } from './components/PreviewPanel';
 import { InspectorPanel } from './components/InspectorPanel';
@@ -89,6 +89,7 @@ import {
 } from './captions/captionSelection';
 import { updateCaptionSelections } from './captions/captionSelectionInteraction';
 import type { QuickRecipeInput } from './components/QuickHome';
+import { QuickRunOverlay, type QuickRunStage } from './components/QuickRunOverlay';
 
 interface EditorProps {
   initial: ProjectDoc;
@@ -110,6 +111,23 @@ interface AutoGradeSession {
   recommendations: AutoGradeRecommendation[];
   failedCount: number;
 }
+
+interface QuickRunRuntime {
+  recipe: QuickRecipeInput;
+  importedRatio: number;
+  assetId?: string;
+  asset?: MediaAsset;
+  assetReady: boolean;
+  error?: string;
+  dismissed: boolean;
+}
+
+const QUICK_RUN_STAGE_ORDER: Record<Exclude<QuickRunStage, 'ready' | 'error'>, number> = {
+  importing: 0,
+  understanding: 1,
+  selecting: 2,
+  assembling: 3,
+};
 
 
 function isAutoGradeTarget(item: TimelineItem, state: TimelineState): boolean {
@@ -421,7 +439,20 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
   }, [autoGradeSession, state]);
   const selectedAutoGrade = autoGradeSession?.recommendations.find((entry) => entry.itemId === state.selectedId) ?? null;
   // library「Generated with AI」→ prefill the chat composer (nonce forces re-seed of the same text)
-  const [chatSeed, setChatSeed] = useState<{ text: string; nonce: number; references?: AgentReference[]; autoSubmit?: boolean } | null>(null);
+  const [chatSeed, setChatSeed] = useState<{ text: string; nonce: number; references?: AgentReference[]; autoSubmit?: boolean; autoApply?: boolean } | null>(null);
+  const quickInitialItemIdsRef = useRef(new Set(
+    initialRecipe ? initial.timelines.flatMap((timeline) => timeline.items.map((item) => item.id)) : [],
+  ));
+  const quickRecipeRef = useRef(initialRecipe);
+  const quickAgentStartedRef = useRef(false);
+  const [quickRun, setQuickRun] = useState<QuickRunRuntime | null>(() => initialRecipe ? {
+    recipe: initialRecipe,
+    importedRatio: 0,
+    assetReady: false,
+    dismissed: false,
+  } : null);
+  const [quickAgentState, setQuickAgentState] = useState<AgentRunState>({ running: false, proposalPending: false });
+  const [quickProgressStage, setQuickProgressStage] = useState<Exclude<QuickRunStage, 'ready' | 'error'>>('importing');
   // Design style (brand) editor pop-up window.
   const [showDesign, setShowDesign] = useState(false);
   // Version history pop-up window.
@@ -709,11 +740,27 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
   useEffect(() => {
     if (!initialRecipe || quickRecipeStartedRef.current) return;
     quickRecipeStartedRef.current = true;
-    let alive = true;
     void (async () => {
       try {
-        const asset = await importToPool(initialRecipe.file);
-        if (!alive) return;
+        const asset = await importToPool(
+          initialRecipe.file,
+          (ratio) => {
+            setQuickRun((current) => current ? { ...current, importedRatio: ratio } : current);
+          },
+          {
+            onPlaceholder: (placeholder) => {
+              setQuickRun((current) => current ? { ...current, assetId: placeholder.id, asset: placeholder } : current);
+            },
+          },
+        );
+        setQuickRun((current) => current ? {
+          ...current,
+          assetId: asset.id,
+          asset,
+          assetReady: true,
+          importedRatio: 1,
+          error: undefined,
+        } : current);
         const platform = initialRecipe.platform === 'douyin' ? '抖音' : initialRecipe.platform === 'kuaishou' ? '快手' : '视频号';
         const sourceDurationSeconds = Math.max(1, Math.floor(asset.durationInFrames / stateRef.current.fps));
         const targetDurationSeconds = Math.min(initialRecipe.durationSeconds, sourceDurationSeconds);
@@ -728,15 +775,78 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
           nonce: Date.now(),
           references: [{ id: asset.id, name: asset.name, kind: asset.kind }],
           autoSubmit: true,
+          autoApply: true,
           text: `制作一条短剧片段精修发布版。运行编号为${initialRecipe.workflowRunId ?? '未记录'}。只使用已上传素材「${asset.name}」，目标平台为${platform}，${durationConstraint} 输出竖屏 9:16。先调用 analyze_asset，kind=video，理解完整视频并取得真实源时间段；再用 view_asset_frames 核对候选时间段的画面，选择一段能看懂起因、冲突和结果的连续剧情。然后必须调用 assemble_rough_cut 创建新的可编辑粗剪，不能用 edit_item 把整段素材直接放进当前时间线。这个素材可能没有人声：若 MiMo 转写为空，立刻停止转写，不要改试其他 ASR 供应商；改按整段视频理解和画面选择片段，并明确标注“原声无可用字幕”。保留原声，不要伪造字幕时间，不要覆盖现有时间线。完成后检查粗剪时长和画面结构，只报告真实完成的步骤。`,
         });
         onRecipeConsumed?.();
       } catch (error) {
-        showAppToast(error instanceof Error ? error.message : '短剧素材导入失败', { error: true });
+        const message = error instanceof Error ? error.message : '短剧素材导入失败';
+        setQuickRun((current) => current ? { ...current, error: message } : current);
+        showAppToast(message, { error: true });
       }
     })();
-    return () => { alive = false; };
   }, [changeCreativeMode, importToPool, initialRecipe, onRecipeConsumed, setChatCollapsed]);
+
+  const quickAsset = quickRun?.assetId
+    ? (state.assets ?? []).find((asset) => asset.id === quickRun.assetId) ?? quickRun.asset
+    : quickRun?.asset;
+  const quickCreatedItems = quickRun
+    ? doc.timelines
+        .flatMap((timeline) => timeline.items)
+        .filter((item) => !quickInitialItemIdsRef.current.has(item.id))
+    : [];
+  const quickObservedStage: Exclude<QuickRunStage, 'ready' | 'error'> = !quickRun?.assetReady ? 'importing'
+    : quickAgentState.liveTool === 'assemble_rough_cut'
+        || quickAgentState.liveTool === 'check_rough_cut_ready'
+        || quickAgentState.proposalPending ? 'assembling'
+      : quickAgentState.liveTool === 'view_asset_frames'
+          || !!quickAsset?.intelligence?.videoSummary
+          || !!quickAsset?.intelligence?.scenes?.length ? 'selecting'
+        : 'understanding';
+  useEffect(() => {
+    setQuickProgressStage((current) => QUICK_RUN_STAGE_ORDER[quickObservedStage] > QUICK_RUN_STAGE_ORDER[current]
+      ? quickObservedStage
+      : current);
+  }, [quickObservedStage]);
+  const quickStage: QuickRunStage = quickRun?.error || quickAgentState.error ? 'error'
+    : quickCreatedItems.length > 0 ? 'ready'
+      : quickProgressStage;
+
+  useEffect(() => {
+    if (!quickRun || quickRun.dismissed) return;
+    if (quickAgentState.running) {
+      quickAgentStartedRef.current = true;
+      return;
+    }
+    if (!quickAgentStartedRef.current || quickAgentState.proposalPending || quickCreatedItems.length > 0 || quickRun.error) return;
+    const timer = window.setTimeout(() => {
+      setQuickRun((current) => current ? {
+        ...current,
+        error: quickAgentState.error || '没有生成可编辑片段。素材已经保留，可以重新制作或进入专业模式检查。',
+      } : current);
+    }, 1_200);
+    return () => window.clearTimeout(timer);
+  }, [quickAgentState.error, quickAgentState.proposalPending, quickAgentState.running, quickCreatedItems.length, quickRun]);
+
+  const retryQuickRun = useCallback(() => {
+    const recipe = quickRecipeRef.current;
+    const asset = quickAsset;
+    if (!recipe || !asset) return;
+    const platform = recipe.platform === 'douyin' ? '抖音' : recipe.platform === 'kuaishou' ? '快手' : '视频号';
+    const sourceDurationSeconds = Math.max(1, Math.floor(asset.durationInFrames / stateRef.current.fps));
+    const targetDurationSeconds = Math.min(recipe.durationSeconds, sourceDurationSeconds);
+    quickAgentStartedRef.current = false;
+    setQuickProgressStage('understanding');
+    setQuickAgentState({ running: false, proposalPending: false });
+    setQuickRun((current) => current ? { ...current, error: undefined, dismissed: false } : current);
+    setChatSeed({
+      nonce: Date.now(),
+      references: [{ id: asset.id, name: asset.name, kind: asset.kind }],
+      autoSubmit: true,
+      autoApply: true,
+      text: `重新制作短剧片段精修发布版。只使用素材「${asset.name}」，目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。先复用或更新整段视频理解，再核对真实源画面，调用 assemble_rough_cut 创建新的可编辑粗剪。不要伪造字幕或时长，不要覆盖用户手工修改。`,
+    });
+  }, [quickAsset]);
 
   const dropExternalFilesToTimeline = useCallback(async (
     files: File[],
@@ -1004,6 +1114,20 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
           timeoutSeconds: 180,
         }).then(() => undefined)}
       />
+      {quickRun && !quickRun.dismissed && (
+        <QuickRunOverlay
+          stage={quickStage}
+          recipe={quickRun.recipe}
+          asset={quickAsset}
+          importedRatio={quickRun.importedRatio}
+          createdItems={quickCreatedItems}
+          fps={state.fps}
+          error={quickRun.error || quickAgentState.error}
+          onRetry={retryQuickRun}
+          onEnterProfessional={() => setQuickRun((current) => current ? { ...current, dismissed: true } : current)}
+          onBack={() => { window.location.hash = '#/quick'; }}
+        />
+      )}
       {exportOpen && (
         <ExportDialog state={state} project={doc} projectId={project.id} projectName={project.name} exportJobs={exportJobs}
           onClose={() => setExportOpen(false)} />
@@ -1021,7 +1145,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
 
       {showShortcuts && <ShortcutsDialog onClose={() => setShowShortcuts(false)} />}
 
-      <ChatPanel ctx={agentCtx} projectId={project.id} collapsed={chatCollapsed} onToggleCollapse={() => setChatCollapsed((v) => !v)} onPreviewState={setPreviewState} seed={chatSeed} creativeMode={creativeMode} onCreativeModeChange={changeCreativeMode} onImportMedia={importToPool} />
+      <ChatPanel ctx={agentCtx} projectId={project.id} collapsed={chatCollapsed} onToggleCollapse={() => setChatCollapsed((v) => !v)} onPreviewState={setPreviewState} seed={chatSeed} creativeMode={creativeMode} onCreativeModeChange={changeCreativeMode} onImportMedia={importToPool} onRunStateChange={setQuickAgentState} />
 
       <div style={{ gridColumn: 2, gridRow: '2 / 5' }}>
         {!chatCollapsed && <Divider onResize={panelLayout.resizeChat} />}
