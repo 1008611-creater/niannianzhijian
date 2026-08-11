@@ -204,6 +204,10 @@ export const SETTINGS_CATEGORIES: readonly SettingsCategory[] = [
     groups: [
       { key: 'llm', title: 'Agent 大脑',
         hint: '对话与工具调用的核心，未配置无法对话。',
+        route: routeSelect('LLM_PROVIDER', LLM_PROVIDER_PRESETS.map((preset) => ({
+          value: preset.id,
+          label: preset.label,
+        }))),
         vendors: AGENT_VENDOR_PAGES_WITH_VISION },
     ],
   },
