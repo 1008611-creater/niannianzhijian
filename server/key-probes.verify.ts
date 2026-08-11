@@ -73,7 +73,56 @@ assert.match(networkMessage(Object.assign(new Error('The operation was aborted d
   assert.match(asrUnconfigured.message, /尚未填写 API Key/);
 }
 
-// 7. Local storage directory probe: empty group needs = can be tested if not filled in (not set = default directory); the relative path is configured
+// 7. OpenAI must verify the operation endpoint after /models; a catalog-only 200
+// must not report an Agent-ready configuration. Responses and Chat Completions
+// both use the configured model, while response bodies remain out of the result.
+{
+  const originalFetch = globalThis.fetch;
+  const requests: Array<{ url: string; body: string }> = [];
+  try {
+    globalThis.fetch = async (input, init) => {
+      const url = String(input);
+      requests.push({ url, body: typeof init?.body === 'string' ? init.body : '' });
+      if (url.endsWith('/models')) {
+        return new Response(JSON.stringify({ data: [{ id: 'gpt-test' }] }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ error: { message: 'invalid api key secret-response' } }), { status: 401 });
+    };
+    const rejected = await runProbe('llm/openai', {
+      LLM_OPENAI_API_KEY: 'probe-secret',
+      LLM_OPENAI_BASE_URL: 'https://relay.test/v1',
+      LLM_OPENAI_MODEL: 'gpt-test',
+      LLM_OPENAI_API_MODE: 'chat',
+    });
+    assert.equal(rejected.ok, false);
+    assert.match(rejected.message, /模型列表可用，但对话接口不可用/);
+    assert.match(rejected.message, /HTTP 401/);
+    assert.doesNotMatch(rejected.message, /secret-response|probe-secret/);
+    assert.ok(requests.some((request) => request.url.endsWith('/chat/completions')));
+
+    requests.length = 0;
+    globalThis.fetch = async (input, init) => {
+      const url = String(input);
+      requests.push({ url, body: typeof init?.body === 'string' ? init.body : '' });
+      return url.endsWith('/models')
+        ? new Response(JSON.stringify({ data: [{ id: 'gpt-test' }] }), { status: 200 })
+        : new Response(JSON.stringify({ id: 'resp-test', output: [] }), { status: 200 });
+    };
+    const accepted = await runProbe('llm/openai', {
+      LLM_OPENAI_API_KEY: 'probe-secret',
+      LLM_OPENAI_BASE_URL: 'https://relay.test/v1',
+      LLM_OPENAI_MODEL: 'gpt-test',
+      LLM_OPENAI_API_MODE: 'responses',
+    });
+    assert.equal(accepted.ok, true);
+    assert.match(accepted.message, /连接成功/);
+    assert.ok(requests.some((request) => request.url.endsWith('/responses')));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+}
+
+// 8. Local storage directory probe: empty group needs = can be tested if not filled in (not set = default directory); the relative path is configured
 // Level failure (postCheck copy, no HTTP prefix); success copy goes to okText. Neither case touched the plate.
 {
   const unset = await runProbe('storage/local', {});
