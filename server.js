@@ -56,6 +56,7 @@ const canvasVideoChannels = require('./bridge/niannian_canvas_video_channels');
 const canvasProviderConfig = require('./bridge/niannian_canvas_provider_config');
 const canvasTextRuntimeModule = require('./bridge/niannian_canvas_text_runtime');
 const canvasTextJobs = require('./bridge/niannian_canvas_text_jobs');
+const canvasSkillNodes = require('./bridge/niannian_canvas_skill_nodes');
 const nomiRunningHubH3 = require('./bridge/niannian_nomi_runninghub_h3');
 const h3MediaValidation = require('./bridge/niannian_h3_media_validation');
 const nomiWebTaskStoreModule = require('./bridge/niannian_nomi_web_task_store');
@@ -6846,22 +6847,35 @@ function normalizeDirectorPlan(value) {
 
 function normalizeCanvasDocument(value, project) {
   const raw = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-  const allowedTypes = new Set(['intent','character','scene','shot','reference','image','video','director','delivery','note']);
+  const allowedTypes = new Set(['intent','source_input','analysis','timeline','adaptation','character','scene','shot','reference','image','video','smart_cut','director','delivery','note','text','skill']);
   const allowedStatuses = new Set(['draft','ready','awaiting_authorization','queued','running','succeeded','failed','review']);
   const ids = new Set();
   const nodes = Array.isArray(raw.nodes) ? raw.nodes.slice(0, 300).flatMap((node, index) => {
     if (!node || typeof node !== 'object' || Array.isArray(node)) return [];
-    const id = canvasText(node.id, 80);
-    const type = canvasText(node.type, 40);
+    const id = canvasText(node.id || node.nodeId, 80);
+    const type = canvasText(node.type || node.kind, 40);
     if (!/^[A-Za-z0-9_-]{4,80}$/.test(id) || ids.has(id) || !allowedTypes.has(type)) return [];
     ids.add(id);
     const sourceData = node.data && typeof node.data === 'object' && !Array.isArray(node.data) ? node.data : {};
+    const skillNode = canvasSkillNodes.normalizeSkillNode(node, {projectId:project.id, index});
     const assetIds = Array.isArray(sourceData.assetIds) ? [...new Set(sourceData.assetIds.map(item => canvasText(item, 120)).filter(Boolean))].slice(0, 24) : [];
     const inputAssetIds = Array.isArray(sourceData.inputAssetIds) ? [...new Set(sourceData.inputAssetIds.map(item => canvasText(item, 120)).filter(Boolean))].slice(0, 24) : [];
     const status = allowedStatuses.has(canvasText(sourceData.status, 24)) ? canvasText(sourceData.status, 24) : 'draft';
     return [{
       id,
+      nodeId:skillNode?.nodeId || id,
       type,
+      kind:skillNode?.kind || type,
+      skillKey:skillNode?.skillKey || null,
+      skillVersion:skillNode?.skillVersion || null,
+      description:skillNode?.description || null,
+      inputPorts:skillNode?.inputPorts || [],
+      outputPorts:skillNode?.outputPorts || [],
+      parameters:skillNode?.parameters || {},
+      assetRefs:skillNode?.assetRefs || [],
+      taskRef:skillNode?.taskRef || null,
+      preview:skillNode?.preview || null,
+      recovery:skillNode?.recovery || {actions:['retry'],lastAction:null},
       position:{x:canvasNumber(node.position?.x, 120 + index * 36, -20000, 20000),y:canvasNumber(node.position?.y, 120 + index * 28, -20000, 20000)},
       data:{
         projectId:project.id,
@@ -6878,7 +6892,17 @@ function normalizeCanvasDocument(value, project) {
         aspectRatio:/^\d{1,2}:\d{1,2}$/.test(canvasText(sourceData.aspectRatio || '1:1', 16)) ? canvasText(sourceData.aspectRatio || '1:1', 16) : '1:1',
         durationSeconds:Number.isFinite(Number(sourceData.durationSeconds)) ? Math.max(4, Math.min(15, Number(sourceData.durationSeconds))) : 5,
         shotId:canvasText(sourceData.shotId, 120) || null,
-        directorPlan:type === 'director' ? normalizeDirectorPlan(sourceData.directorPlan) : null
+        directorPlan:type === 'director' ? normalizeDirectorPlan(sourceData.directorPlan) : null,
+        skillKey:skillNode?.skillKey || null,
+        skillVersion:skillNode?.skillVersion || null,
+        description:skillNode?.description || null,
+        inputPorts:skillNode?.inputPorts || [],
+        outputPorts:skillNode?.outputPorts || [],
+        parameters:skillNode?.parameters || {},
+        assetRefs:skillNode?.assetRefs || [],
+        taskRef:skillNode?.taskRef || null,
+        preview:skillNode?.preview || null,
+        recovery:skillNode?.recovery || {actions:['retry'],lastAction:null}
       }
     }];
   }) : [];

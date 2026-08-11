@@ -92,6 +92,40 @@ async function run() {
   child.stderr.on('data', chunk => { childOutput += chunk.toString('utf8'); });
   child.once('exit', (code, signal) => { childExit = {code, signal}; });
   await waitForServer();
+  const documentRead = await fetch(`${baseUrl}/api/canvas/documents/redraw/NN-CANVAS-A`, {headers:headers('canvas-token-a')});
+  assert.equal(documentRead.status, 200);
+  const documentSave = await fetch(`${baseUrl}/api/canvas/documents/redraw/NN-CANVAS-A`, {
+    method:'PUT',
+    headers:headers('canvas-token-a', {'content-type':'application/json', 'if-match':documentRead.headers.get('etag')}),
+    body:JSON.stringify({document:{version:1,nodes:[
+      {id:'image-node-001',type:'image',data:{title:'产品主图',prompt:'白色背景产品主视觉',assetIds:['asset-001'],status:'draft'}},
+      {id:'video-node-001',type:'video',data:{title:'产品视频',prompt:'产品缓慢旋转，镜头轻微推进',assetIds:['asset-001'],status:'draft'}},
+      {id:'video-node-default-001',type:'video',data:{title:'默认竖屏视频',prompt:'默认竖屏回归',assetIds:['asset-001'],status:'draft'}},
+      {id:'video-node-stale-default-001',type:'video',data:{title:'旧默认视频',prompt:'旧默认竖屏回归',assetIds:['asset-001'],status:'draft'}},
+      {id:'skill-node-001',type:'video',skillKey:'runninghub-animate-motion-transfer',
+      type:'video',
+      skillKey:'runninghub-animate-motion-transfer',
+      description:'动作迁移节点',
+      inputPorts:[{id:'image_asset',type:'image_asset',required:true},{id:'motion_video',type:'motion_video',required:true}],
+      outputPorts:[{id:'video_asset',type:'video_asset'}],
+      parameters:{durationSeconds:5,aspectRatio:'9:16'},
+      assetRefs:[{assetId:'asset-image-001',projectId:'NN-CANVAS-A',role:'character_reference'},{assetId:'asset-video-001',projectId:'NN-CANVAS-A',role:'motion_source'}],
+      status:'ready'
+    }],edges:[],viewport:{x:0,y:0,zoom:1}}})
+  });
+  const savedDocument = await documentSave.json();
+  assert.equal(documentSave.status, 200);
+  const savedSkillNode = savedDocument.document.nodes.find(node => node.id === 'skill-node-001');
+  assert.equal(savedSkillNode.skillKey, 'runninghub-animate-motion-transfer');
+  assert.equal(savedSkillNode.data.skillKey, 'runninghub-animate-motion-transfer');
+  const invalidSkillSave = await fetch(`${baseUrl}/api/canvas/documents/redraw/NN-CANVAS-A`, {
+    method:'PUT',
+    headers:headers('canvas-token-a', {'content-type':'application/json', 'if-match':documentSave.headers.get('etag')}),
+    body:JSON.stringify({document:{version:1,nodes:[{id:'skill-node-002',type:'video',skillKey:'not-a-real-skill'}],edges:[],viewport:{x:0,y:0,zoom:1}}})
+  });
+  const invalidSkill = await invalidSkillSave.json();
+  assert.equal(invalidSkillSave.status, 422);
+  assert.equal(invalidSkill.code, 'CANVAS_SKILL_NODE_UNKNOWN_SKILL');
   const body = {projectKind:'redraw',nodeId:'image-node-001',model:'image2',prompt:'白色背景产品主视觉',inputAssetIds:['asset-001']};
   const first = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-job-0001'}),body:JSON.stringify(body)});
   assert.equal(first.response.status, 201);
