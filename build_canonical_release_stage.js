@@ -178,7 +178,12 @@ function copyCommittedFile(relativePath, destinationPath) {
   const normalized = normalizeRelativePath(relativePath, 'release_stage_committed_source_path_invalid');
   let content;
   try {
-    content = childProcess.execFileSync('git', ['show', `HEAD:${normalized}`], { cwd:root, encoding:null, stdio:['ignore', 'pipe', 'ignore'] });
+    content = childProcess.execFileSync('git', ['show', `HEAD:${normalized}`], {
+      cwd:root,
+      encoding:null,
+      maxBuffer:256 * 1024 * 1024,
+      stdio:['ignore', 'pipe', 'ignore']
+    });
   } catch {
     fail('release_stage_committed_source_file_unavailable:' + normalized);
   }

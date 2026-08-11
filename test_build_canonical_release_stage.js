@@ -47,6 +47,7 @@ try {
   assert(packageManifest.files.includes('assets/showcase/short-drama-keyart-v1.png'));
   assert(packageManifest.files.includes('assets/showcase/animation-drama-keyart-v1.png'));
   assert(packageManifest.files.includes('assets/showcase/redraw-keyart-partial-xuedi-v1.png'));
+  assert(packageManifest.files.includes('assets/assets/showcase/animation-drama-keyart-v1.png'));
   assert.equal(activeBrandAssetFromIndex('<img class="hero-logo" src="./assets/brand/current.svg" alt="">'), 'assets/brand/current.svg');
   assert.throws(() => activeBrandAssetFromIndex('<img class="hero-logo" src="https://example.invalid/brand.svg" alt="">'), /release_stage_active_brand_asset_invalid/);
   assert(packageManifest.files.includes('assets/brand/niannian-ai-mark-transparent.svg'));
