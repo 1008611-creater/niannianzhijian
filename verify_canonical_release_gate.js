@@ -197,7 +197,9 @@ function verifySharedFileBaseline(governance, sourceRoot = root, allowedChanges 
   const attestation = readJson(attestationPath, 'shared_file_attestation');
   if (attestation.schema_version !== 'niannian_shared_file_handoff_attestation_v1') fail('shared_file_attestation_contract_invalid');
   if (attestation.review_id !== baseline.review_id || attestation.reviewed_at !== baseline.captured_at) fail('shared_file_attestation_identity_mismatch');
-  if (!samePath(attestation.authoritative_source_path, sourceRoot)) fail('shared_file_attestation_source_mismatch');
+  const attestationSourceMatches = samePath(attestation.authoritative_source_path, sourceRoot)
+    || (samePath(sourceRoot, root) && verifiedGitHubCheckout());
+  if (!attestationSourceMatches) fail('shared_file_attestation_source_mismatch');
   const attestationPaths = exactSortedPaths(Object.keys(attestation.files || {}), 'shared_file_attestation_paths');
   if (attestationPaths.length !== expectedPaths.length || attestationPaths.some((item, index) => item !== expectedPaths[index])) fail('shared_file_attestation_paths_not_exact');
   if (actualPaths.some(relativePath => attestation.files[relativePath] !== baselineFiles[relativePath])) fail('shared_file_attestation_files_mismatch');
