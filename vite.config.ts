@@ -1,17 +1,30 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { serverPlugins } from './server/plugins/index.ts';
 import { seedKeystore, getKey } from './server/keystore.ts';
+import { parseEnvText } from './server/env-text.ts';
 import { productAssetsPlugin } from './server/product-assets.ts';
 
 const appPackage = JSON.parse(readFileSync('package.json', 'utf8')) as { version?: unknown };
 if (typeof appPackage.version !== 'string') throw new Error('package.json is missing a valid version');
 
+function savedRuntimeSettings(root: string): Record<string, string> {
+  try {
+    return parseEnvText(readFileSync(resolve(root, '.env.local'), 'utf8'));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {};
+    throw error;
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  // load ALL env (incl. non-VITE_ prefixed) from .env.local — server-side only
-  const env = loadEnv(mode, process.cwd(), '');
+  // System environment provides deployment defaults. Settings written through the
+  // administrator UI must survive a restart, so the persisted .env.local value
+  // wins for the same key without ever being exposed to the browser.
+  const env = { ...loadEnv(mode, process.cwd(), ''), ...savedRuntimeSettings(process.cwd()) };
   // Seed the runtime keystore so the settings UI (POST /api/keys) can override any key
   // live. Server plugins (assembled in server/plugins/index.ts, shared with the
   // Electron embedded server) read the keystore through GETTERS, so a saved value
