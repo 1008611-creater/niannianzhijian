@@ -34,3 +34,12 @@ jobs:
 
       - name: Run NianNian quality gate
         run: npm run test:quality-gate
+
+      - name: Run TypeScript gate
+        run: npm run typecheck
+
+      - name: Run ESLint gate
+        run: npm run lint
+
+      - name: Build exact candidate
+        run: npm run build

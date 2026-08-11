@@ -19,6 +19,8 @@ const tests = [
   'test_canvas_generated_video_assets.js',
   'test_project_library_rows.js',
   'test_pwa_shell.js',
+  'test_release_identity.js',
+  'test_exact_preview_contract.js',
   'scripts/validate_frontend_authority.js'
 ];
 
