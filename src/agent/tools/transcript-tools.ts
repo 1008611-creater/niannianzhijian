@@ -19,6 +19,8 @@ function transcriptionProvider(value: unknown): 'assemblyai' | 'openai-asr' | 'm
   return value === 'assemblyai' || value === 'openai-asr' || value === 'mimo-qwen-asr' ? value : undefined;
 }
 
+const QUICK_SHORT_DRAMA_MODE_ID = '11111111-1240-4000-8000-000000000004';
+
 // normalize / findPhrase live in transcript-find.ts (shared with the find_transcript
 // executor and manage_markers' transcriptSegments anchoring).
 
@@ -258,12 +260,18 @@ export async function execTranscriptTool(name: string, args: Args, ctx: AgentCon
   if (name === 'search_media') return execSearchMedia(args, ctx);
   const intelligenceResult = await execAssetIntelligenceTool(name, args, ctx);
   if (intelligenceResult !== undefined) return intelligenceResult;
+  const quickMode = ctx.getCreativeMode?.() === QUICK_SHORT_DRAMA_MODE_ID;
+  const requestedProvider = transcriptionProvider(args.provider);
+  if (name === 'transcribe_track' && quickMode && requestedProvider && requestedProvider !== 'mimo-qwen-asr') {
+    return { error: '快速短剧精修只允许使用 MiMo + Qwen 强制对齐；不要切换到其他 ASR 供应商。' };
+  }
   const state = ctx.getState();
   const track = resolveTrackId(state, args.track ?? 'A1') ?? defaultTrackId(state, 'audio');
   if (!track) return { error: 'no track available; create one with edit_track first' };
   const alias = trackAlias(state, track);
   switch (name) {
     case 'transcribe_track': {
+      const provider = quickMode ? 'mimo-qwen-asr' : requestedProvider;
       // Transcribe ALL audio/video clips on the track (not just the first).
       const clips = ctx.getState().items
         .filter((it) => (it.kind === 'audio' || it.kind === 'video') && it.track === track && it.src)
@@ -277,7 +285,7 @@ export async function execTranscriptTool(name: string, args: Args, ctx: AgentCon
             continue;
           }
           try {
-            const r = await transcribePath(it.src!, undefined, { languageCode: 'zh', provider: transcriptionProvider(args.provider) });
+            const r = await transcribePath(it.src!, undefined, { languageCode: 'zh', provider });
             ctx.commands.setItemTranscript(it.id, r.words);
             results.push({ itemId: it.id, words: r.words.length, text: r.text.slice(0, 200) });
           } catch (transcribeError) {
@@ -290,6 +298,15 @@ export async function execTranscriptTool(name: string, args: Args, ctx: AgentCon
         }
         return { ok: true, track: alias, clips: results.length, results };
       } catch (e) {
+        if (quickMode && provider === 'mimo-qwen-asr') {
+          return {
+            ok: true,
+            track: alias,
+            clips: results.length,
+            results,
+            warning: '片段已生成，字幕待对齐：当前音频未返回可用的词级时间戳；未开启字幕，也未修改时间线。',
+          };
+        }
         return { error: `transcription failed: ${e instanceof Error ? e.message : String(e)}`, partial: results };
       }
     }
