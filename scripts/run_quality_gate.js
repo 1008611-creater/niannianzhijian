@@ -7,6 +7,7 @@ const tests = [
   'test_r3f_portal_cleanup.js',
   'test_web_canvas_persistence_binding.js',
   'test_canvas_skill_nodes.js',
+  'test_canvas_s1_chain_http.js',
   'test_web_runtime_adapter.js',
   'test_canvas_provider_config.js',
   'test_canvas_text_runtime.js',

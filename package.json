@@ -53,6 +53,7 @@
     "test:canvas-text-jobs": "node test_canvas_text_jobs.js",
     "test:web-runtime-adapter": "node test_web_runtime_adapter.js",
     "test:canvas-generation-http": "node test_canvas_generation_http.js",
+    "test:canvas-s1-chain": "node test_canvas_s1_chain_http.js",
     "test:web-canvas-persistence-binding": "node test_web_canvas_persistence_binding.js",
     "test:canvas-assets-http": "node test_canvas_assets_http.js",
     "test:canvas-image2-runtime": "node test_canvas_image2_runtime.js",
