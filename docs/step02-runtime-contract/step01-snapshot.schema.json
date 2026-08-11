@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "niannian.step01_snapshot.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "snapshot_id", "snapshot_sha256", "project_id", "analysis_run_id", "source_sha256", "source_bytes", "counts", "revision_vector_sha256", "confirmed_by", "confirmed_at", "immutable"],
+  "properties": {
+    "schema_version": {"const": "niannian.step01_snapshot.v1"},
+    "snapshot_id": {"type": "string", "pattern": "^S01-[a-f0-9]{24}$"},
+    "snapshot_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "project_id": {"const": "NN-20260715083045-8120F5"},
+    "analysis_run_id": {"const": "analysis-1-0dc5c5d751592e9fd0656a81"},
+    "source_sha256": {"const": "a46f74392e2b3f7ec813b4eba5a0cd9756a7c30225e0033fd671d2cab21cd30c"},
+    "source_bytes": {"const": 145897161},
+    "counts": {"type": "object", "additionalProperties": false, "required": ["shots", "frames", "dialogue", "ocr"], "properties": {"shots": {"const": 37}, "frames": {"const": 111}, "dialogue": {"const": 13}, "ocr": {"const": 34}}},
+    "revision_vector_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "confirmed_by": {"type": "string", "minLength": 1},
+    "confirmed_at": {"type": "string", "format": "date-time"},
+    "immutable": {"const": true}
+  }
+}
+

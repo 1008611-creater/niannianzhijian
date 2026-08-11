@@ -54,6 +54,22 @@
         animation: nomi-boot-spin 680ms linear infinite;
       }
 
+      @media (max-width: 640px) {
+        .nomi-library-page__main {
+          padding: 24px 16px 40px !important;
+          gap: 16px !important;
+        }
+
+        .nomi-library-page__main > section[aria-label] {
+          flex-wrap: wrap;
+        }
+
+        .nomi-library-page__main > section[aria-label] > .tc-action-card {
+          width: 100%;
+          min-width: 0;
+        }
+      }
+
       @keyframes nomi-boot-spin {
         to {
           transform: rotate(360deg);

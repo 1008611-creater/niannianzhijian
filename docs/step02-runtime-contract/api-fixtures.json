@@ -1,0 +1,18 @@
+{
+  "schema_version": "niannian.step02_api_fixtures.v1",
+  "create_variant": {
+    "request": {"locale": "es-MX"},
+    "required_header": "Idempotency-Key: sha256(project:snapshot:locale:whole_episode_v1)",
+    "response_status": 202,
+    "public_status": "generating"
+  },
+  "manual_revision": {
+    "request": {"revision_id": "step02-human-example-0001", "base_revision": null, "patch": {"target_dialogue": "No voy a aceptar esto.", "chinese_back_translation": "我不会接受这件事。", "review_status": "accepted"}},
+    "required_header": "If-Match: current variant ETag"
+  },
+  "candidate": {
+    "request": {"request_id": "step02-candidate-example-0001", "intent": "保持原意换一种表达"},
+    "changes_active_revision": false,
+    "requires_user_confirmation": true
+  }
+}

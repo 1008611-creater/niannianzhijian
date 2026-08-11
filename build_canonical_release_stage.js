@@ -47,26 +47,23 @@ function recursiveFiles(directory, relativeRoot) {
   });
 }
 
-const runtimeBridgeJavaScriptFiles = recursiveJavaScriptFiles(path.join(root, 'bridge'), 'bridge').sort();
-const step02SkillBundleFiles = recursiveFiles(path.join(root, 'runtime', 'skill-bundles', 'shortdrama-localization-runtime-1'), 'runtime/skill-bundles/shortdrama-localization-runtime-1').sort();
-const step04AbcdSkillBundleFiles = recursiveFiles(path.join(root, 'runtime', 'skill-bundles', 'shortdrama-step04-abcd-runtime-1'), 'runtime/skill-bundles/shortdrama-step04-abcd-runtime-1').sort();
-const step02RuntimeContractFiles = recursiveFiles(path.join(root, 'docs', 'step02-runtime-contract'), 'docs/step02-runtime-contract').sort();
-// Step04 D is a release dependency, not an implicit path outside the package.
-const step04DToolsSourceRoot = path.resolve(root, '..', 'tools');
-const step04DExternalFiles = [
+function gitTrackedFiles(relativeRoot, predicate = () => true) {
+  const prefix = relativeRoot.replace(/\\/g, '/').replace(/\/$/, '') + '/';
+  return childProcess.execFileSync('git', ['ls-tree', '-r', '--name-only', 'HEAD', '--', relativeRoot], {cwd:root, encoding:'utf8'})
+    .split(/\r?\n/)
+    .filter(relativePath => relativePath.startsWith(prefix) && predicate(relativePath))
+    .sort();
+}
+
+const runtimeBridgeJavaScriptFiles = gitTrackedFiles('bridge', relativePath => relativePath.endsWith('.js'));
+const step02SkillBundleFiles = gitTrackedFiles('runtime/skill-bundles/shortdrama-localization-runtime-1');
+const step04AbcdSkillBundleFiles = gitTrackedFiles('runtime/skill-bundles/shortdrama-step04-abcd-runtime-1');
+const step02RuntimeContractFiles = gitTrackedFiles('docs/step02-runtime-contract');
+const step04DToolTargets = [
   'render_step04_abcd_docx.py',
   'qa_step04_abcd_docx_preview.js',
   'finalize_step04_abcd.py',
-].map(name => ({source:path.join(step04DToolsSourceRoot, name), target:`tools/${name}`})).concat(
-  recursiveFiles(path.join(step04DToolsSourceRoot, 'vendor'), 'tools/vendor').map(target => ({
-    source:path.join(root, '..', target),
-    target
-  }))
-);
-for (const dependency of step04DExternalFiles) {
-  if (!fs.existsSync(dependency.source)) fail('release_stage_step04_d_dependency_missing:' + dependency.source);
-}
-const step04DExternalTargets = new Set(step04DExternalFiles.map(item => item.target));
+].map(name => `tools/${name}`).concat(gitTrackedFiles('tools/vendor'));
 const runtimeFiles = [...new Set([
   'server.js',
   'index.html',
@@ -103,7 +100,6 @@ const runtimeFiles = [...new Set([
   'scripts/recover_step01_frame_evidence.js',
   'scripts/run_step03_worker.js',
   'bridge/niannian_step01_hq_runner.py',
-  'bridge/mac-employee-training/execute_step01_hq_full.py',
   'bridge/niannian_low_risk_policy.js',
   'bridge/niannian_shot_review.js',
   'docs/shot-review-contract/contract-manifest.json',
@@ -115,16 +111,10 @@ const runtimeFiles = [...new Set([
   'docs/shot-review-contract/schemas/single-shot-reanalysis-output.schema.json',
   'AGENTS.md',
   'bridge/skill_registry.json',
-  'bridge/video_channel_evidence_registry.json',
-  'bridge/runtime_profiles.json',
-  'bridge/runtime_capability_status.template.json',
-  'bridge/mimo_n06_capability_status.template.json',
-  'bridge/mac-employee-training/route_matrix.json',
-  'bridge/mac-skill-bundles/niannian-mac-production-skills-v1.manifest.json',
   ...step02SkillBundleFiles,
   ...step04AbcdSkillBundleFiles,
   ...step02RuntimeContractFiles,
-  ...step04DExternalFiles.map(item => item.target),
+  ...step04DToolTargets,
   ...runtimeBridgeJavaScriptFiles
 ])];
 
@@ -188,7 +178,12 @@ function copyCommittedFile(relativePath, destinationPath) {
   const normalized = normalizeRelativePath(relativePath, 'release_stage_committed_source_path_invalid');
   let content;
   try {
-    content = childProcess.execFileSync('git', ['show', `HEAD:${normalized}`], { cwd:root, encoding:null, stdio:['ignore', 'pipe', 'ignore'] });
+    content = childProcess.execFileSync('git', ['show', `HEAD:${normalized}`], {
+      cwd:root,
+      encoding:null,
+      maxBuffer:256 * 1024 * 1024,
+      stdio:['ignore', 'pipe', 'ignore']
+    });
   } catch {
     fail('release_stage_committed_source_file_unavailable:' + normalized);
   }
@@ -267,20 +262,17 @@ function buildStage(candidateRoot, candidate = {}) {
   const packageManifestPath = path.join(resolvedCandidateRoot, 'release-package-manifest.json');
   const candidateSummaryPath = path.join(resolvedCandidateRoot, 'release-candidate-summary.json');
   const candidateContract = normalizeCandidateContract(candidate);
-  const namedCandidate = Boolean(candidate.release_id || candidate.parent_release_id || candidate.scope || candidate.allowed_files);
-  const committedPaths = namedCandidate ? committedSourcePaths() : null;
+  const committedPaths = committedSourcePaths();
   fs.mkdirSync(stageRoot, { recursive:true });
 
-  for (const relativePath of runtimeFiles.filter(relativePath => !step04DExternalTargets.has(relativePath) && !isWithinStaticDirectory(relativePath))) {
-    const destinationPath = path.join(stageRoot, relativePath);
-    if (committedPaths?.has(relativePath)) copyCommittedFile(relativePath, destinationPath);
-    else copyFile(path.join(root, relativePath), destinationPath);
+  for (const relativePath of runtimeFiles.filter(relativePath => !isWithinStaticDirectory(relativePath))) {
+    if (!committedPaths.has(relativePath)) fail('release_stage_untracked_runtime_dependency:' + relativePath);
+    copyCommittedFile(relativePath, path.join(stageRoot, relativePath));
   }
   for (const relativeDirectory of releaseStaticDirectories) {
-    copyDirectory(path.join(root, relativeDirectory), path.join(stageRoot, relativeDirectory));
-  }
-  for (const dependency of step04DExternalFiles) {
-    copyFile(dependency.source, path.join(stageRoot, dependency.target));
+    for (const relativePath of gitTrackedFiles(relativeDirectory)) {
+      copyCommittedFile(relativePath, path.join(stageRoot, relativePath));
+    }
   }
   const inventory = stageManifest(stageRoot);
   const packageManifest = {

@@ -1,0 +1,30 @@
+{
+  "schema_version": "niannian.shortdrama_locale_rules.v1",
+  "locales": {
+    "es-MX": {
+      "market": "Mexico",
+      "language": "Español (México)",
+      "rules": [
+        "Use natural contemporary Mexican Spanish and locally plausible names, settings, currency and forms of address.",
+        "Avoid literal Chinese sentence order and avoid Spain-specific vosotros forms unless source evidence explicitly requires them."
+      ]
+    },
+    "pt-BR": {
+      "market": "Brazil",
+      "language": "Português (Brasil)",
+      "rules": [
+        "Use natural contemporary Brazilian Portuguese and locally plausible names, settings, currency and forms of address.",
+        "Avoid European Portuguese vocabulary and syntax unless source evidence explicitly requires them."
+      ]
+    },
+    "en-US": {
+      "market": "United States",
+      "language": "English (United States)",
+      "rules": [
+        "Use natural contemporary US English and locally plausible names, settings, currency and forms of address.",
+        "Keep dialogue concise enough for the source shot duration while preserving dramatic intent."
+      ]
+    }
+  }
+}
+

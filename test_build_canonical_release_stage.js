@@ -47,6 +47,7 @@ try {
   assert(packageManifest.files.includes('assets/showcase/short-drama-keyart-v1.png'));
   assert(packageManifest.files.includes('assets/showcase/animation-drama-keyart-v1.png'));
   assert(packageManifest.files.includes('assets/showcase/redraw-keyart-partial-xuedi-v1.png'));
+  assert(packageManifest.files.includes('assets/assets/showcase/animation-drama-keyart-v1.png'));
   assert.equal(activeBrandAssetFromIndex('<img class="hero-logo" src="./assets/brand/current.svg" alt="">'), 'assets/brand/current.svg');
   assert.throws(() => activeBrandAssetFromIndex('<img class="hero-logo" src="https://example.invalid/brand.svg" alt="">'), /release_stage_active_brand_asset_invalid/);
   assert(packageManifest.files.includes('assets/brand/niannian-ai-mark-transparent.svg'));
@@ -73,9 +74,9 @@ try {
   assert(packageManifest.files.includes('docs/step02-runtime-contract/README.md'));
   assert(packageManifest.files.includes('docs/step02-runtime-contract/step02-variant.schema.json'));
   assert(packageManifest.files.includes('scripts/probe_step02_mcgrox.js'));
-  assert(packageManifest.files.includes('bridge/mac-employee-training/execute_redraw_step01_hq_full.js'));
-  assert(packageManifest.files.includes('bridge/mac-employee-training/route_matrix.json'));
-  assert(packageManifest.files.includes('bridge/mac-skill-bundles/niannian-mac-production-skills-v1.manifest.json'));
+  assert.equal(packageManifest.files.some(file => file.startsWith('bridge/mac-employee-training/')), false);
+  assert.equal(packageManifest.files.includes('bridge/video_channel_evidence_registry.json'), false);
+  assert.equal(packageManifest.files.some(file => file.startsWith('bridge/mac-skill-bundles/')), false);
   assert(packageManifest.files.includes('docs/shot-review-contract/contract-manifest.json'));
   assert(packageManifest.files.includes('docs/shot-review-contract/schemas/shot-review-model.schema.json'));
   assert.equal(packageManifest.files.some(file => /^(?:data-local|data|output|logs|\.local)(?:\/|$)/.test(file)), false);

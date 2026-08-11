@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "niannian.step02_variant.v1",
+  "type": "object",
+  "required": ["schema_version", "variant_id", "project_id", "analysis_run_id", "snapshot_id", "snapshot_sha256", "locale", "market", "language", "bundle_version", "generation_key", "status", "shots"],
+  "properties": {
+    "schema_version": {"const": "niannian.step02_variant.v1"},
+    "variant_id": {"type": "string", "pattern": "^S02-(es-MX|pt-BR|en-US)-[a-f0-9]{20}$"},
+    "project_id": {"const": "NN-20260715083045-8120F5"},
+    "analysis_run_id": {"const": "analysis-1-0dc5c5d751592e9fd0656a81"},
+    "snapshot_id": {"type": "string", "pattern": "^S01-[a-f0-9]{24}$"},
+    "snapshot_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "locale": {"enum": ["es-MX", "pt-BR", "en-US"]},
+    "market": {"type": "string"},
+    "language": {"type": "string"},
+    "bundle_version": {"const": "shortdrama-localization-runtime-1"},
+    "generation_key": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "status": {"enum": ["created", "generating", "ready", "qa_failed", "confirmed", "failed"]},
+    "shots": {"type": "array", "minItems": 0, "maxItems": 37, "items": {"$ref": "step02-shot.schema.json"}}
+  }
+}
+

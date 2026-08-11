@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "niannian.step02_candidate.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "candidate_id", "variant_id", "shot_id", "base_revision", "request_id", "request_sha256", "variant_etag", "intent", "patch", "requires_user_confirmation", "created_at", "payload_sha256"],
+  "properties": {
+    "schema_version": {"const": "niannian.step02_candidate.v1"},
+    "candidate_id": {"type": "string", "pattern": "^CAND-[a-f0-9]{24}$"},
+    "variant_id": {"type": "string"},
+    "shot_id": {"type": "string", "pattern": "^S\\d{3}$"},
+    "base_revision": {"type": ["string", "null"]},
+    "request_id": {"type": "string"},
+    "request_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "variant_etag": {"type": "string", "pattern": "^\"step02-[a-f0-9]{64}\"$"},
+    "intent": {"type": "string", "maxLength": 500},
+    "patch": {"type": "object", "minProperties": 1},
+    "requires_user_confirmation": {"const": true},
+    "created_at": {"type": "string", "format": "date-time"},
+    "payload_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

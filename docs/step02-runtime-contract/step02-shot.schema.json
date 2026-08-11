@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "niannian.step02_shot.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["shot_id", "source_shot_ids", "start_sec", "end_sec", "duration_sec", "target_people_identity", "localized_setting", "action", "target_dialogue", "chinese_back_translation", "expression_intent", "cultural_replacements", "continuity_requirements", "duration_fit", "structure_change", "manual_notes", "review_status", "manual_locked", "active_revision"],
+  "properties": {
+    "shot_id": {"type": "string", "pattern": "^S\\d{3}$"},
+    "source_shot_ids": {"type": "array", "minItems": 1, "maxItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^S\\d{3}$"}},
+    "start_sec": {"type": "number", "minimum": 0},
+    "end_sec": {"type": "number", "minimum": 0},
+    "duration_sec": {"type": "number", "minimum": 0},
+    "target_people_identity": {"type": "string", "maxLength": 1200},
+    "localized_setting": {"type": "string", "maxLength": 1600},
+    "action": {"type": "string", "maxLength": 2400},
+    "target_dialogue": {"type": "string", "maxLength": 2400},
+    "chinese_back_translation": {"type": "string", "maxLength": 2400},
+    "expression_intent": {"type": "string", "maxLength": 1200},
+    "cultural_replacements": {"type": "array", "maxItems": 20, "items": {"type": "string", "maxLength": 600}},
+    "continuity_requirements": {"type": "array", "maxItems": 20, "items": {"type": "string", "maxLength": 600}},
+    "duration_fit": {"type": "object", "additionalProperties": false, "required": ["estimated_speech_seconds", "fits", "note"], "properties": {"estimated_speech_seconds": {"type": "number", "minimum": 0, "maximum": 120}, "fits": {"type": "boolean"}, "note": {"type": "string", "maxLength": 800}}},
+    "structure_change": {"type": "object", "additionalProperties": false, "required": ["type", "reason"], "properties": {"type": {"enum": ["preserve", "merge", "split", "add"]}, "reason": {"type": "string", "maxLength": 800}}},
+    "manual_notes": {"type": "string", "maxLength": 4000},
+    "review_status": {"enum": ["unreviewed", "in_review", "accepted", "needs_revision"]},
+    "manual_locked": {"type": "boolean"},
+    "active_revision": {"type": ["string", "null"]}
+  }
+}

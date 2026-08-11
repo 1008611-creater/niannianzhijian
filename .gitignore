@@ -3,7 +3,13 @@ data/
 data-local/
 output/
 outputs/
-runtime/
+runtime/*
+!runtime/skill-bundles/
+runtime/skill-bundles/*
+!runtime/skill-bundles/shortdrama-localization-runtime-1/
+!runtime/skill-bundles/shortdrama-localization-runtime-1/**
+!runtime/skill-bundles/shortdrama-step04-abcd-runtime-1/
+!runtime/skill-bundles/shortdrama-step04-abcd-runtime-1/**
 release-staging/
 _deploy/
 
@@ -39,6 +45,10 @@ docs/frontend-targets/*
 !docs/frontend-targets/06-workbench-desktop.png
 !docs/frontend-targets/07-studio-project-library-desktop.png
 !docs/frontend-targets/08-director-desk-desktop.png
+!docs/step02-runtime-contract/
+!docs/step02-runtime-contract/**
+!docs/shot-review-contract/
+!docs/shot-review-contract/**
 release_baseline_attestation_*.json
 release_baseline_review_evidence_*.md
 post_coding_review_*.md

@@ -60,6 +60,7 @@ const nomiRunningHubH3 = require('./bridge/niannian_nomi_runninghub_h3');
 const h3MediaValidation = require('./bridge/niannian_h3_media_validation');
 const nomiWebTaskStoreModule = require('./bridge/niannian_nomi_web_task_store');
 const smartCutJobs = require('./bridge/niannian_smart_cut_jobs');
+const releaseIdentity = require('./bridge/niannian_release_identity').readReleaseIdentity();
 
 const port = Number(process.env.PORT || 8787);
 const root = __dirname;
@@ -8315,7 +8316,14 @@ async function handleStudioTaskApi(request, response, pathname, user) {
 }
 
 async function handleApi(request, response, pathname) {
-  if (request.method === 'GET' && pathname === '/api/health') return json(response, 200, {ok:true,service:'niannian-ai',router:'mx-shortdrama-00-router'});
+  if (request.method === 'GET' && pathname === '/api/health') {
+    return json(response, 200, {
+      ok:true,
+      service:'niannian-ai',
+      router:'mx-shortdrama-00-router',
+      release:releaseIdentity
+    }, {'Cache-Control':'no-store'});
+  }
   if (request.method === 'GET' && pathname === '/api/canvas/provider-status') {
     return json(response, 200, {
       providerStatus:{

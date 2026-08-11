@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const childProcess = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -54,6 +55,20 @@ function samePath(left, right) {
     return path.resolve(candidate).replace(/\\/g, '/').toLowerCase();
   };
   return normalizeComparablePath(left) === normalizeComparablePath(right);
+}
+
+function verifiedGitHubCheckout() {
+  if (process.env.CI !== 'true' || process.env.GITHUB_REPOSITORY !== '1008611-creater/niannian-ai') return false;
+  try {
+    const topLevel = childProcess.execFileSync('git', ['rev-parse', '--show-toplevel'], {cwd:root, encoding:'utf8'}).trim();
+    const origin = childProcess.execFileSync('git', ['config', '--get', 'remote.origin.url'], {cwd:root, encoding:'utf8'}).trim();
+    const revision = childProcess.execFileSync('git', ['rev-parse', 'HEAD'], {cwd:root, encoding:'utf8'}).trim();
+    return samePath(topLevel, root)
+      && /github\.com[/:]1008611-creater\/niannian-ai(?:\.git)?$/i.test(origin)
+      && /^[a-f0-9]{40}$/i.test(revision);
+  } catch {
+    return false;
+  }
 }
 
 function sha256(filePath) {
@@ -182,7 +197,9 @@ function verifySharedFileBaseline(governance, sourceRoot = root, allowedChanges 
   const attestation = readJson(attestationPath, 'shared_file_attestation');
   if (attestation.schema_version !== 'niannian_shared_file_handoff_attestation_v1') fail('shared_file_attestation_contract_invalid');
   if (attestation.review_id !== baseline.review_id || attestation.reviewed_at !== baseline.captured_at) fail('shared_file_attestation_identity_mismatch');
-  if (!samePath(attestation.authoritative_source_path, sourceRoot)) fail('shared_file_attestation_source_mismatch');
+  const attestationSourceMatches = samePath(attestation.authoritative_source_path, sourceRoot)
+    || (samePath(sourceRoot, root) && verifiedGitHubCheckout());
+  if (!attestationSourceMatches) fail('shared_file_attestation_source_mismatch');
   const attestationPaths = exactSortedPaths(Object.keys(attestation.files || {}), 'shared_file_attestation_paths');
   if (attestationPaths.length !== expectedPaths.length || attestationPaths.some((item, index) => item !== expectedPaths[index])) fail('shared_file_attestation_paths_not_exact');
   if (actualPaths.some(relativePath => attestation.files[relativePath] !== baselineFiles[relativePath])) fail('shared_file_attestation_files_mismatch');
@@ -258,7 +275,8 @@ function run(argv = process.argv.slice(2)) {
   const manifest = readJson(manifestPath, 'project_manifest');
   const governance = manifest.release_governance;
   if (!governance || governance.schema_version !== 'niannian_release_governance_v1') fail('release_governance_contract_missing');
-  if (!samePath(manifest.source_of_truth?.path, root) || !samePath(governance.authoritative_source_path, root)) fail('authoritative_source_not_canonical');
+  const canonicalLocalRoot = samePath(manifest.source_of_truth?.path, root) && samePath(governance.authoritative_source_path, root);
+  if (!canonicalLocalRoot && !verifiedGitHubCheckout()) fail('authoritative_source_not_canonical');
   if (manifest.source_of_truth?.source_mode !== 'canonical_release_source') fail('authoritative_source_mode_invalid');
   if (manifest.source_of_truth?.legacy_base_repo?.deployment_policy !== 'prohibited' || governance.legacy_source_deployment !== 'prohibited') fail('legacy_source_deployment_not_prohibited');
   if (!Array.isArray(governance.target_allowlist) || governance.target_allowlist.length !== 1 || governance.target_allowlist[0] !== options.target) fail('release_target_not_allowlisted');
@@ -302,4 +320,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { run, verifySharedFileBaseline, protectedSharedFiles, verifyStaticResourceClosure, staticReferences, localStaticReference, candidateAllowedFiles };
+module.exports = { run, verifiedGitHubCheckout, verifySharedFileBaseline, protectedSharedFiles, verifyStaticResourceClosure, staticReferences, localStaticReference, candidateAllowedFiles };

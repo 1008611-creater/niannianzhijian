@@ -1,0 +1,36 @@
+{
+  "schema_version": "niannian.shot_review_contract_manifest.v1",
+  "aggregate_sha256": "9887052943ef52a0721fb93ccc08acfcad8792de2f1e734bea7dc12387398a25",
+  "files": [
+    {
+      "path": "api-contract.md",
+      "sha256": "cc289501b48ba2fa4d507aead6084b64d33cfa6b85d967070a053c967fac7c18",
+      "bytes": 4134
+    },
+    {
+      "path": "mapping-rules.md",
+      "sha256": "add590ba218949060130ad9944c2c7862f785ea951b20877fa092cebea162dd4",
+      "bytes": 1687
+    },
+    {
+      "path": "schemas/revision-overlay.schema.json",
+      "sha256": "cc879dd98c9643e8f1533ad4a2b916692eef772b8265e80644422903b4cb3b63",
+      "bytes": 1899
+    },
+    {
+      "path": "schemas/shot-review-model.schema.json",
+      "sha256": "68d99d8a5ef45e919ae2b3aaa7bb24cd863db24062a7bf6bddc07332503dfbcd",
+      "bytes": 5485
+    },
+    {
+      "path": "schemas/single-shot-reanalysis-input.schema.json",
+      "sha256": "c50d38187d3867b5ec49a56b624594386c11613b3ba1b9929ab55ad5f2c0920a",
+      "bytes": 3479
+    },
+    {
+      "path": "schemas/single-shot-reanalysis-output.schema.json",
+      "sha256": "8ed6cadde3ac7612b3edd01d3f3507cef3679121243cb7a9c26bc03336b1690f",
+      "bytes": 1618
+    }
+  ]
+}
