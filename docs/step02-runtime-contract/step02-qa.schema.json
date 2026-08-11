@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "niannian.step02_qa.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "passed", "all_source_shots_mapped", "character_continuity_passed", "plot_causality_passed", "language_naturalness_passed", "back_translation_consistent", "duration_fit_passed", "findings"],
+  "properties": {
+    "schema_version": {"const": "niannian.step02_qa.v1"},
+    "passed": {"type": "boolean"},
+    "all_source_shots_mapped": {"type": "boolean"},
+    "character_continuity_passed": {"type": "boolean"},
+    "plot_causality_passed": {"type": "boolean"},
+    "language_naturalness_passed": {"type": "boolean"},
+    "back_translation_consistent": {"type": "boolean"},
+    "duration_fit_passed": {"type": "boolean"},
+    "findings": {"type": "array", "maxItems": 80, "items": {"type": "object", "additionalProperties": false, "required": ["shot_id", "severity", "message", "suggestion"], "properties": {"shot_id": {"type": ["string", "null"]}, "severity": {"enum": ["info", "warning", "error"]}, "message": {"type": "string", "maxLength": 1200}, "suggestion": {"type": "string", "maxLength": 1200}}}}
+  }
+}
+

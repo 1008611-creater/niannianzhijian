@@ -21,6 +21,7 @@ const tests = [
   'test_pwa_shell.js',
   'test_release_identity.js',
   'test_exact_preview_contract.js',
+  'test_build_canonical_release_stage.js',
   'scripts/validate_frontend_authority.js'
 ];
 

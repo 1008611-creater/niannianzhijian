@@ -1,0 +1,54 @@
+{
+  "schema_version": "niannian.server_skill_bundle.v1",
+  "bundle_version": "shortdrama-localization-runtime-1",
+  "runtime_kind": "shortdrama_localization",
+  "source_of_truth": "C:/Users/lsb/.codex/skills",
+  "source_skills": [
+    {
+      "skill_id": "mx-shortdrama-02-source-timeline",
+      "path": "mx-shortdrama-02-source-timeline/SKILL.md",
+      "sha256": "f8c25e18edccd50b4eafb67e91e6ae11a97d55585d3b0eaf3dfa3c528429552c",
+      "bytes": 39225
+    },
+    {
+      "skill_id": "mx-shortdrama-03-mexico-localize",
+      "path": "mx-shortdrama-03-mexico-localize/SKILL.md",
+      "sha256": "ccf9d1ceb8c0c0a534a8664e0b26cdc60ddd2e0e30c78c96ae84395d2fa434dc",
+      "bytes": 7832
+    }
+  ],
+  "locales": [
+    "es-MX",
+    "pt-BR",
+    "en-US"
+  ],
+  "allowed_tools": [
+    "gpt_plan",
+    "gpt_vision_context",
+    "gpt_qa",
+    "snapshot_read",
+    "variant_write"
+  ],
+  "prohibited_tools": [
+    "local_pixel_edit",
+    "image_provider",
+    "video_provider",
+    "desktop_gui",
+    "codex_thread",
+    "arbitrary_shell"
+  ],
+  "plan_schema": "niannian.step02_variant.v1",
+  "qa_schema": "niannian.step02_qa.v1",
+  "files": [
+    {
+      "path": "instructions.md",
+      "sha256": "f39c73b94305d0eae763f0be1d3ed4ea6cd4d06b59f4b455d0e56cfbc6820ebd",
+      "bytes": 1626
+    },
+    {
+      "path": "locale-rules.json",
+      "sha256": "af50aee084d874e48cc07afa048f57ac1cd4635595aa4000ab7dc3a53658b6ec",
+      "bytes": 1145
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "schema_version": "niannian.server_skill_bundle.v2",
+  "bundle_version": "shortdrama-step04-abcd-runtime-2",
+  "runtime_kind": "shortdrama_step04_abcd",
+  "source_of_truth": "C:/Users/lsb/.codex/skills",
+  "source_skills": [
+    {
+      "skill_id": "mx-shortdrama-00-router",
+      "section": "S-004 Step04 A/B/C/D 编译边界; S-004.6 提示词最小充分编译与参考素材优先",
+      "sha256": "3a9fa2a4b081dba2ee35626fc8666d6003262e2b5312b4f290a2150a710c3f60"
+    },
+    {
+      "skill_id": "mx-shortdrama-production-harness",
+      "section": "Step04 恢复与并发合同; S-004.6 提示词压缩恢复规则",
+      "sha256": "d1ead8555a3d862b851a471a3249c71913393d81328a9bba53ac599f0703b0c6"
+    }
+  ],
+  "allowed_tools": [
+    "step02_semantic_manifest_read",
+    "step04_abcd_compile",
+    "step04_contract_read",
+    "step04_docx_render",
+    "step04_docx_visual_qa",
+    "protected_artifact_write"
+  ],
+  "prohibited_tools": [
+    "image_provider",
+    "video_provider",
+    "raw_source_reinference",
+    "legacy_word_compiler",
+    "arbitrary_shell",
+    "libreoffice"
+  ],
+  "contract_schema": "mx_shortdrama_step04_abcd_contract_v2",
+  "prompt_schema": "mx_shortdrama_step04c_prompt_ir_v4_compact",
+  "prompt_policy": {
+    "references_lock_stable_facts": true,
+    "write_only_visual_changes": true,
+    "dialogue_in_action_event_only": true,
+    "remove_exact_boilerplate_only": true,
+    "no_hard_character_truncation": true,
+    "display_name_policy": "chinese_at_name_only"
+  },
+  "files": [
+    {
+      "path": "instructions.md",
+      "sha256": "bdcc6bbe96c8d1d154b393b05fd7dc6445c6dd2b07127944ccb8b6628f74d73e",
+      "bytes": 4235
+    },
+    {
+      "path": "bridge/niannian_step04_abcd.js",
+      "sha256": "735f9b465ed40a3fc84b3e06fb5962330da46c82b7377dc70e141bf346da0681",
+      "bytes": 39211
+    },
+    {
+      "path": "tools/step04_abcd_compiler.py",
+      "sha256": "d403842b05135a8dca99a54e29ddcbd8819e7099187c611be59680f1522032bd",
+      "bytes": 49895
+    },
+    {
+      "path": "tools/run_step04_abcd.py",
+      "sha256": "bf599a21c66d3bb105a8275d276f04139e03d5114439c09a666971acbe0c5a4a",
+      "bytes": 6751
+    },
+    {
+      "path": "tools/render_step04_abcd_docx.py",
+      "sha256": "5a3cda460a61068fe89967d1fefd2233c1abf61582ae951bfd3bf3fb620c04a1",
+      "bytes": 17085
+    },
+    {
+      "path": "tools/qa_step04_abcd_docx_preview.js",
+      "sha256": "e52cf457fdfee480e18d3faad4a7600e3a8742ef418f3c39c00a045a8b999a88",
+      "bytes": 5736
+    },
+    {
+      "path": "tools/finalize_step04_abcd.py",
+      "sha256": "0e3de8851fcfc0f4da68196fe4632512cb2763cf02136e2645b4bd1516d164bd",
+      "bytes": 3352
+    }
+  ],
+  "generated_at": "2026-08-04T10:18:00.000Z"
+}

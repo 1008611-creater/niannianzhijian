@@ -73,8 +73,8 @@ try {
   assert(packageManifest.files.includes('docs/step02-runtime-contract/README.md'));
   assert(packageManifest.files.includes('docs/step02-runtime-contract/step02-variant.schema.json'));
   assert(packageManifest.files.includes('scripts/probe_step02_mcgrox.js'));
-  assert(packageManifest.files.includes('bridge/mac-employee-training/execute_redraw_step01_hq_full.js'));
-  assert(packageManifest.files.includes('bridge/mac-employee-training/route_matrix.json'));
+  assert.equal(packageManifest.files.some(file => file.startsWith('bridge/mac-employee-training/')), false);
+  assert.equal(packageManifest.files.includes('bridge/video_channel_evidence_registry.json'), false);
   assert(packageManifest.files.includes('bridge/mac-skill-bundles/niannian-mac-production-skills-v1.manifest.json'));
   assert(packageManifest.files.includes('docs/shot-review-contract/contract-manifest.json'));
   assert(packageManifest.files.includes('docs/shot-review-contract/schemas/shot-review-model.schema.json'));

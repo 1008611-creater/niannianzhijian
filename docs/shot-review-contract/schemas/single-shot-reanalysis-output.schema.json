@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.niannian.local/shot-review/single-shot-reanalysis-output.v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_id", "idempotency_key", "status", "shot_id", "base_revision", "candidate_revision", "requires_user_confirmation", "side_effects"],
+  "properties": {
+    "schema_version": { "const": "niannian.single_shot_reanalysis_output.v1" },
+    "request_id": { "type": "string" },
+    "idempotency_key": { "type": "string" },
+    "status": { "enum": ["candidate_ready", "rejected_scope", "failed"] },
+    "shot_id": { "type": "string" },
+    "base_revision": { "type": ["string", "null"] },
+    "candidate_revision": { "anyOf": [{ "$ref": "https://schemas.niannian.local/shot-review/revision-overlay.v1.json" }, { "type": "null" }] },
+    "requires_user_confirmation": { "const": true },
+    "rejection": { "anyOf": [{ "type": "object", "additionalProperties": false, "required": ["code", "message"], "properties": { "code": { "enum": ["REANALYSIS_SCOPE_REJECTED", "REVISION_CONFLICT", "IDEMPOTENCY_PAYLOAD_MISMATCH", "EXECUTION_FAILED"] }, "message": { "type": "string" } } }, { "type": "null" }] },
+    "side_effects": { "type": "object", "additionalProperties": false, "required": ["evidence_overwritten", "active_revision_changed", "step02_started", "external_tools_called"], "properties": { "evidence_overwritten": { "const": false }, "active_revision_changed": { "const": false }, "step02_started": { "const": false }, "external_tools_called": { "const": false } } }
+  }
+}

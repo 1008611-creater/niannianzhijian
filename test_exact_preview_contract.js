@@ -4,12 +4,15 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 const server = fs.readFileSync('server.js', 'utf8');
+const stageBuilder = fs.readFileSync('build_canonical_release_stage.js', 'utf8');
 const remote = fs.readFileSync('tools/remote_start_exact_preview.sh', 'utf8');
 const deploy = fs.readFileSync('tools/deploy_exact_preview.ps1', 'utf8');
 const build = fs.readFileSync('scripts/build_ci_candidate.js', 'utf8');
 const workflow = fs.readFileSync('.github/workflows/quality.yml', 'utf8');
 
 assert.match(server, /release:releaseIdentity/);
+assert.match(stageBuilder, /gitTrackedFiles/);
+assert.doesNotMatch(stageBuilder, /path\.resolve\(root, '\.\.', 'tools'\)/);
 assert.match(remote, /\/opt\/niannian-ai-previews/);
 assert.match(remote, /\/var\/lib\/niannian-ai-previews/);
 assert.match(remote, /NIANNIAN_RELEASE_SHA=/);

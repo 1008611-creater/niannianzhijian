@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "niannian.single_shot_reanalysis_input.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_id", "idempotency_key", "project_id", "analysis_run_id", "shot_id", "base_revision", "source_evidence_binding", "allowed_time_range", "frames", "associated_text", "requested_fields", "constraints"],
+  "properties": {
+    "schema_version": { "const": "niannian.single_shot_reanalysis_input.v1" },
+    "request_id": { "type": "string", "minLength": 8 },
+    "idempotency_key": { "type": "string", "minLength": 32, "maxLength": 128 },
+    "project_id": { "type": "string" },
+    "analysis_run_id": { "type": "string" },
+    "shot_id": { "type": "string", "pattern": "^S[0-9]{3,}$" },
+    "base_revision": { "type": ["string", "null"] },
+    "source_evidence_binding": { "type": "object", "additionalProperties": false, "required": ["source_sha256", "evidence_binding_sha256"], "properties": { "source_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "evidence_binding_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" } } },
+    "allowed_time_range": { "type": "object", "additionalProperties": false, "required": ["start_sec", "end_sec"], "properties": { "start_sec": { "type": "number" }, "end_sec": { "type": "number" } } },
+    "frames": { "type": "object", "additionalProperties": false, "required": ["start", "mid", "end"], "properties": { "start": { "$ref": "#/$defs/frame" }, "mid": { "$ref": "#/$defs/frame" }, "end": { "$ref": "#/$defs/frame" } } },
+    "associated_text": { "type": "object", "additionalProperties": false, "required": ["dialogue", "forced_alignment", "ocr"], "properties": { "dialogue": { "type": "array", "items": { "$ref": "#/$defs/dialogue" } }, "forced_alignment": { "type": "array", "items": { "$ref": "#/$defs/alignment" } }, "ocr": { "type": "array", "items": { "$ref": "#/$defs/ocr" } } } },
+    "requested_fields": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["dialogue", "ocr", "speaker", "scene", "action", "camera"] } },
+    "constraints": { "type": "object", "additionalProperties": false, "required": ["allow_external_tools", "allow_full_video_reanalysis", "allow_step02_start"], "properties": { "allow_external_tools": { "const": false }, "allow_full_video_reanalysis": { "const": false }, "allow_step02_start": { "const": false } } }
+  },
+  "$defs": {
+    "frame": { "type": "object", "additionalProperties": false, "required": ["time_sec", "sha256"], "properties": { "time_sec": { "type": "number", "minimum": 0 }, "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" } } },
+    "dialogue": { "type": "object", "additionalProperties": false, "required": ["event_id", "start_sec", "end_sec", "text"], "properties": { "event_id": { "type": "string" }, "start_sec": { "type": "number" }, "end_sec": { "type": "number" }, "text": { "type": "string" } } },
+    "alignment": { "type": "object", "additionalProperties": false, "required": ["event_id", "start_sec", "end_sec", "timing_basis"], "properties": { "event_id": { "type": "string" }, "start_sec": { "type": "number" }, "end_sec": { "type": "number" }, "timing_basis": { "type": "string" } } },
+    "ocr": { "type": "object", "additionalProperties": false, "required": ["row_id", "time_sec", "text"], "properties": { "row_id": { "type": "string" }, "time_sec": { "type": "number" }, "text": { "type": "string" } } }
+  }
+}

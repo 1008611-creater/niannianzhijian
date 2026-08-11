@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "niannian.shot_review_model.v1",
+  "title": "ShotReviewModel",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project_id", "episode_id", "analysis_run_id", "source_evidence", "mapping_policy", "shots", "unassigned_dialogue", "unassigned_ocr"],
+  "properties": {
+    "schema_version": { "const": "niannian.shot_review_model.v1" },
+    "project_id": { "type": "string", "minLength": 1 },
+    "episode_id": { "type": "string", "minLength": 1 },
+    "analysis_run_id": { "type": "string", "minLength": 1 },
+    "source_evidence": { "$ref": "#/$defs/sourceEvidence" },
+    "mapping_policy": { "const": "niannian.shot_text_overlap.v1" },
+    "shots": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/shot" } },
+    "unassigned_dialogue": { "type": "array", "items": { "type": "object" } },
+    "unassigned_ocr": { "type": "array", "items": { "type": "object" } }
+  },
+  "$defs": {
+    "sourceEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_sha256", "source_bytes", "immutable", "wrapper_manifest_path", "strict_manifest_path", "forced_alignment_receipt_path", "evidence_binding_sha256"],
+      "properties": {
+        "source_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "source_bytes": { "type": "integer", "minimum": 1 },
+        "immutable": { "const": true },
+        "wrapper_manifest_path": { "type": "string", "minLength": 1 },
+        "strict_manifest_path": { "type": "string", "minLength": 1 },
+        "forced_alignment_receipt_path": { "type": "string", "minLength": 1 },
+        "evidence_binding_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["point", "time_sec", "timecode", "frame_index", "path", "bytes", "sha256", "readable", "width", "height"],
+      "properties": {
+        "point": { "enum": ["start", "mid", "end"] },
+        "time_sec": { "type": "number", "minimum": 0 },
+        "timecode": { "type": "string" },
+        "frame_index": { "type": "integer", "minimum": 0 },
+        "path": { "type": "string", "minLength": 1 },
+        "bytes": { "type": "integer", "minimum": 1 },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "readable": { "const": true },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "shot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["shot_id", "sequence", "start_sec", "end_sec", "duration_sec", "start_timecode", "end_timecode", "frames", "dialogue", "forced_alignment", "ocr", "speaker", "review_status", "active_revision"],
+      "properties": {
+        "shot_id": { "type": "string", "pattern": "^S[0-9]{3,}$" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "start_sec": { "type": "number", "minimum": 0 },
+        "end_sec": { "type": "number", "minimum": 0 },
+        "duration_sec": { "type": "number", "minimum": 0 },
+        "start_timecode": { "type": "string" },
+        "end_timecode": { "type": "string" },
+        "frames": {
+          "type": "object", "additionalProperties": false, "required": ["start", "mid", "end"],
+          "properties": { "start": { "$ref": "#/$defs/frame" }, "mid": { "$ref": "#/$defs/frame" }, "end": { "$ref": "#/$defs/frame" } }
+        },
+        "dialogue": { "type": "array", "items": { "$ref": "#/$defs/dialogue" } },
+        "forced_alignment": { "type": "array", "items": { "$ref": "#/$defs/alignment" } },
+        "ocr": { "type": "array", "items": { "$ref": "#/$defs/ocr" } },
+        "speaker": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "scene": { "type": ["object", "null"] },
+        "action": { "type": ["object", "null"] },
+        "camera": { "type": ["object", "null"] },
+        "review_status": { "enum": ["unreviewed", "in_review", "accepted", "needs_revision"] },
+        "active_revision": { "type": ["string", "null"] }
+      }
+    },
+    "dialogue": { "type": "object", "additionalProperties": false, "required": ["event_id", "start_sec", "end_sec", "text", "speaker", "overlap_sec", "source_tool"], "properties": { "event_id": { "type": "string" }, "start_sec": { "type": "number" }, "end_sec": { "type": "number" }, "text": { "type": "string" }, "speaker": { "type": "string" }, "overlap_sec": { "type": "number", "minimum": 0 }, "source_tool": { "type": "string" }, "boundary_rule": { "type": "string" } } },
+    "alignment": { "type": "object", "additionalProperties": false, "required": ["event_id", "start_sec", "end_sec", "overlap_sec", "timing_basis", "receipt_path"], "properties": { "event_id": { "type": "string" }, "start_sec": { "type": "number" }, "end_sec": { "type": "number" }, "overlap_sec": { "type": "number", "minimum": 0 }, "timing_basis": { "type": "string" }, "receipt_path": { "type": "string" } } },
+    "ocr": { "type": "object", "additionalProperties": false, "required": ["row_id", "time_sec", "timecode", "text", "region", "model", "source_frame_file"], "properties": { "row_id": { "type": "string" }, "time_sec": { "type": "number" }, "timecode": { "type": "string" }, "text": { "type": "string" }, "region": { "type": "string" }, "model": { "type": "string" }, "source_frame_file": { "type": "string" } } }
+  }
+}
