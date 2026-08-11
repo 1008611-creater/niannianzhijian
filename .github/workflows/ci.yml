@@ -1,10 +1,12 @@
-# Release CI. Runs only when a v* tag is pushed (release time), never on
-# ordinary branch pushes. Validates the tag against package.json, then runs
-# lint, tests, the agent-skill contract, and the production build. Desktop
-# installers + GitHub Release publishing stay in desktop.yml (manual).
+# Pull request and release CI. Validates release tags against package.json,
+# then runs lint, tests, the agent-skill contract, and the production build.
+# Desktop installers + GitHub Release publishing stay in desktop.yml (manual).
 name: ci
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     tags:
       - 'v*'
@@ -28,8 +30,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --loglevel=error
-      - name: Install ffmpeg
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Install media tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg tesseract-ocr
       - name: Verify release version
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash

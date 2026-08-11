@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { chooseTesseractLanguages, parseTesseractLanguages, runLocalOcr, runVideoUnderstanding, runVisionAnalysis, parseVideoUnderstanding, parseVisionAnalysis } from './asset-intelligence.ts';
 
+const tesseractPath = process.env.TESSERACT_PATH
+  || (process.platform === 'win32' ? 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe' : 'tesseract');
 const intelligenceOptions = {
-  tesseractPath: 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe', tessdataDir: '',
+  tesseractPath, tessdataDir: '',
   visionBaseUrl: 'https://vision.example/v1/', visionApiKey: 'never-echo-this', visionModel: 'vision-test',
   videoBaseUrl: 'https://video.example/v1beta', videoApiKey: 'never-echo-video-key', videoModel: 'gemini-3.5-flash-lite',
 };
@@ -16,7 +18,7 @@ assert.deepEqual(chooseTesseractLanguages('chi_sim', ['eng']), {
 });
 
 const result = await runLocalOcr('public/openchatcut-icon.png', {
-  tesseractPath: 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe', tessdataDir: '',
+  tesseractPath, tessdataDir: '',
 }, 'eng');
 assert.equal(result.languageUsed, 'eng');
 assert.equal(typeof result.text, 'string');
