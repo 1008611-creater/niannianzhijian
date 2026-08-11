@@ -1,6 +1,7 @@
 'use strict';
 
 const {createRunningHubAnimateAdapter} = require('./niannian_runninghub_animate_adapter');
+const {isAnimateVideoChannel} = require('./niannian_canvas_video_channels');
 
 function runtimeError(code, message, httpStatus = 409) {
   const error = new Error(message || code);
@@ -64,25 +65,25 @@ function createCanvasAnimateRuntime(options = {}) {
   }
 
   async function dryRun(job) {
-    if (job.nodeType !== 'video' || job.videoChannel !== 'animate-transfer') throw runtimeError('CANVAS_ANIMATE_JOB_INVALID', '当前任务不是动作迁移任务', 422);
+    if (job.nodeType !== 'video' || !isAnimateVideoChannel(job.videoChannel)) throw runtimeError('CANVAS_ANIMATE_JOB_INVALID', '当前任务不是动作迁移任务', 422);
     await ownedInputs(job);
-    return adapter.dryRun();
+    return adapter.dryRun(job.videoChannel);
   }
 
   async function submitOnce(ownerId, projectId, jobId) {
     if (!enabled) throw runtimeError('CANVAS_PROVIDER_SUBMIT_DISABLED', '动作迁移尚未启用，当前任务仅完成准备。');
     const job = await jobs.getOwned(ownerId, projectId, jobId);
     if (!job) throw runtimeError('CANVAS_JOB_NOT_FOUND', '任务不存在', 404);
-    if (job.nodeType !== 'video' || job.videoChannel !== 'animate-transfer') throw runtimeError('CANVAS_ANIMATE_JOB_INVALID', '当前任务不是动作迁移任务', 422);
+    if (job.nodeType !== 'video' || !isAnimateVideoChannel(job.videoChannel)) throw runtimeError('CANVAS_ANIMATE_JOB_INVALID', '当前任务不是动作迁移任务', 422);
     if (job.providerTaskId) return job;
     if (job.status !== 'awaiting_authorization') throw runtimeError('CANVAS_JOB_STATE_INVALID', '当前任务不能重复提交', 409);
     const input = await ownedInputs(job);
     await jobs.updateOwned(ownerId, projectId, jobId, {status:'queued',providerSubmitState:'submitting',publicError:null});
     try {
-      const submitted = await adapter.submit(input.image, input.video);
+      const submitted = await adapter.submit(input.image, input.video, job.videoChannel);
       return await jobs.updateOwned(ownerId, projectId, jobId, {
         status:'queued',providerSubmitState:'accepted',providerTaskId:submitted.taskId,
-        providerChannel:'animate-transfer',providerPayload:submitted.payload,publicError:null
+        providerChannel:job.videoChannel,providerPayload:submitted.payload,publicError:null
       });
     } catch (error) {
       const uncertain = error?.code === 'RUNNINGHUB_ANIMATE_SUBMIT_UNCERTAIN';
@@ -106,7 +107,7 @@ function createCanvasAnimateRuntime(options = {}) {
   async function reconcile(ownerId, projectId, jobId) {
     const job = await jobs.getOwned(ownerId, projectId, jobId);
     if (!job) throw runtimeError('CANVAS_JOB_NOT_FOUND', '任务不存在', 404);
-    if (job.nodeType !== 'video' || job.videoChannel !== 'animate-transfer' || !job.providerTaskId || ['succeeded','failed','review'].includes(job.status)) return job;
+    if (job.nodeType !== 'video' || !isAnimateVideoChannel(job.videoChannel) || !job.providerTaskId || ['succeeded','failed','review'].includes(job.status)) return job;
     try {
       const result = await adapter.query(job.providerTaskId);
       if (result.status === 'generating') return await jobs.updateOwned(ownerId, projectId, jobId, {status:'running',providerSubmitState:'running',publicError:null});

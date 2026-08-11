@@ -9,7 +9,12 @@ const CHANNELS = Object.freeze({
   'animate-transfer': Object.freeze({
     id: 'animate-transfer',
     model: 'runninghub-animate-motion-transfer',
-    label: '动作迁移'
+    label: '动作迁移（工作流）'
+  }),
+  'animate-ai-app': Object.freeze({
+    id: 'animate-ai-app',
+    model: 'runninghub-animate-ai-app',
+    label: '动作迁移（AI 应用）'
   })
 });
 
@@ -19,7 +24,9 @@ const ALIASES = Object.freeze({
   'animate-transfer': 'animate-transfer',
   'animate-motion-transfer': 'animate-transfer',
   'runninghub-animate': 'animate-transfer',
-  'runninghub-animate-motion-transfer': 'animate-transfer'
+  'runninghub-animate-motion-transfer': 'animate-transfer',
+  'animate-ai-app': 'animate-ai-app',
+  'runninghub-animate-ai-app': 'animate-ai-app'
 });
 
 function clean(value) {
@@ -31,4 +38,9 @@ function resolveVideoChannel(value) {
   return id ? CHANNELS[id] : null;
 }
 
-module.exports = {CHANNELS, resolveVideoChannel};
+function isAnimateVideoChannel(value) {
+  const channel = typeof value === 'object' && value ? value.id : resolveVideoChannel(value);
+  return channel?.id === 'animate-transfer' || channel?.id === 'animate-ai-app';
+}
+
+module.exports = {CHANNELS, resolveVideoChannel, isAnimateVideoChannel};

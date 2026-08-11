@@ -38,7 +38,15 @@ async function run() {
     });
     assert.equal(animate.job.videoChannel, 'animate-transfer');
     assert.equal(service.publicJob(animate.job).model, 'runninghub-animate-motion-transfer');
-    assert.equal(service.publicJob(animate.job).videoChannelLabel, '动作迁移');
+    assert.equal(service.publicJob(animate.job).videoChannelLabel, '动作迁移（工作流）');
+    const animateAiApp = await service.create({
+      ownerId:'USR-A',projectId:'NN-PROJECT-A',projectKind:'redraw',nodeId:'video-node-animate-ai-app',nodeType:'video',
+      model:'runninghub-animate-ai-app',prompt:'',inputAssetIds:['image-001','video-001'],
+      aspectRatio:'9:16',durationSeconds:5,idempotencyKey:'canvas-job-animate-ai-app-0001'
+    });
+    assert.equal(animateAiApp.job.videoChannel, 'animate-ai-app');
+    assert.equal(service.publicJob(animateAiApp.job).model, 'runninghub-animate-ai-app');
+    assert.equal(service.publicJob(animateAiApp.job).videoChannelLabel, '动作迁移（AI 应用）');
 
     const repeat = await service.create(request);
     assert.equal(repeat.created, false);
@@ -48,7 +56,7 @@ async function run() {
       () => service.create({...request, prompt:'另一项请求'}),
       error => error.code === 'CANVAS_JOB_IDEMPOTENCY_CONFLICT'
     );
-    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 4);
+    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 5);
     assert.equal((await service.listOwned('USR-B', 'NN-PROJECT-A')).length, 0);
     assert.equal(await service.getOwned('USR-B', 'NN-PROJECT-A', first.job.id), null);
 

@@ -168,7 +168,7 @@ function createCanvasGenerationJobService(options = {}) {
     if (!/^\d{1,2}:\d{1,2}$/.test(aspectRatio)) throw jobError('CANVAS_JOB_ASPECT_RATIO_INVALID', '画幅比例无效', 422);
     if (nodeType === 'video' && (!Number.isFinite(durationSeconds) || durationSeconds < 4 || durationSeconds > 15)) throw jobError('CANVAS_JOB_DURATION_INVALID', '视频时长需在 4 到 15 秒之间', 422);
     if (nodeType === 'video' && !videoSpec) throw jobError('CANVAS_JOB_MODEL_INVALID', '视频模型尚未接入', 422);
-    if (!prompt && nodeType === 'video' && videoSpec.id !== 'animate-transfer') throw jobError('CANVAS_JOB_PROMPT_REQUIRED', '视频节点需要填写提示词', 422);
+    if (!prompt && nodeType === 'video' && videoSpec.id === 'h3') throw jobError('CANVAS_JOB_PROMPT_REQUIRED', '视频节点需要填写提示词', 422);
     const imageSpec = nodeType === 'image'
       ? normalizeImage2Spec({model: input.imageChannel || input.model, resolution, aspectRatio})
       : null;
