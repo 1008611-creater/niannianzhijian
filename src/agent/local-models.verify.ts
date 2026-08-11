@@ -87,6 +87,13 @@ applyAgentModelStatus({
 });
 assert.equal(getAgentModelSnapshot().activeId, gemini.id, 'override refresh preserves the active API model');
 assert.equal(PROVIDER, 'gemini', 'refresh synchronizes the preserved API model, not the preferred fallback');
+applyAgentModelStatus({
+  LLM_OPENAI_API_KEY: { configured: true },
+  LLM_GEMINI_API_KEY: { configured: true },
+}, { LLM_PROVIDER: 'openai' }, true);
+assert.equal(getAgentModelSnapshot().activeId, 'openai:gpt-5',
+  'saving an administrator default immediately switches the active API model');
+assert.equal(PROVIDER, 'openai', 'the saved default updates the Agent request route');
 assert.equal(persistenceCalls, 0, 'conversation model switching must not rewrite server settings');
 
 const signedInCodex = {
@@ -99,7 +106,8 @@ applyCodexAgentStatus(signedInCodex, 'gpt-5.4', 'high');
 const codex = getAgentModelSnapshot().choices.find((choice) => choice.backend === 'codex');
 assert.ok(codex);
 assert.equal(codex.reasoningEffort, 'high');
-assert.equal(getAgentModelSnapshot().activeId, gemini.id, 'adding Codex must not replace the active API model');
+assert.equal(getAgentModelSnapshot().activeId, 'openai:gpt-5',
+  'adding Codex must not replace the saved default API model');
 selectAgentModel(codex.id);
 applyAgentModelStatus({
   LLM_OPENAI_API_KEY: { configured: true },

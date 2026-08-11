@@ -133,7 +133,7 @@ function applySavedToAgent(next: KeyStatusResponse): void {
   applyLiveCaps(next.caps);
   applyLiveKeyStatus(next.keys);
   if (next.models) applyLiveModels(next.models);
-  if (next.models) applyAgentModelStatus(next.keys, next.models);
+  if (next.models) applyAgentModelStatus(next.keys, next.models, true);
 }
 
 

@@ -145,6 +145,7 @@ function rebuildCodexChoices(): void {
 export function applyAgentModelStatus(
   keys: Record<string, KeyStateLike>,
   models: Record<string, string>,
+  selectDefaultProvider = false,
 ): void {
   capabilityOverrides = safeOverrides(models[MODEL_CAPABILITY_OVERRIDES_KEY]);
   apiModelChoices = apiChoices(keys, models);
@@ -153,7 +154,11 @@ export function applyAgentModelStatus(
   rebuildCodexChoices();
   const choices = allChoices();
   const initialApiId = chooseInitialApiId(apiModelChoices, models);
-  const preserved = choices.some((choice) => choice.id === snapshot.activeId) ? snapshot.activeId : '';
+  // A saved administrator default is an explicit routing decision. Refreshes and
+  // manual model picks still retain the active choice unless this flag is set.
+  const preserved = selectDefaultProvider
+    ? ''
+    : choices.some((choice) => choice.id === snapshot.activeId) ? snapshot.activeId : '';
   commitChoices(choices, preserved || initialApiId || choices[0]?.id || '', true,
     apiModelChoices.find((choice) => choice.id === initialApiId));
 }
