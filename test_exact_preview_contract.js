@@ -14,6 +14,7 @@ assert.match(remote, /\/opt\/niannian-ai-previews/);
 assert.match(remote, /\/var\/lib\/niannian-ai-previews/);
 assert.match(remote, /NIANNIAN_RELEASE_SHA=/);
 assert.match(remote, /NIANNIAN_PREVIEW=1/);
+assert.match(remote, /export PATH="\/opt\/node24\/bin:/);
 assert.doesNotMatch(remote, /\/var\/lib\/niannian-ai(?:\s|$)/m);
 assert.doesNotMatch(remote, /systemctl (?:restart|stop|disable --now) niannian-ai\.service/);
 assert.doesNotMatch(remote, /EnvironmentFile=.*\/etc\/niannian-ai/);

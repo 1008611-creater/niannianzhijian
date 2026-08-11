@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export PATH="/opt/node24/bin:${PATH}"
 
 archive_path="${1:?archive path is required}"
 pull_request="${2:?pull request is required}"
