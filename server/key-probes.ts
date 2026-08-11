@@ -39,6 +39,8 @@ interface ProbeDef {
   readonly okText?: (bodyText: string) => string | null;
   /** Parse a successful model-catalog response. Only LLM provider pages use this. */
   readonly models?: (bodyText: string) => string[];
+  /** Optional second, minimal capability check after a catalog request succeeds. */
+  readonly verify?: (get: Get) => Promise<Response>;
 }
 
 const TIMEOUT_MS = 12_000;
@@ -51,6 +53,28 @@ function llmProbe(provider: LlmProvider): ProbeDef {
   const apiKeyName = names.apiKey as KeyName;
   const baseUrlName = names.baseUrl as KeyName;
   const isLocal = isLocalLlmProvider(provider);
+  const verify = provider === 'openai'
+    ? (get: Get): Promise<Response> => {
+        const key = get(apiKeyName);
+        const root = resolveLlmBaseUrl(provider, get(baseUrlName), AI_SDK_BASE_URL_FORMAT);
+        const model = get(names.model as KeyName).trim() || 'gpt-5';
+        const headers = { 'Content-Type': 'application/json', ...bearer(key) };
+        if (get('LLM_OPENAI_API_MODE') === 'chat') {
+          return fetch(`${root}/chat/completions`, {
+            method: 'POST', signal: t(), headers,
+            body: JSON.stringify({
+              model,
+              messages: [{ role: 'user', content: 'Reply with OK.' }],
+              max_tokens: 1,
+            }),
+          });
+        }
+        return fetch(`${root}/responses`, {
+          method: 'POST', signal: t(), headers,
+          body: JSON.stringify({ model, input: 'Reply with OK.', max_output_tokens: 1, store: false }),
+        });
+      }
+    : undefined;
   return {
     needs: isLocal ? [[]] : [[apiKeyName]],
     run: (get) => {
@@ -64,6 +88,7 @@ function llmProbe(provider: LlmProvider): ProbeDef {
       return fetch(`${root}/models`, { signal: t(), headers });
     },
     models: parseModelCatalog,
+    ...(verify ? { verify } : {}),
   };
 }
 
@@ -374,6 +399,39 @@ export async function runProbe(page: string, overrides: Record<string, unknown>)
       const vendorError = probe.postCheck?.(bodyText) ?? null;
       if (vendorError) return { ok: false, status: response.status, latencyMs, message: vendorError };
       const models = probe.models?.(bodyText);
+      if (probe.verify) {
+        try {
+          const verification = await probe.verify(get);
+          const verificationBody = await verification.text().catch(() => '');
+          if (!verification.ok) {
+            const failure = classifyStatus(verification.status, verificationBody);
+            return {
+              ok: false,
+              status: verification.status,
+              latencyMs: Date.now() - started,
+              message: `模型列表可用，但对话接口不可用 · ${failure.message}`,
+              ...(models ? { models } : {}),
+            };
+          }
+          const verificationError = probe.postCheck?.(verificationBody) ?? null;
+          if (verificationError) {
+            return {
+              ok: false,
+              status: verification.status,
+              latencyMs: Date.now() - started,
+              message: `模型列表可用，但对话接口不可用 · ${verificationError}`,
+              ...(models ? { models } : {}),
+            };
+          }
+        } catch (error) {
+          return {
+            ok: false,
+            latencyMs: Date.now() - started,
+            message: `模型列表可用，但对话接口不可用 · ${networkMessage(error)}`,
+            ...(models ? { models } : {}),
+          };
+        }
+      }
       const modelText = models
         ? models.length > 0 ? ` · 已读取 ${models.length} 个模型` : ' · 接口未返回模型列表'
         : '';
