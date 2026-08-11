@@ -6,6 +6,7 @@ import {
   llmOperationPath,
   resolveLlmBaseUrl,
 } from './llm-config.ts';
+import { defaultOpenAiApiModeForBaseUrl } from '../shared/llm-providers.ts';
 import { proxyMiddleware } from './proxy.ts';
 
 async function listen(server: Server): Promise<number> {
@@ -32,6 +33,9 @@ assert.equal(resolveLlmBaseUrl('gemini', ''), 'https://generativelanguage.google
 assert.equal(resolveLlmBaseUrl('openai', 'https://api.openai.com', ''), 'https://api.openai.com/v1');
 assert.equal(resolveLlmBaseUrl('anthropic', 'https://relay.test/api', ''), 'https://relay.test/api/v1');
 assert.equal(llmOperationPath('kimi'), '/chat/completions');
+assert.equal(defaultOpenAiApiModeForBaseUrl('https://api.openai.com/v1'), 'responses');
+assert.equal(defaultOpenAiApiModeForBaseUrl('https://relay.example/v1'), 'chat');
+assert.equal(defaultOpenAiApiModeForBaseUrl(''), 'responses');
 
 // ── llmHeaders: Inject upstream authentication according to the protocol (google=x-goog-api-key;anthropic=x-api-key; the rest Bearer) ──
 {
