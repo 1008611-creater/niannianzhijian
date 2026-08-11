@@ -67,6 +67,12 @@ assert.ok(out4.includes('PEXELS_API_KEY=plain-key'), 'plain value stays unquoted
 const parsed4 = parseDotenv(out4);
 assert.equal(parsed4.LLM_API_KEY, 'ab#cd');
 assert.equal(parsed4.E2B_TEMPLATE, '"wrapped"');
+const persistedProvider = {
+  LLM_PROVIDER: 'tokenrhythm',
+  ...parseEnvText('LLM_PROVIDER=openai\n'),
+};
+assert.equal(persistedProvider.LLM_PROVIDER, 'openai',
+  'the administrator-saved .env.local route overrides a deployment default at startup');
 const overrideModelId = "vendor/custom:model'v2`#preview$HOME";
 const overrideWithPunctuation = JSON.stringify([{
   backend: 'api', provider: 'openai', modelId: overrideModelId, supportsTools: true,
