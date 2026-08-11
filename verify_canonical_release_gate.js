@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const childProcess = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -54,6 +55,20 @@ function samePath(left, right) {
     return path.resolve(candidate).replace(/\\/g, '/').toLowerCase();
   };
   return normalizeComparablePath(left) === normalizeComparablePath(right);
+}
+
+function verifiedGitHubCheckout() {
+  if (process.env.CI !== 'true' || process.env.GITHUB_REPOSITORY !== '1008611-creater/niannian-ai') return false;
+  try {
+    const topLevel = childProcess.execFileSync('git', ['rev-parse', '--show-toplevel'], {cwd:root, encoding:'utf8'}).trim();
+    const origin = childProcess.execFileSync('git', ['config', '--get', 'remote.origin.url'], {cwd:root, encoding:'utf8'}).trim();
+    const revision = childProcess.execFileSync('git', ['rev-parse', 'HEAD'], {cwd:root, encoding:'utf8'}).trim();
+    return samePath(topLevel, root)
+      && /github\.com[/:]1008611-creater\/niannian-ai(?:\.git)?$/i.test(origin)
+      && /^[a-f0-9]{40}$/i.test(revision);
+  } catch {
+    return false;
+  }
 }
 
 function sha256(filePath) {
@@ -258,7 +273,8 @@ function run(argv = process.argv.slice(2)) {
   const manifest = readJson(manifestPath, 'project_manifest');
   const governance = manifest.release_governance;
   if (!governance || governance.schema_version !== 'niannian_release_governance_v1') fail('release_governance_contract_missing');
-  if (!samePath(manifest.source_of_truth?.path, root) || !samePath(governance.authoritative_source_path, root)) fail('authoritative_source_not_canonical');
+  const canonicalLocalRoot = samePath(manifest.source_of_truth?.path, root) && samePath(governance.authoritative_source_path, root);
+  if (!canonicalLocalRoot && !verifiedGitHubCheckout()) fail('authoritative_source_not_canonical');
   if (manifest.source_of_truth?.source_mode !== 'canonical_release_source') fail('authoritative_source_mode_invalid');
   if (manifest.source_of_truth?.legacy_base_repo?.deployment_policy !== 'prohibited' || governance.legacy_source_deployment !== 'prohibited') fail('legacy_source_deployment_not_prohibited');
   if (!Array.isArray(governance.target_allowlist) || governance.target_allowlist.length !== 1 || governance.target_allowlist[0] !== options.target) fail('release_target_not_allowlisted');
@@ -302,4 +318,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { run, verifySharedFileBaseline, protectedSharedFiles, verifyStaticResourceClosure, staticReferences, localStaticReference, candidateAllowedFiles };
+module.exports = { run, verifiedGitHubCheckout, verifySharedFileBaseline, protectedSharedFiles, verifyStaticResourceClosure, staticReferences, localStaticReference, candidateAllowedFiles };
