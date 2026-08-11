@@ -63,6 +63,7 @@
     "test:browser-smoke": "playwright test test_studio_clean_browser.spec.js --reporter=line",
     "test:project-dispatch-browser": "node test_project_dispatch_browser.js",
     "test:quality-gate": "node scripts/run_quality_gate.js",
+    "diagnose:step01": "node tools/diagnose_step01_readiness.js",
     "test:pwa-shell": "node test_pwa_shell.js",
     "check:release-governance": "node verify_canonical_release_gate.js --target https://ai.cauai.fun",
     "verify:release-package": "node verify_canonical_release_gate.js --target https://ai.cauai.fun",
