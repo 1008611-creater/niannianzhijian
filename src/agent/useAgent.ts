@@ -126,9 +126,12 @@ export function useAgent(ctx: AgentContext, projectId: string, yoloAutoApply = f
   }, [messages, changeLog, running, proposal, projectId]);
 
   const send = useCallback(
-    async (text: string, opts?: { askOnly?: boolean; references?: AgentReference[] }) => {
+    async (text: string, opts?: { askOnly?: boolean; references?: AgentReference[]; autoApply?: boolean }) => {
       const trimmed = text.trim();
       if (!trimmed || running || proposalRef.current || !isAgentModelReady(getAgentModelSnapshot())) return; // resolve a pending proposal and require a configured model
+      const isQuickRecipeRequest = /^制作一条短剧片段精修发布版。运行编号为[^。]+。/.test(trimmed)
+        || /^重新制作短剧片段精修发布版。只使用素材/.test(trimmed);
+      const quickAutoApply = !!opts?.autoApply || yoloAutoApply || isQuickRecipeRequest;
       setMessages((m) => [...m, { role: 'user', text: trimmed }]);
       const contextEntries = resolveAgentReferences(ctxRef.current, opts?.references ?? []);
       const content = contextEntries.length
@@ -172,12 +175,72 @@ export function useAgent(ctx: AgentContext, projectId: string, yoloAutoApply = f
       let proposalBaseDoc = baseDoc;
       let draftInvalidated = false;
       let assistantText = '';
+      let quickAssemblyObserved = false;
+      let quickApplyScheduled = false;
+      let quickRunApplied = false;
+      let quickApplyPromise = Promise.resolve();
       const ac = new AbortController();
       const operationId = crypto.randomUUID();
+      let agentRunError: unknown;
+      const scheduleQuickAssembly = () => {
+        if (!quickAutoApply || !quickAssemblyObserved || quickApplyScheduled) return;
+        const draftDoc = draft.getDoc();
+        const existingTimelineIds = new Set(baseDoc.timelines.map((timeline) => timeline.id));
+        const createdTimelines = draftDoc.timelines.filter((timeline) => !existingTimelineIds.has(timeline.id));
+        if (!createdTimelines.length) return;
+        quickApplyScheduled = true;
+        quickApplyPromise = (async () => {
+          const beforeDoc = ctxRef.current.getDoc();
+          await saveAutomaticVersion(projectId, '快速成片前', beforeDoc);
+          const currentDoc = ctxRef.current.getDoc();
+          const currentTimelineIds = new Set(currentDoc.timelines.map((timeline) => timeline.id));
+          const timelinesToAdd = createdTimelines.filter((timeline) => !currentTimelineIds.has(timeline.id));
+          if (!timelinesToAdd.length) return;
+          const currentAssetIds = new Set(currentDoc.assets.map((asset) => asset.id));
+          const assetsToAdd = draftDoc.assets.filter((asset) => !currentAssetIds.has(asset.id));
+          const activeTimelineId = timelinesToAdd.some((timeline) => timeline.id === draftDoc.activeTimelineId)
+            ? draftDoc.activeTimelineId
+            : timelinesToAdd.at(-1)?.id ?? currentDoc.activeTimelineId;
+          const afterDoc = {
+            ...currentDoc,
+            assets: [...currentDoc.assets, ...assetsToAdd],
+            timelines: [...currentDoc.timelines, ...timelinesToAdd],
+            activeTimelineId,
+          };
+          ctxRef.current.commands.applyDoc(afterDoc);
+          const quickOperation = buildOperation('assemble_rough_cut', {}, [{ type: 'tl.setDoc', doc: afterDoc }]);
+          const session = createAgentChangeSession(assistantText, [quickOperation], currentDoc, afterDoc, true);
+          setChangeLog((current) => appendAgentChange(current, session));
+          llmRef.current.push({ role: 'user', content: `（快速模式已应用：${timelinesToAdd.length} 个粗剪序列。）` });
+          refreshEstimatedContextUsage();
+          quickRunApplied = true;
+        })().catch(() => {
+          setMessages((current) => [...current, {
+            role: 'error',
+            text: '快速粗剪未能写入工程，素材已保留，请重新制作。',
+          }]);
+        });
+      };
+      if (quickAutoApply) {
+        draftCtx.onRoughCutAssembled = () => {
+          quickAssemblyObserved = true;
+          scheduleQuickAssembly();
+        };
+        const applyDraftDoc = draftCtx.commands.applyDoc;
+        draftCtx.commands.applyDoc = (doc) => {
+          applyDraftDoc(doc);
+          if (doc.timelines.some((timeline) => !baseDoc.timelines.some((baseTimeline) => baseTimeline.id === timeline.id))) {
+            quickAssemblyObserved = true;
+            scheduleQuickAssembly();
+          }
+        };
+      }
       abortRef.current = ac;
       try {
         const { runAgent } = await preloadAgentRuntime();
-        llmRef.current = await runAgent(llmRef.current, draftCtx, (ev) => {
+        try {
+          llmRef.current = await runAgent(llmRef.current, draftCtx, (ev) => {
+          scheduleQuickAssembly();
           if (ev.type === 'text-start') {
             setMessages((m) => {
               const last = m[m.length - 1];
@@ -223,6 +286,8 @@ export function useAgent(ctx: AgentContext, projectId: string, yoloAutoApply = f
               persistentOps.push(buildOperation(ev.name, (ev.args ?? {}) as Record<string, unknown>, persistent));
             }
             if (proposed.length) ops.push(buildOperation(ev.name, (ev.args ?? {}) as Record<string, unknown>, proposed));
+            if (quickAutoApply && ev.name.endsWith('assemble_rough_cut')) quickAssemblyObserved = true;
+            scheduleQuickAssembly();
           } else if (ev.type === 'max-turns') {
             setMessages((m) => [...m, { role: 'continue', text: String(ev.turns) }]);
           } else if (ev.type === 'context-usage') {
@@ -230,7 +295,7 @@ export function useAgent(ctx: AgentContext, projectId: string, yoloAutoApply = f
           } else {
             setMessages((m) => [...m, { role: 'error', text: ev.message }]);
           }
-        }, {
+          }, {
           operationId,
           askOnly: opts?.askOnly,
           signal: ac.signal,
@@ -252,7 +317,10 @@ export function useAgent(ctx: AgentContext, projectId: string, yoloAutoApply = f
               });
             });
           },
-        });
+          });
+        } catch (error) {
+          agentRunError = error;
+        }
         await persistentSnapshot;
         if (persistentSaveError) {
           setMessages((current) => [...current, {
@@ -285,13 +353,15 @@ export function useAgent(ctx: AgentContext, projectId: string, yoloAutoApply = f
           );
           setChangeLog((current) => appendAgentChange(current, session));
         }
-        if (!ac.signal.aborted && ops.length) {
+        await quickApplyPromise;
+        if (!quickRunApplied && !quickAutoApply && !ac.signal.aborted && ops.length) {
           if (draftInvalidated) setMessages((m) => [...m, { role: 'error', text: '生成期间工程发生了其他修改；素材已保存到媒体池，请重新发送落轨请求。' }]);
           else {
             setProposalStale(false);
             setProposal(buildProposal(ops, assistantText, proposalBaseDoc, draft.getState()));
           }
         }
+        if (agentRunError && !quickRunApplied) throw agentRunError;
       } finally {
         abortRef.current = null;
         setLiveTool(null);

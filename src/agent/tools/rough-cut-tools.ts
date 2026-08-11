@@ -113,6 +113,7 @@ export async function execRoughCutTool(name: string, args: Args, ctx: AgentConte
   const timeline = result.timelines.find((item) => item.id === timelineId);
   if (!timeline || timeline.items.length !== itemIds.length) return { error: 'rough-cut assembly failed before publication' };
   ctx.commands.applyDoc(result);
+  ctx.onRoughCutAssembled?.(result, timelineId);
   return {
     ok: true,
     timeline: { id: timeline.id, name: timeline.name, ratio: `${timeline.width}:${timeline.height}`, track: trackAlias(timeline, track) },

@@ -63,6 +63,8 @@ export interface AgentContext {
   getUndoTarget?: () => ProjectDoc | null;
   /** Next redo snapshot after an undo (history future[0]); redo_last_change applies it like undo. */
   getRedoTarget?: () => ProjectDoc | null;
+  /** Quick-mode bridge: publish a newly assembled draft timeline into the live project. */
+  onRoughCutAssembled?: (doc: ProjectDoc, timelineId: string) => void;
   /** Proposal confirmation mode (built-in chat: auto-apply setting; external: session approvalMode).
    * Drives provider routing: 'manual' asks the user once among several providers; 'auto' lets the agent pick. */
   getApprovalMode?: () => ApprovalMode;
