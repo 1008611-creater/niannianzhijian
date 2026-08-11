@@ -24,6 +24,7 @@ assert.doesNotMatch(remote, /EnvironmentFile=.*\/etc\/niannian-ai/);
 assert.match(deploy, /git -C \$repoRoot diff --quiet HEAD --/);
 assert.match(deploy, /verify_exact_preview\.js/);
 assert.match(build, /git', \['diff', '--quiet', 'HEAD', '--'\]/);
+assert.match(build, /cwd:root/);
 for (const command of ['npm run test:quality-gate', 'npm run typecheck', 'npm run lint', 'npm run build']) {
   assert(workflow.includes(command), `missing technical gate command: ${command}`);
 }

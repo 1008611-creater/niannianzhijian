@@ -6,14 +6,15 @@ const path = require('node:path');
 const childProcess = require('node:child_process');
 const {buildStage} = require('../build_canonical_release_stage');
 
-const trackedDiff = childProcess.spawnSync('git', ['diff', '--quiet', 'HEAD', '--'], {stdio:'ignore'});
+const root = path.resolve(__dirname, '..');
+const trackedDiff = childProcess.spawnSync('git', ['diff', '--quiet', 'HEAD', '--'], {cwd:root, stdio:'ignore'});
 if (trackedDiff.error || trackedDiff.status !== 0) throw new Error('BUILD_TRACKED_WORKTREE_NOT_CLEAN');
 
 const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'niannian-ci-build-'));
 const candidateRoot = path.join(temporaryRoot, 'candidate');
 
 try {
-  const expectedSha = childProcess.execFileSync('git', ['rev-parse', 'HEAD'], {encoding:'utf8'}).trim().toLowerCase();
+  const expectedSha = childProcess.execFileSync('git', ['rev-parse', 'HEAD'], {cwd:root, encoding:'utf8'}).trim().toLowerCase();
   const result = buildStage(candidateRoot);
   if (result.release.source_git_revision !== expectedSha) throw new Error('BUILD_GIT_SHA_MISMATCH');
   if (result.gate.release_ready !== true) throw new Error('BUILD_RELEASE_GATE_FAILED');
