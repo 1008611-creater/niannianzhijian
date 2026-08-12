@@ -100,6 +100,22 @@ assert.match(networkMessage(Object.assign(new Error('The operation was aborted d
     assert.doesNotMatch(rejected.message, /secret-response|probe-secret/);
     assert.ok(requests.some((request) => request.url.endsWith('/chat/completions')));
 
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      return url.endsWith('/models')
+        ? new Response(JSON.stringify({ data: [{ id: 'gpt-test' }] }), { status: 200 })
+        : new Response(JSON.stringify({ error: { message: 'provider raw detail' } }), { status: 503 });
+    };
+    const unavailable = await runProbe('llm/openai', {
+      LLM_OPENAI_API_KEY: 'probe-secret',
+      LLM_OPENAI_BASE_URL: 'https://relay.test/v1',
+      LLM_OPENAI_MODEL: 'gpt-test',
+      LLM_OPENAI_API_MODE: 'chat',
+    });
+    assert.equal(unavailable.ok, false);
+    assert.match(unavailable.message, /对话接口不可用.*HTTP 503/);
+    assert.doesNotMatch(unavailable.message, /provider raw detail/);
+
     requests.length = 0;
     globalThis.fetch = async (input, init) => {
       const url = String(input);
