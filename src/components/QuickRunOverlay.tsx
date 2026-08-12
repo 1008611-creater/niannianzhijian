@@ -62,6 +62,7 @@ export function QuickRunOverlay({
   const scenes = asset?.intelligence?.scenes?.slice(0, 4) ?? [];
   const durationFrames = createdItems.reduce((maximum, item) => Math.max(maximum, item.startFrame + item.durationInFrames), 0);
   const resultSeconds = Math.round(durationFrames / Math.max(1, fps));
+  const targetSeconds = stage === 'ready' && resultSeconds > 0 ? resultSeconds : recipe.durationSeconds;
   const percent = stage === 'ready' ? 100
     : stage === 'importing' ? Math.max(8, Math.round(importedRatio * 25))
       : stage === 'understanding' ? 44
@@ -85,7 +86,7 @@ export function QuickRunOverlay({
           </div>
           <div className="qrun-target">
             <span>{platformLabel(recipe.platform)}</span>
-            <strong>{recipe.durationSeconds} 秒</strong>
+            <strong>{targetSeconds} 秒</strong>
             <span>9:16</span>
           </div>
         </section>
