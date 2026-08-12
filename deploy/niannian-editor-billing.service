@@ -13,7 +13,7 @@ Environment=NODE_ENV=production
 Environment=PORT=18086
 Environment=DATABASE_URL=postgresql://niannian_redraw@localhost/niannian_workbench_migrated?host=/var/run/postgresql
 Environment=PATH=/opt/node24-v24.17.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
-ExecStart=/opt/node24-v24.17.0/bin/node ./server.mjs
+ExecStart=/opt/node24-v24.17.0/bin/node ./server.cjs
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true

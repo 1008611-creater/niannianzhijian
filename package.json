@@ -14,7 +14,7 @@
   "scripts": {
     "dev": "vite",
     "billing:start": "node --import tsx server/billing-service/server.ts",
-    "billing:build": "esbuild server/billing-service/server.ts --bundle --platform=node --format=esm --outfile=billing-dist/server.mjs",
+    "billing:build": "esbuild server/billing-service/server.ts --bundle --platform=node --format=cjs --outfile=billing-dist/server.cjs",
     "billing:verify": "tsx server/billing-service/core.verify.ts",
     "build": "tsc -b && vite build",
     "update:model-capabilities": "node --use-env-proxy scripts/update-llm-model-capabilities.mjs",
