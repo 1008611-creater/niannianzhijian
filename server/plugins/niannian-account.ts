@@ -152,6 +152,9 @@ async function guard(step: string, req: IncomingMessage, res: ServerResponse, ne
   if (!integrationEnabled() || req.method !== 'POST') return next();
   const user = currentUser(req);
   if (!user) return json(res, 401, {error:'请先登录念念 AI'});
+  // Administrators configure and verify shared providers; those control-plane
+  // checks must not consume end-user credits or depend on the billing service.
+  if (isAdmin(user)) return next();
   if (localWslDev() && stepCost(step) === 0) return next();
   const operationId = String(req.headers['x-niannian-operation-id'] || `${step}:${Date.now()}:${randomBytes(6).toString('hex')}`).slice(0, 160);
   try {

@@ -20,6 +20,7 @@ const previous = {
   local: process.env.LOCAL_WSL_DEV,
   secret: process.env.NIANNIAN_EDITOR_SSO_SECRET,
   prices: process.env.NIANNIAN_EDITOR_STEP_PRICES,
+  admins: process.env.NIANNIAN_EDITOR_ADMIN_IDS,
 };
 process.env.LOCAL_WSL_DEV = '1';
 process.env.NIANNIAN_EDITOR_SSO_SECRET = 'local-wsl-editor-sso-secret-20260807';
@@ -66,9 +67,29 @@ try {
     assert.equal(probe.read().status, 200);
   }
 
+  delete process.env.LOCAL_WSL_DEV;
+  process.env.NIANNIAN_EDITOR_ADMIN_IDS = 'admin@example.test';
+  const adminTicketPayload = Buffer.from(JSON.stringify({
+    v: 1,
+    userId: 'admin-user',
+    email: 'admin@example.test',
+    exp: Date.now() + 60_000,
+  })).toString('base64url');
+  const { createHmac } = await import('node:crypto');
+  const adminSignature = createHmac('sha256', process.env.NIANNIAN_EDITOR_SSO_SECRET)
+    .update(adminTicketPayload).digest('hex');
+  let adminNextCalls = 0;
+  const adminProbe = responseProbe();
+  await llmGuard({
+    method: 'POST',
+    headers: { cookie: `niannian_editor_session=${adminTicketPayload}.${adminSignature}` },
+  }, adminProbe.res, () => { adminNextCalls += 1; });
+  assert.equal(adminNextCalls, 1, 'administrator provider verification bypasses end-user billing');
+
   console.log('niannian-account.verify: ok');
 } finally {
   if (previous.local === undefined) delete process.env.LOCAL_WSL_DEV; else process.env.LOCAL_WSL_DEV = previous.local;
   if (previous.secret === undefined) delete process.env.NIANNIAN_EDITOR_SSO_SECRET; else process.env.NIANNIAN_EDITOR_SSO_SECRET = previous.secret;
   if (previous.prices === undefined) delete process.env.NIANNIAN_EDITOR_STEP_PRICES; else process.env.NIANNIAN_EDITOR_STEP_PRICES = previous.prices;
+  if (previous.admins === undefined) delete process.env.NIANNIAN_EDITOR_ADMIN_IDS; else process.env.NIANNIAN_EDITOR_ADMIN_IDS = previous.admins;
 }
