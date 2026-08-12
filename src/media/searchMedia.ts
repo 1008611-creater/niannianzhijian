@@ -26,7 +26,7 @@ export interface SpokenMediaSearchHit extends MediaSearchHitBase {
 export interface MetadataMediaSearchHit extends MediaSearchHitBase {
   modality: 'metadata';
   text: string;
-  field: 'ocr' | 'transcript' | 'video-summary' | 'tag' | 'entity' | 'scene';
+  field: 'filename' | 'ocr' | 'transcript' | 'video-summary' | 'tag' | 'entity' | 'scene';
 }
 
 export type MediaSearchHit = VisualMediaSearchHit | SpokenMediaSearchHit | MetadataMediaSearchHit;
@@ -151,6 +151,31 @@ export function metadataMediaSearchHits(query: string, assets: readonly MediaAss
     sourceStartMs: document.startMs, sourceEndMs: document.endMs, score: 1,
     text: document.text, field: document.field,
   }));
+}
+
+export function filenameMediaSearchHits(
+  query: string,
+  assets: readonly MediaAsset[],
+  limit = 24,
+): MetadataMediaSearchHit[] {
+  const normalizedQuery = normalizeText(query);
+  if (!normalizedQuery) return [];
+  return assets.flatMap((asset) => {
+    const names = [asset.name, asset.sourceFilename].filter((value): value is string => Boolean(value?.trim()));
+    const matched = names.find((name) => normalizeText(name).includes(normalizedQuery));
+    if (!matched) return [];
+    const normalizedName = normalizeText(matched);
+    return [{
+      modality: 'metadata' as const,
+      assetId: asset.id,
+      sourceRevision: sourceRevisionOf(asset),
+      sourceStartMs: 0,
+      sourceEndMs: Math.max(1, Math.round((asset.durationInFrames / 30) * 1000)),
+      score: normalizedName === normalizedQuery ? 1 : 0.95,
+      text: matched,
+      field: 'filename' as const,
+    }];
+  }).toSorted((left, right) => right.score - left.score || left.text.localeCompare(right.text)).slice(0, limit);
 }
 
 export function filterStaleMediaSearchHits(

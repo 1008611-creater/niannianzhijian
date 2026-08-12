@@ -5,6 +5,7 @@ import { rankSemanticMatches } from '../../media/semantic-search/vectorSearch';
 import { readSemanticVectors } from '../../media/semantic-search/vectorStore';
 import {
   buildMediaSearchResult,
+  filenameMediaSearchHits,
   metadataMediaSearchHits,
   spokenMediaSearchHits,
   visualMediaSearchHits,
@@ -35,7 +36,11 @@ export async function execSearchMedia(args: SearchMediaArgs, ctx: AgentContext):
     : 12;
   const assets = ctx.getDoc().assets ?? [];
   const spoken = requested.has('spoken') ? spokenMediaSearchHits(query, assets, limit) : [];
-  const metadata = requested.has('metadata') ? metadataMediaSearchHits(query, assets, limit) : [];
+  const metadata = requested.has('metadata')
+    ? [...filenameMediaSearchHits(query, assets, limit), ...metadataMediaSearchHits(query, assets, limit)]
+      .toSorted((left, right) => right.score - left.score || left.sourceStartMs - right.sourceStartMs)
+      .slice(0, limit)
+    : [];
   let visual: VisualMediaSearchHit[] = [];
   let visualWarning: string | undefined;
 
