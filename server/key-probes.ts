@@ -358,6 +358,14 @@ export function classifyStatus(status: number, bodyText: string): ProbeResult {
   return { ok: false, status, message: `HTTP ${status}${detail ? ` · ${detail}` : ''}` };
 }
 
+/** Verification failures never expose an upstream response body to the UI. */
+function classifyVerificationFailure(status: number): string {
+  if (status === 401 || status === 403 || status === 404 || status === 429) {
+    return classifyStatus(status, '').message;
+  }
+  return `对话接口不可用（HTTP ${status}）· 上游暂时不可用或请求格式不兼容`;
+}
+
 /** Network layer failure (unable to connect/timeout) ≠ Key error, the text clearly distinguishes it, and prompts that a proxy may be required. */
 export function networkMessage(error: unknown): string {
   const raw = error instanceof Error
@@ -404,12 +412,11 @@ export async function runProbe(page: string, overrides: Record<string, unknown>)
           const verification = await probe.verify(get);
           const verificationBody = await verification.text().catch(() => '');
           if (!verification.ok) {
-            const failure = classifyStatus(verification.status, verificationBody);
             return {
               ok: false,
               status: verification.status,
               latencyMs: Date.now() - started,
-              message: `模型列表可用，但对话接口不可用 · ${failure.message}`,
+              message: `模型列表可用，但对话接口不可用 · ${classifyVerificationFailure(verification.status)}`,
               ...(models ? { models } : {}),
             };
           }
