@@ -70,7 +70,7 @@ const explicit = expandLlmProviderPatch(new Map([
 assert.equal(explicit.get('LLM_MODEL'), 'gpt-custom');
 assert.equal(explicit.get('LLM_BASE_URL'), 'https://relay.test/v2');
 
-const seen: Array<{ url: string; authorization?: string; provider?: string; body: string; cookie?: string }> = [];
+const seen: Array<{ url: string; authorization?: string; provider?: string; body: string; cookie?: string; diagnostics?: string }> = [];
 const upstream = createServer(async (req, res) => {
   const chunks: Buffer[] = [];
   for await (const chunk of req) chunks.push(Buffer.from(chunk));
@@ -81,6 +81,9 @@ const upstream = createServer(async (req, res) => {
       ? req.headers['x-openchatcut-provider']
       : undefined,
     cookie: typeof req.headers.cookie === 'string' ? req.headers.cookie : undefined,
+    diagnostics: typeof req.headers['x-openchatcut-request-kind'] === 'string'
+      ? req.headers['x-openchatcut-request-kind']
+      : undefined,
     body: Buffer.concat(chunks).toString('utf8'),
   });
   if (req.url?.includes('/unauthorized')) {
@@ -103,6 +106,9 @@ app.use('/llm', proxyMiddleware({
 }));
 const proxy = createServer(app.handle);
 const proxyPort = await listen(proxy);
+const warnings: string[] = [];
+const originalWarn = console.warn;
+console.warn = (...parts: unknown[]) => warnings.push(parts.map((part) => String(part)).join(' '));
 
 try {
   const first = await fetch(`http://127.0.0.1:${proxyPort}/llm/chat/completions?stream=true`, {
@@ -111,6 +117,8 @@ try {
       'content-type': 'application/json', 'x-openchatcut-provider': 'kimi',
       origin: 'http://127.0.0.1:5199', referer: 'http://127.0.0.1:5199/',
       'sec-fetch-site': 'same-origin', 'sec-fetch-mode': 'cors', 'sec-fetch-dest': 'empty',
+      'x-openchatcut-request-kind': 'agent', 'x-openchatcut-streaming': 'true',
+      'x-openchatcut-tool-count': '17', 'x-openchatcut-message-count': '3',
     },
     body: '{"model":"compatible"}',
   });
@@ -137,6 +145,7 @@ try {
       authorization: 'Bearer server-secret',
       provider: undefined,
       cookie: undefined,
+      diagnostics: undefined,
       body: '{"model":"compatible"}',
     },
     {
@@ -144,6 +153,7 @@ try {
       authorization: 'Bearer server-secret',
       provider: undefined,
       cookie: undefined,
+      diagnostics: undefined,
       body: '{"model":"openai"}',
     },
     {
@@ -151,6 +161,7 @@ try {
       authorization: 'Bearer server-secret',
       provider: undefined,
       cookie: undefined,
+      diagnostics: undefined,
       body: '{"model":"openai"}',
     },
   ]);
@@ -160,7 +171,11 @@ try {
   assert.deepEqual(await denied.json(), {
     error: { message: 'Friendly provider error (401). Check Agent settings.' },
   }, 'raw provider JSON is replaced with one actionable message');
+  assert.equal(warnings.length, 1, 'proxy emits one safe upstream diagnostic');
+  assert.match(warnings[0]!, /upstream_error status=401 endpoint=other kind=unknown streaming=unknown tools=unknown messages=unknown requestBytes=0/);
+  assert.doesNotMatch(warnings[0]!, /vendor_auth_error|secret_debug|raw body/);
 } finally {
+  console.warn = originalWarn;
   await close(proxy);
   await close(upstream);
 }

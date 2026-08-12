@@ -42,6 +42,11 @@ const HOP_BY_HOP = new Set(['host', 'connection', 'keep-alive', 'proxy-authoriza
 // CSRF check and reject otherwise valid API keys.
 const NEVER_FORWARD: Record<string, true> = {
   'x-openchatcut-provider': true,
+  'x-openchatcut-request-kind': true,
+  'x-openchatcut-streaming': true,
+  'x-openchatcut-tool-count': true,
+  'x-openchatcut-message-count': true,
+  'x-niannian-operation-id': true,
   cookie: true,
   origin: true,
   referer: true,
@@ -50,6 +55,43 @@ const NEVER_FORWARD: Record<string, true> = {
   'sec-fetch-dest': true,
   'sec-fetch-user': true,
 };
+
+function safeHeader(req: IncomingMessage, name: string): string | undefined {
+  const value = req.headers[name];
+  return typeof value === 'string' && value.length <= 32 && /^[a-z0-9_-]+$/i.test(value)
+    ? value
+    : undefined;
+}
+
+function safeCountHeader(req: IncomingMessage, name: string): number | undefined {
+  const value = safeHeader(req, name);
+  if (!value || !/^\d{1,6}$/.test(value)) return undefined;
+  const count = Number(value);
+  return Number.isSafeInteger(count) ? count : undefined;
+}
+
+function endpointCategory(path: string): string {
+  if (path.endsWith('/chat/completions')) return 'chat_completions';
+  if (path.endsWith('/responses')) return 'responses';
+  return 'other';
+}
+
+function logUpstreamFailure(
+  status: number,
+  request: IncomingMessage,
+  path: string,
+  requestBytes: number,
+): void {
+  const kind = safeHeader(request, 'x-openchatcut-request-kind') ?? 'unknown';
+  const streaming = safeHeader(request, 'x-openchatcut-streaming') ?? 'unknown';
+  const tools = safeCountHeader(request, 'x-openchatcut-tool-count');
+  const messages = safeCountHeader(request, 'x-openchatcut-message-count');
+  console.warn(
+    `[proxy] upstream_error status=${status} endpoint=${endpointCategory(path)}`
+      + ` kind=${kind} streaming=${streaming} tools=${tools ?? 'unknown'}`
+      + ` messages=${messages ?? 'unknown'} requestBytes=${requestBytes}`,
+  );
+}
 
 export interface ProxyRoute {
   /** Target API prefix, evaluated per request. */
@@ -64,6 +106,10 @@ export interface ProxyRoute {
 
 export function proxyMiddleware(route: ProxyRoute): Middleware {
   return (req, res) => {
+    let requestBytes = 0;
+    req.on('data', (chunk: Buffer | string) => {
+      requestBytes += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk);
+    });
     let target: URL;
     try {
       target = new URL(route.target(req));
@@ -107,12 +153,8 @@ export function proxyMiddleware(route: ProxyRoute): Middleware {
     }, (upRes) => {
       const status = upRes.statusCode ?? 502;
       if (status >= 400 && route.errorMessage) {
-        const chunks: Buffer[] = [];
-        upRes.on('data', (chunk) => chunks.push(chunk));
-        upRes.on('end', () => {
-          const body = Buffer.concat(chunks).toString('utf8').slice(0, 2000);
-          console.warn(`[proxy] upstream ${status} for ${target.host}${basePath}${requestPath} · ${body}`);
-        });
+        upRes.resume();
+        logUpstreamFailure(status, req, basePath + requestPath, requestBytes);
         res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({ error: { message: route.errorMessage(status, req) } }));
         return;
@@ -132,9 +174,13 @@ export function proxyMiddleware(route: ProxyRoute): Middleware {
     });
 
     upstream.on('error', (err) => {
+      const code = typeof err === 'object' && err !== null && 'code' in err
+        ? String((err as { code?: unknown }).code ?? 'unknown').slice(0, 32)
+        : 'unknown';
+      console.warn(`[proxy] transport_error code=${code} endpoint=${endpointCategory(basePath + requestPath)}`);
       if (!res.headersSent) {
         res.writeHead(502, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: `upstream request failed: ${err.message}` }));
+        res.end(JSON.stringify({ error: { message: route.errorMessage?.(502, req) ?? '上游请求失败，请稍后重试。' } }));
       } else if (!res.writableEnded) {
         res.end();
       }

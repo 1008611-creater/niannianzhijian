@@ -140,6 +140,18 @@ function withoutAssistantText(messages: readonly ModelMessage[]): ModelMessage[]
     return content.length ? [{ ...message, content } as ModelMessage] : [];
   });
 }
+
+export function agentRequestDiagnosticHeaders(
+  messages: readonly ModelMessage[],
+  toolCount: number,
+): Record<string, string> {
+  return {
+    'x-openchatcut-request-kind': 'agent',
+    'x-openchatcut-streaming': 'true',
+    'x-openchatcut-tool-count': String(Math.max(0, Math.min(999999, Math.trunc(toolCount)))),
+    'x-openchatcut-message-count': String(Math.max(0, Math.min(999999, messages.length))),
+  };
+}
 export interface ApiRuntimeDependencies {
   readonly model?: LanguageModel;
 }
@@ -253,7 +265,10 @@ export async function runApiAgent(
           tools,
           maxOutputTokens,
           maxRetries: 0,
-          ...(opts?.operationId ? { headers: { 'x-niannian-operation-id': opts.operationId } } : {}),
+          headers: {
+            ...agentRequestDiagnosticHeaders(requestMessages, Object.keys(tools).length),
+            ...(opts?.operationId ? { 'x-niannian-operation-id': opts.operationId } : {}),
+          },
           abortSignal: opts?.signal,
           // Guard against hanging model calls: first token within 30s, each
           // step capped at 2min, tool executions at 30s (all local store ops
