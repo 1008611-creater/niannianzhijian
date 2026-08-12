@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parse as parseDotenv } from 'dotenv';
 import { loadEnv } from 'vite';
-import { KEY_NAMES, NON_SECRET_NAMES, mergeEnvText, planLegacyLlmMigration, seedKeystore, keyStatus, getKey } from './keystore.ts';
+import { KEY_NAMES, NON_SECRET_NAMES, mergeEnvText, planLegacyLlmMigration, runtimeSettingsPath, seedKeystore, keyStatus, getKey } from './keystore.ts';
 import { LLM_PROVIDER_PRESETS, llmProviderConfigNames } from '../shared/llm-providers.ts';
 import { MODEL_CAPABILITY_OVERRIDES_KEY, parseModelCapabilityOverrides } from '../shared/model-capabilities.ts';
 import { parseEnvText } from '../desktop/env-file.ts';
@@ -80,6 +80,15 @@ const overrideWithPunctuation = JSON.stringify([{
 const out5 = mergeEnvText('', new Map([[MODEL_CAPABILITY_OVERRIDES_KEY, overrideWithPunctuation]]));
 const desktopValue = parseEnvText(out5)[MODEL_CAPABILITY_OVERRIDES_KEY];
 const startupDir = await mkdtemp(join(tmpdir(), 'openchatcut-env-roundtrip-'));
+const previousNodeEnv = process.env.NODE_ENV;
+delete process.env.NODE_ENV;
+assert.equal(runtimeSettingsPath(startupDir), join(startupDir, '.env.local'),
+  'local development keeps runtime settings beside the project');
+process.env.NODE_ENV = 'production';
+assert.equal(runtimeSettingsPath(startupDir), '/var/lib/edit-ai-openchatcut/runtime.env',
+  'production runtime settings live outside immutable release directories');
+if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+else process.env.NODE_ENV = previousNodeEnv;
 const previousOverride = process.env[MODEL_CAPABILITY_OVERRIDES_KEY];
 delete process.env[MODEL_CAPABILITY_OVERRIDES_KEY];
 try {
