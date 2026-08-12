@@ -13,6 +13,8 @@
   },
   "scripts": {
     "dev": "vite",
+    "billing:start": "node --import tsx server/billing-service/server.ts",
+    "billing:verify": "tsx server/billing-service/core.verify.ts",
     "build": "tsc -b && vite build",
     "update:model-capabilities": "node --use-env-proxy scripts/update-llm-model-capabilities.mjs",
     "verify:agent-ask-mode": "tsx src/agent/ask-mode-tools.verify.ts",
@@ -66,6 +68,7 @@
     "ffmpeg-static": "^5.3.0",
     "heic-to": "^1.5.2",
     "https-proxy-agent": "^9.1.0",
+    "pg": "^8.23.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -76,6 +79,7 @@
   "devDependencies": {
     "@types/babel__standalone": "^7.1.9",
     "@types/node": "^24.13.2",
+    "@types/pg": "^8.21.0",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
