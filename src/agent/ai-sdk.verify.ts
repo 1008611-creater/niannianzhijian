@@ -33,7 +33,7 @@ import {
   streamPartStartsCompatibleMediaOutput,
 } from './runtime';
 import type { AgentEvent } from './runtime';
-import { runApiAgent } from './api-runtime';
+import { agentRequestDiagnosticHeaders, runApiAgent } from './api-runtime';
 import { resolveModelCapabilities } from '../../shared/model-capabilities';
 import type { AgentContext } from './context';
 import { INITIAL } from '../editor/initial';
@@ -58,6 +58,12 @@ assert.equal(providerApiPath('openai', 'chat'), '/chat/completions');
 assert.equal(providerApiPath('kimi'), '/chat/completions');
 assert.equal(providerApiPath('gemini'), '/models');
 assert.equal(providerApiPath('openrouter'), '/chat/completions');
+assert.deepEqual(agentRequestDiagnosticHeaders([{ role: 'user', content: 'one' }], 17), {
+  'x-openchatcut-request-kind': 'agent',
+  'x-openchatcut-streaming': 'true',
+  'x-openchatcut-tool-count': '17',
+  'x-openchatcut-message-count': '1',
+});
 
 const strippedVisualMessages = withoutModelImages([{
   role: 'user',
