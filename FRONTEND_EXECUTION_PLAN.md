@@ -12,6 +12,7 @@
 - 目标界面：[docs/frontend-targets](docs/frontend-targets/)
 - 继承矩阵：[docs/frontend-inheritance-matrix.md](docs/frontend-inheritance-matrix.md)
 - 工程边界：[AGENTS.md](AGENTS.md)
+- 转绘节点化生产计划：[authority/CANVAS_SKILL_NODE_EXECUTION_PLAN.md](authority/CANVAS_SKILL_NODE_EXECUTION_PLAN.md)
 
 ## 技能路线
 
@@ -38,6 +39,8 @@
 | 3. 项目控制中心 | 从项目库识别状态并继续正确任务 | 01 | 进行中（项目库通告单看板） |
 | 4. 移动端连续性 | 手机可查看结果并完成关键确认 | 05 | 未开始 |
 | 5. 完整转绘短剧验收 | 从真实输入连续推进到可下载成片 | 00-08 + 现有 Step01-Step04 | 未开始 |
+
+阶段 5 的节点化施工必须遵守 [画布 Skill 节点化生产计划](authority/CANVAS_SKILL_NODE_EXECUTION_PLAN.md)：先完成 S0 节点合同，再解决 S1 Step01 阻塞，之后才进入 Image2/H3/Animate 真实闭环和外部剪辑交付。
 
 ## 当前状态快照（2026-08-10）
 

@@ -1,213 +1,47 @@
-# NianNian AI Execution Contract
+# 念念 AI 项目执行约定
 
-This directory is the canonical source for NianNian AI's Haika server execution workflow.
+本目录 `E:\codex\niannianai\niannianai` 是念念 AI 的唯一权威源码根目录。不得用同级候选目录、下载包或线上副本替代它。
 
-## Default behavior
+## 项目目标与执行方式
 
-- Own the user's requested outcome. For a visible defect, continue through diagnosis, the smallest durable repair, state recovery, deployment when authorized, and an end-to-end readback.
-- A diagnosis, raw error, failed retry, or blocked report is not a completion point when the next repair is safe and in scope.
-- Make ordinary technical decisions yourself. Escalate only when a choice materially changes the product goal, cost, irreversible external outcome, or a stated acceptance standard.
-- Keep the same job identity and source authority through recovery. Do not replace the task with a new diagnostic artifact or an unrelated route.
-- Report only verified state as complete. Distinguish queued, running, blocked, and delivered.
+- 对用户要求的真实结果负责：发现问题后，继续完成诊断、最小持久修复、恢复、验证和用户可见回读。
+- 开发、诊断、测试和本地预览默认直接执行。生产部署、公开发布、付费供应商调用、凭据或账户权限操作、不可逆外部变更和数据删除，仍须用户明确授权。
+- 当前 Beta 范围为 ASXS 文本（`gpt-5.6-luna`）、RunningHub Image2 和 RunningHub H3。音频、3D、白板、全景和场景 3D 在具备完整服务器执行路径前，仅可编辑或参考，不能伪装为已可生产生成。
+- 所有用户可见错误必须提供可理解的恢复状态和重试路径；保留已上传媒体和完成的预检，除非源文件验证实际失败。
 
-## Delegated Technical Execution
+## 受保护的产品与架构
 
-- When the product owner states an outcome or says to continue, make ordinary technical decisions and execute the full in-scope path without requesting step-by-step confirmation. This includes complex code changes, diagnosis, tests, local tooling, repository configuration, CI, documentation, and reversible GitHub operations.
-- Treat confirmation as unnecessary for implementation detail, command choice, debugging strategy, test selection, or routine repository maintenance. Do not hand a technical decision back merely because it is complex.
-- Escalate only when the next action changes the product goal, incurs material cost, accesses or rotates a credential, makes an irreversible external change, changes account permissions, publishes or deploys, or has an explicitly stated acceptance tradeoff. Preserve every existing hard boundary.
-- After acting, report the outcome first: what changed, how it was verified, any deviation from the stated goal, and the one real blocker or next action. Do not expose internal command-by-command narration unless it changes the product decision.
+- 保留当前念念画布、已批准的首页、Studio、导演工作台、资产库、API 适配器、品牌和项目数据。不得恢复已淘汰的 Nomi 自建画布、`#canvas` 或 `owned-canvas-director-import`。
+- 修改共享 UI 或 API 前，识别受影响文件、API 映射、资产和受保护页面；不得用占位符、猜测资源、陈旧构建物或空供应商响应替换已确认行为。
+- Step01 源视频分析只在 Haika 服务器 Responses 执行器中运行；桌面桥接属于历史兼容路径，不是生产依赖。服务器只能使用任务允许的路径、当前源文件哈希和绑定源文件的分析授权。
+- 凭据仅保留在服务器环境文件中，绝不写入任务记录、产物、日志、网站、源码或 GitHub。
 
-## Value-First Execution And Test Authority
+## 开发与验证
 
-- Before every continuation or new execution phase, identify the current
-  highest-value unfinished user path and its smallest executable action. Tell
-  the product owner that action, why it has the highest information or delivery
-  value, and the selected Skill route before executing it.
-- The plan statement is a progress update, not a pause. After telling the
-  product owner the plan, execute it immediately and keep going until the
-  in-scope result is verified. Do not wait for a second confirmation unless the
-  next action hits a hard boundary below (deployment, credential access,
-  material cost, account/permission change, irreversible external change).
-- Route the action through the narrowest applicable local Skill or verified
-  GitHub method. State the Skill's exact section and only the direct
-  dependencies that affect the current result; do not stack unrelated routes.
-- The product owner grants standing authority for tests, simulations, browser
-  smoke checks, and real provider test submissions within the already approved
-  NianNian beta scope. Execute those tests directly without asking for another
-  permission step, while respecting the existing H3 test limit of 5 seconds per
-  run and 10,000 seconds total.
-- This standing test authority does not authorize production deployment,
-  account or permission changes, credential access or rotation, public release,
-  destructive data operations, or a provider/model/route change that alters
-  the product goal or cost boundary.
-- After each test, report only the verified result, its practical value, actual
-  provider spend when known, and the earliest remaining blocker or next action.
+- 先在本地开发、构建、模拟和验证。WSL 或本地浏览器 URL 是预览候选，不是线上站点；未经明确授权不得连接或部署线上服务器。
+- UI 改动必须在真实本地浏览器路径验证：请求的交互、加载资产、相关 API 响应、用户可见结果，以及受影响的桌面端和移动端。HTTP 200、截图或构建成功本身不算完成。
+- 静态 Studio 构建必须让 HTML 模块入口与动态导入共享分块保持同一物理模块身份，避免重复 React 上下文和虚假的 Provider 缺失错误；交付前检查导入图和真实浏览器控制台。
 
-## User-facing behavior
+## GitHub 协作与可见交付
 
-- Never expose internal error codes, token/controller/lease terminology, paths, hashes, or recovery mechanics in the product UI.
-- Preserve uploaded source media and completed preflight through recoverable failures. Do not ask the user to re-upload unless source validation actually fails.
-- A recoverable backend failure must become a clear user-facing recovery state and a retry path, not an internal exception string.
+- 需要进入共享源码的改动使用短期分支和 GitHub Pull Request，不直接推送或强制推送 `main`。每项改动保持边界明确，不混入无关修复。
+- 一个 Pull Request 默认必须对应一个用户可验收闭环，而不是一个内部层、一个面板或一份准备工作。只有当独立 API 合同、安全修复或基础设施变更本身可独立合并且立即减少后续风险时，才允许单独成 PR。
+- 不得在前置 PR 尚未验收或合并时继续建立多层依赖 PR 链。出现两个以上未合并依赖 PR 时，先停止追加功能，审计并收敛为从最新 `main` 可独立构建、验证和回滚的候选；已废弃候选应关闭或明确标记不再使用。
+- PR 数量、提交数量、节点 UI、合同测试和 CI 通过都不计产品进度。进度只按用户路径记录：输入已进入系统、服务端真实执行、状态可恢复、结果回到项目、刷新后仍可读取，以及用户能够预览或下载。
+- Pull Request 的目的首先是让用户看清“改了什么、为什么改、效果怎样”。创建或更新后，主动给出改动摘要、验证结果、可查看入口，以及建议用户实际查看的关键路径。
+- 采用轻量验证：根据变更风险运行必要测试、类型检查、代码检查和构建，不把无关或不存在的检查伪造成门禁。修复已证实失败，不绕过它。
+- 生产发布前，说明将发布的内容、用户可见效果、验证证据、已知风险和回滚点；得到明确发布授权后才从已验证的 `main` 部署，并回读真实生产核心路径。
 
-## Hard boundaries
+## 三关发布制
 
-- Do not read, copy, print, store, inject, or transmit passwords, tokens, cookies, API keys, or raw provider responses.
-- Do not submit generation, incur cost, publish, package/send, change accounts, or deploy externally without the authority the user has explicitly granted for that action.
-- Do not claim a generated asset, media file, QA result, or delivery exists without the required exact evidence.
-- Do not silently change a provider, model, route, source, job owner, or production/training boundary when that changes the result or cost.
+- 技术关：按项目实际具备的命令执行相关测试、TypeScript、ESLint 和构建；任何已存在且相关的检查失败都不得进入体验关，不把项目不存在的命令伪装成已通过。
+- 体验关：为 PR 当前精确提交提供独立 HTTPS 预览，公开健康回读必须证明预览 SHA 与 PR HEAD 完全一致；主动给出地址、改动和风险，由产品负责人在电脑和手机走核心路径。
+- 发布关：体验验收后说明最终改动、已知风险和回滚点；只有产品负责人明确回复“验收通过，发布”，才可合并并上线。新提交会使旧预览和旧验收失效，必须重新执行三关。
+- 独立预览只承载候选代码和隔离数据，不使用生产凭据、不发起付费生成、不改变生产服务；预览验证通过也不等于发布授权。
 
-## Workflow discipline
+## 项目规则自进化
 
-- Use the smallest compatible route for the current phase. Do not stack overlapping skills or switch routes repeatedly without an evidence-backed reason.
-- A phase may consume only its declared, verified inputs. Preserve authoritative paths and SHA256 values when the workflow requires them.
-- Keep failed historical receipts for audit, but they must not overwrite a newer authorized recovery state.
-- When an in-scope repair creates a new blocker, repair that blocker before reporting back unless it crosses a hard boundary above.
-
-## Server Execution Constraints
-
-- Step01 source-video analysis runs only on Haika through the server Responses executor. Mac, Windows desktop bridges, and desktop App tasks are historical compatibility paths, not production dependencies.
-- The server may use only the task's allowlisted routes, current source hash, and source-bound analysis authorization. It must not treat the model channel as media-provider authorization.
-- Keep credentials in systemd environment files only. Do not record them in task contracts, artifacts, receipts, logs, or the website.
-- For production media, retain the route's required preflight, evidence validation, ledger, and website projection before calling work delivered.
-
-## NianNian project authority
-
-This directory is the independent canonical project root for NianNian AI. Work from this directory, not from a sibling candidate, downloaded package, or online deployment copy.
-
-- Preserve the current NianNian canvas and all user-approved homepage, studio, asset-library, API adapter, and branding behavior. Do not restore the retired Nomi self-built canvas, `#canvas`, or `owned-canvas-director-import` routes.
-- Treat the existing source and user-approved behavior as the baseline. Before changing a shared route or UI, identify the exact files, assets, API mappings, and protected surfaces involved.
-- Develop, build, simulate, and verify locally first. The local WSL/browser URL is a candidate preview, not the online site. Do not connect to or deploy the online server unless the user explicitly authorizes that separate step.
-- Keep one bounded candidate per change. Do not merge files from several old candidates or overwrite the canonical source with a validation package.
-- Never replace confirmed assets, API adapters, canvas behavior, or project data with placeholders, guessed resources, stale bundles, or empty provider responses.
-- A change is complete only after the real local browser path is tested, including the requested interaction, loaded assets, relevant API response, and the protected desktop/mobile surface when UI is changed.
-- For static Studio builds, keep the HTML module entry and dynamically imported shared chunks on the same physical module filename and identity; duplicate renamed copies can create separate React contexts and surface false Provider-missing errors. Check the import graph and real browser console before delivery.
-- Keep secrets, API keys, cookies, signed URLs, `.env` files, user media, generated outputs, and runtime state out of source, documentation, commits, and migration copies.
-
-## Migration boundary
-
-The former `niannian-ai-canonical-local` directory has been moved to `E:\codex\archive\niannian-ai-canonical-local-retired-20260807` as a read-only rollback/reference source. It must not be silently treated as the active development root after this project is verified. The `local-wsl-validation-*` directories are candidates only and never become the source of truth.
-
-When a task says `继续`, continue from the current approved scope and this directory. Do not change the canvas family, route, provider, or release baseline unless the user explicitly changes that decision.
-
-## Fixed Two-Person Git Collaboration
-
-- The personal private GitHub repository, once connected as `origin`, and its
-  `main` branch are the shared source authority. Offline source archives are
-  backup only and never a merge source.
-- The primary implementation owner is the only integrator and production
-  operator. Production deployment still requires explicit approval from the
-  product owner for that candidate.
-- Workstream A owns server/provider paths: `server.js`,
-  `bridge/niannian_canvas_*.js`, `bridge/niannian_runninghub_*.js`, `deploy/`,
-  and `test_canvas_*.js`. Workstream B owns Studio paths: `studio/**`, `sw.js`,
-  `test_studio_*.js`, `test_r3f_*.js`, `test_web_canvas_persistence_binding.js`,
-  and `test_web_runtime_adapter.js`. Do not cross these boundaries except in a
-  separately reviewed API-contract change.
-- Each work item starts from current `main` on an Issue-linked short-lived
-  branch, uses focused commits, and returns through a pull request. No direct
-  push or force push to `main`; rebase before review and let the owner of an
-  owned path resolve its conflict.
-- Merge Studio recovery before provider-runtime work, then build and verify a
-  release candidate only from the merged `main`. A clean browser must save and
-  refresh a canvas before any real provider generation is accepted as evidence.
-- Current beta scope is ASXS text with `gpt-5.6-luna`, RunningHub Image2, and
-  RunningHub H3 only. Audio, 3D, whiteboard, panorama, and scene-3D remain
-  edit/reference-only until a full server execution path exists.
-- Provider credentials, user media, runtime state, generated outputs, and raw
-  provider responses remain outside GitHub Issues, pull requests, commits, and
-  collaboration handovers. See `COLLABORATION_AND_HANDOVER.md` for the exact
-  handover and release procedure.
-- Until the second contributor has accepted repository access, the primary
-  owner normally advances Workstream A through Issue #2 and keeps Workstream B
-  reserved. When the product owner directs an immediate Studio recovery because
-  it blocks the real generation path, the primary owner may take that Issue on
-  a new Issue-linked branch, merge it before provider-runtime work, then return
-  to Workstream A. `main` remains pull-request-only with force pushes and
-  deletion disallowed as a required team process, but the current GitHub Free
-  private-repository plan cannot enforce it technically. No approving-review
-  count is configured unless the product owner explicitly changes that decision.
-
-## Engineering Baseline
-
-- Treat GitHub `main` as authoritative only after the focused pull-request CI
-  has passed. The required current checks are `Local contract tests` and
-  `Clean-browser Studio smoke test`; a locally passing command is not a
-  substitute for their first real GitHub run.
-- Keep the completed GitHub controls in use: focused Issue and branch, pull
-  request template, CODEOWNERS routing, Dependabot alerts and updates, the
-  weekly production dependency audit, security policy, and draft release notes.
-  A draft Release is changelog preparation only, never deployment authority.
-- On every dependency or workflow change, inspect the resulting GitHub Actions
-  status and open Dependabot alerts. Fix a proven CI or dependency failure in a
-  focused follow-up change; do not merge around it or label it as a false alarm.
-- Branch protection, rulesets, Secret Scanning, and private vulnerability
-  reporting are unavailable on the current private-repository plan. Keep their
-  required behavior in this contract, state the limitation in the handover, and
-  do not claim GitHub is enforcing controls it cannot enforce.
-- Observability, persistent worker recovery, multi-user storage, and public
-  beta policy are planned production capabilities, not completed controls.
-  Their acceptance criteria and ownership remain in GitHub Issues #6 through
-  #10; do not describe the product as public-ready until those applicable
-  outcomes are actually delivered.
-
-## Frontend Authority And Stage Gates
-
-- `PRODUCT.md` owns product truth, `DESIGN.md` owns durable visual and
-  interaction decisions, `FRONTEND_EXECUTION_PLAN.md` owns the current stage
-  order and acceptance evidence, and `docs/frontend-targets/` owns the target
-  interface images. Read all four before a frontend redesign, new surface, or
-  structural Studio change. Do not begin implementation when the current stage
-  has no named user result, target image, material states, responsive behavior,
-  and completion evidence.
-- For any reference-derived redesign, use this exact route and state it before
-  execution:
-
-  ```text
-  真实页面或当前实现证据
-  -> Hallmark study：references/study.md
-  -> UI/UX Pro Max：Workflow Step 1-4
-  -> Impeccable：shape / audit / polish
-  -> 目标图、实现、桌面与移动端证据
-  ```
-
-  Reference sites are evidence only. Never pixel-clone their layout, copy
-  proprietary assets or text, or let their model/provider taxonomy replace
-  NianNian's user language.
-- `Impeccable shape` confirms the bounded Operate-mode surface before code;
-  `audit` and `polish` are post-implementation quality gates. UI/UX Pro Max
-  recommendations are subordinate to `PRODUCT.md`, `DESIGN.md`, the protected
-  NianNian surfaces, and verified project constraints. Generic AI purple,
-  glassmorphism, glow, marketing heroes, and card-heavy dashboards are not
-  authority for this product.
-- Every frontend Issue and pull request must name exactly one stage from
-  `FRONTEND_EXECUTION_PLAN.md`, one primary user result, the matching target
-  image, affected files/API contracts, protected surfaces, material states,
-  desktop/mobile proof, and anything not verified. Keep one bounded surface per
-  change; a shared-shell or API-contract change must be isolated and reviewed
-  as its own change.
-- Target images define information hierarchy, state visibility, action
-  placement, and responsive retention, not fabricated backend capability.
-  Production UI must replace every example value with real project data and
-  must not turn the target image into a static mock, fake success state, empty
-  fallback, or placeholder workflow.
-- After implementation, verify the real local browser path at the target
-  viewport in `DESIGN.md`, plus the relevant clean-browser save/refresh,
-  loaded assets, API response, task recovery, and user-visible result. A test,
-  screenshot, HTTP `200`, queued task, or internal receipt alone is not
-  completion; the requested user action and readable project result are the
-  acceptance boundary.
-- A design change must not silently alter the approved homepage, Logo, current
-  canvas family, director desk, asset library, Image2/H3 adapters, Step01-Step04,
-  project data, or production routes. When real behavior conflicts with a
-  target image, preserve the working product, document the conflict, and update
-  the authority in a separate approved design change before broadening scope.
-
-## Professional Website Development Skill
-
-- Use the `niannian-web-development` Skill for any NianNian website change,
-  GitHub Issue/PR handoff, release candidate, production deployment, rollback,
-  beta-readiness, CI, observability, backup/recovery, or provider lifecycle
-  work. Its `Workflow` section is the default execution order and its
-  `references/quality-gates.md` selects the smallest sufficient proof.
-- The Skill supplements this project contract; it must not override its canvas
-  authority, credential boundaries, user approvals, or production constraints.
+- 项目创建和每个实质阶段完成后，检查本文件是否仍能帮助下一阶段更快、更稳地得到用户结果。
+- 已验证的成功方法、稳定失败根因、重复返工或用户明确反馈，可直接形成最小规则更新；每次更新都说明证据、改了什么以及下次有什么具体收益。
+- 发现规则无效、重复、妨碍效率或与实际项目不符时，主动说明并删除或替换。不要让一次性事故、理论性风险或过期流程长期占据规则。
+- 仅对本项目有效的内容留在本文件；跨项目可复用的经验由全局 `AGENTS.md` 管理。不得记录密钥、私密聊天、用户媒体、临时 URL 或运行时状态。
