@@ -14,6 +14,7 @@ export interface EditorAccess {
 
 const SESSION_COOKIE = 'niannian_editor_session';
 const MAIN_ORIGIN = () => (process.env.NIANNIAN_MAIN_ORIGIN?.trim() || 'https://ai.cau.fun').replace(/\/+$/, '');
+const BILLING_ORIGIN = () => (process.env.NIANNIAN_EDITOR_BILLING_ORIGIN?.trim() || MAIN_ORIGIN()).replace(/\/+$/, '');
 const EDITOR_ORIGIN = () => (process.env.NIANNIAN_EDITOR_ORIGIN?.trim() || 'https://edit.cauai.fun').replace(/\/+$/, '');
 
 function secret(): string | null {
@@ -118,7 +119,7 @@ async function exchange(req: IncomingMessage, res: ServerResponse): Promise<void
 async function consume(user: EditorUser, operationId: string, step: string, credits: number): Promise<Response> {
   const body = JSON.stringify({userId:user.id, operationId, step, credits});
   const signature = createHmac('sha256', secret()!).update(body).digest('hex');
-  return fetch(`${MAIN_ORIGIN()}/api/internal/editor-billing/consume`, {
+  return fetch(`${BILLING_ORIGIN()}/api/internal/editor-billing/consume`, {
     method:'POST', headers:{'Content-Type':'application/json','X-Niannian-Editor-Signature':signature}, body,
     signal: AbortSignal.timeout(20_000),
   });
@@ -127,7 +128,7 @@ async function consume(user: EditorUser, operationId: string, step: string, cred
 async function balance(user: EditorUser): Promise<number> {
   const userId = encodeURIComponent(user.id);
   const signature = createHmac('sha256', secret()!).update(user.id).digest('hex');
-  const response = await fetch(`${MAIN_ORIGIN()}/api/internal/editor-billing/balance?userId=${userId}`, {
+  const response = await fetch(`${BILLING_ORIGIN()}/api/internal/editor-billing/balance?userId=${userId}`, {
     headers: {'X-Niannian-Editor-Signature': signature},
     cache: 'no-store',
     signal: AbortSignal.timeout(10_000),
