@@ -24,7 +24,17 @@ import {
   type ModelCapabilityOverride,
 } from "../shared/model-capabilities.ts";
 
-const ENV_PATH = resolve(process.cwd(), ".env.local");
+/** Runtime settings must outlive immutable release directories in production. */
+export function runtimeSettingsPath(root = process.cwd()): string {
+  const configured = process.env.OPENCHATCUT_RUNTIME_ENV_PATH?.trim();
+  if (configured) return resolve(configured);
+  if (process.env.NODE_ENV === "production") {
+    return "/var/lib/edit-ai-openchatcut/runtime.env";
+  }
+  return resolve(root, ".env.local");
+}
+
+const ENV_PATH = runtimeSettingsPath();
 
 // Whitelist of settable env vars — mirrors what vite.config.ts reads. POST /api/keys
 // rejects anything outside this set so the endpoint can never write arbitrary env.
