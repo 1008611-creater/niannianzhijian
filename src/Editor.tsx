@@ -92,7 +92,7 @@ import type { QuickRecipeInput } from './components/QuickHome';
 import { QuickRunOverlay, type QuickRunStage } from './components/QuickRunOverlay';
 import { isCompleteQuickRoughCut, roughCutSourceCount } from './quickRunEvidence';
 import { quickRunErrorMessage } from './quickRunError';
-import { selectedQuickStoryRanges, type QuickStoryPreferences } from './quickStoryPreferences';
+import { priorityStoryOrder, selectedQuickStoryRanges, type QuickStoryPreferences } from './quickStoryPreferences';
 
 interface EditorProps {
   initial: ProjectDoc;
@@ -125,6 +125,7 @@ interface QuickRunRuntime {
   assetReady: boolean;
   storyConfirmed: boolean;
   storyPreferences: QuickStoryPreferences;
+  storyPriorityOrder: string[];
   error?: string;
   dismissed: boolean;
 }
@@ -465,12 +466,13 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     assetReady: false,
     storyConfirmed: false,
     storyPreferences: {},
+    storyPriorityOrder: [],
     dismissed: false,
   } : null);
   const [quickAgentState, setQuickAgentState] = useState<AgentRunState>({ running: false, proposalPending: false });
   useEffect(() => {
     quickStoryConfirmedRef.current = !!quickRun?.storyConfirmed;
-    quickStoryRangesRef.current = selectedQuickStoryRanges(quickRun?.assets ?? [], quickRun?.storyPreferences ?? {});
+    quickStoryRangesRef.current = selectedQuickStoryRanges(quickRun?.assets ?? [], quickRun?.storyPreferences ?? {}, quickRun?.storyPriorityOrder ?? []);
   }, [quickRun]);
   const [quickProgressStage, setQuickProgressStage] = useState<Exclude<QuickRunStage, 'ready' | 'error'>>('importing');
   // Design style (brand) editor pop-up window.
@@ -867,8 +869,8 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     const sourceDurationSeconds = Math.max(1, Math.floor(assets.reduce((total, item) => total + item.durationInFrames, 0) / stateRef.current.fps));
     const targetDurationSeconds = Math.min(recipe.durationSeconds, sourceDurationSeconds);
     const sourceManifest = assets.map((item, index) => `第${index + 1}段「${item.name}」（assetId=${item.id}）`).join('；');
-    const ranges = selectedQuickStoryRanges(assets, quickRun?.storyPreferences ?? {});
-    const priority = ranges.filter((range) => range.preference === 'priority').map((range) => `${range.assetId} ${range.startMs}-${range.endMs}ms`).join('；') || '无';
+    const ranges = selectedQuickStoryRanges(assets, quickRun?.storyPreferences ?? {}, quickRun?.storyPriorityOrder ?? []);
+    const priority = ranges.filter((range) => range.preference === 'priority').map((range) => `${(range.order ?? 0) + 1}. ${range.assetId} ${range.startMs}-${range.endMs}ms`).join('；') || '无';
     const excluded = ranges.filter((range) => range.preference === 'exclude').map((range) => `${range.assetId} ${range.startMs}-${range.endMs}ms`).join('；') || '无';
     quickAgentStartedRef.current = false;
     setQuickProgressStage('selecting');
@@ -892,7 +894,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     quickAgentStartedRef.current = false;
     setQuickProgressStage('understanding');
     setQuickAgentState({ running: false, proposalPending: false });
-    setQuickRun((current) => current ? { ...current, storyConfirmed: false, storyPreferences: {}, error: undefined, dismissed: false } : current);
+    setQuickRun((current) => current ? { ...current, storyConfirmed: false, storyPreferences: {}, storyPriorityOrder: [], error: undefined, dismissed: false } : current);
     quickStoryConfirmedRef.current = false;
     setChatSeed({
       nonce: Date.now(),
@@ -1182,10 +1184,20 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
           fps={state.fps}
           error={quickAgentError}
           storyPreferences={quickRun.storyPreferences}
-          onStoryPreferenceChange={(key, preference) => setQuickRun((current) => current ? {
-            ...current,
-            storyPreferences: preference ? { ...current.storyPreferences, [key]: preference } : Object.fromEntries(Object.entries(current.storyPreferences).filter(([entry]) => entry !== key)),
-          } : current)}
+          storyPriorityOrder={quickRun.storyPriorityOrder}
+          onStoryPreferenceChange={(key, preference) => setQuickRun((current) => current ? (() => {
+            const storyPreferences = preference ? { ...current.storyPreferences, [key]: preference } : Object.fromEntries(Object.entries(current.storyPreferences).filter(([entry]) => entry !== key));
+            return { ...current, storyPreferences, storyPriorityOrder: priorityStoryOrder(storyPreferences, current.storyPriorityOrder) };
+          })() : current)}
+          onStoryPriorityMove={(key, direction) => setQuickRun((current) => {
+            if (!current) return current;
+            const from = current.storyPriorityOrder.indexOf(key);
+            const to = from + direction;
+            if (from < 0 || to < 0 || to >= current.storyPriorityOrder.length) return current;
+            const storyPriorityOrder = [...current.storyPriorityOrder];
+            [storyPriorityOrder[from], storyPriorityOrder[to]] = [storyPriorityOrder[to]!, storyPriorityOrder[from]!];
+            return { ...current, storyPriorityOrder };
+          })}
           onRetry={retryQuickRun}
           onConfirmStory={confirmQuickStory}
           onEnterProfessional={() => setQuickRun((current) => current ? { ...current, dismissed: true } : current)}
