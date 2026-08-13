@@ -65,6 +65,8 @@ export interface AgentContext {
   getRedoTarget?: () => ProjectDoc | null;
   /** Quick-mode bridge: publish a newly assembled draft timeline into the live project. */
   onRoughCutAssembled?: (doc: ProjectDoc, timelineId: string) => void;
+  /** Quick short-drama runs stay analysis-only until the user confirms the story cards. */
+  getQuickStoryConfirmed?: () => boolean;
   /** Proposal confirmation mode (built-in chat: auto-apply setting; external: session approvalMode).
    * Drives provider routing: 'manual' asks the user once among several providers; 'auto' lets the agent pick. */
   getApprovalMode?: () => ApprovalMode;

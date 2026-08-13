@@ -122,6 +122,7 @@ interface QuickRunRuntime {
   assetIds: string[];
   assets: MediaAsset[];
   assetReady: boolean;
+  storyConfirmed: boolean;
   error?: string;
   dismissed: boolean;
 }
@@ -129,6 +130,7 @@ interface QuickRunRuntime {
 const QUICK_RUN_STAGE_ORDER: Record<Exclude<QuickRunStage, 'ready' | 'error'>, number> = {
   importing: 0,
   understanding: 1,
+  review: 2,
   selecting: 2,
   assembling: 3,
 };
@@ -319,6 +321,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
   );
   const allTemplatesRef = useRef(allTemplates);
   allTemplatesRef.current = allTemplates;
+  const quickStoryConfirmedRef = useRef(false);
   const agentCtx = useMemo(
     () => ({
       commands,
@@ -326,6 +329,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
       getDoc: () => docRef.current,
       getOfflineMediaSrcs: () => offlineSrcsRef.current,
       getCreativeMode: () => creativeModeRef.current,
+      getQuickStoryConfirmed: () => quickStoryConfirmedRef.current,
       getUndoTarget,
       getRedoTarget,
       getApprovalMode: () => (loadChatAutoApply(project.id) ? 'auto' : 'manual'),
@@ -455,9 +459,11 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     assetIds: [],
     assets: [],
     assetReady: false,
+    storyConfirmed: false,
     dismissed: false,
   } : null);
   const [quickAgentState, setQuickAgentState] = useState<AgentRunState>({ running: false, proposalPending: false });
+  useEffect(() => { quickStoryConfirmedRef.current = !!quickRun?.storyConfirmed; }, [quickRun?.storyConfirmed]);
   const [quickProgressStage, setQuickProgressStage] = useState<Exclude<QuickRunStage, 'ready' | 'error'>>('importing');
   // Design style (brand) editor pop-up window.
   const [showDesign, setShowDesign] = useState(false);
@@ -775,12 +781,6 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
           importedRatio: 1,
           error: undefined,
         } : current);
-        const platform = initialRecipe.platform === 'douyin' ? '抖音' : initialRecipe.platform === 'kuaishou' ? '快手' : '视频号';
-        const sourceDurationSeconds = Math.max(1, Math.floor(assets.reduce((total, item) => total + item.durationInFrames, 0) / stateRef.current.fps));
-        const targetDurationSeconds = Math.min(initialRecipe.durationSeconds, sourceDurationSeconds);
-        const durationConstraint = sourceDurationSeconds < initialRecipe.durationSeconds
-          ? `所有素材真实总时长约${sourceDurationSeconds}秒，无法做成${initialRecipe.durationSeconds}秒；请只制作约${targetDurationSeconds}秒的真实片段，绝不补帧、重复或伪造时长。`
-          : `目标时长不超过${targetDurationSeconds}秒。`;
         const sourceManifest = assets.map((item, index) => `第${index + 1}段「${item.name}」（assetId=${item.id}）`).join('；');
         const storyContext = initialRecipe.storyOutline ? `用户提供的剧情梗概：${initialRecipe.storyOutline}` : '用户没有提供剧情梗概；只能从真实画面、真实台词与上传顺序判断，不能虚构剧情。';
         const dialogueContext = initialRecipe.dialogue ? `用户提供的关键台词/文案：${initialRecipe.dialogue}` : '用户没有提供台词文案；先对每段调用 analyze_asset(kind=mimo-asr) 获取可检索的真实口语文本，不能把无时间戳 ASR 当作字幕。';
@@ -791,7 +791,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
           references: assets.map((item) => ({ id: item.id, name: item.name, kind: item.kind })),
           autoSubmit: true,
           autoApply: true,
-          text: `制作一条短剧片段精修发布版。运行编号为${initialRecipe.workflowRunId ?? '未记录'}。本次素材按剧情发生顺序上传：${sourceManifest}。目标平台为${platform}，${durationConstraint} 输出竖屏 9:16。${storyContext} ${dialogueContext} 第一步对每个上传文件调用 search_media(query=该文件名, modalities=["metadata"], limit=1)，每次只接受对应 assetId 的精确 filename 命中；任一段没有精确命中就停止并报告“未找到刚上传的素材”，不得分析、粗剪或改动其他素材。随后必须逐段调用 analyze_asset(kind=video) 和 view_asset_frames；先读剧情、人物关系、冲突和情绪变化，再从每段真实来源选择必要区间。保留上传顺序作为默认剧情顺序，只有真实画面或台词明确证明时才可调整；不得因为片段时长短就删除剧情关键转折。用 assemble_rough_cut 创建一个新的可编辑粗剪，beats 必须引用多个实际 assetId，不得只用第一段，不得用 edit_item 把素材直接放进当前时间线。粗剪创建后，先用 edit_track(action=list) 找出承载视频的真实轨，再对有声视频轨调用 transcribe_track(provider=mimo-qwen-asr)。MiMo 返回 no-audio/no-speech 时停止转写并标注“原声无可用字幕”，绝不伪造字幕或切换供应商。只有真实词级时间戳可用时才开启字幕。保留原声，不生成付费音乐，不覆盖用户手工修改；最后调用 check_rough_cut_ready，检查素材来源、片段顺序、真实时长和画面结构，只报告真实完成的步骤。`,
+          text: `先理解这组短剧素材，暂时不要创建时间线或粗剪。运行编号为${initialRecipe.workflowRunId ?? '未记录'}。本次素材按剧情发生顺序上传：${sourceManifest}。${storyContext} ${dialogueContext} 每段先用 search_media(query=文件名, modalities=["metadata"], limit=1) 精确确认对应 assetId；任一段未命中就停止并报告。随后逐段调用 analyze_asset(kind=video)、analyze_asset(kind=mimo-asr) 和 view_asset_frames，读取人物、关系、冲突、情绪变化和真实时间范围。保留上传顺序为默认剧情顺序，不能虚构剧情。完成后只用简洁中文总结每段剧情与关键时间段，等待用户确认；本轮严禁调用 assemble_rough_cut、edit_item、字幕、配音、音乐或任何会改动时间线的工具。`,
         });
         onRecipeConsumed?.();
       } catch (error) {
@@ -829,8 +829,10 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
       : current);
   }, [quickObservedStage]);
   const quickAgentError = quickRunErrorMessage(quickRun?.error || quickAgentState.error);
+  const quickStoryReady = !!quickRun?.assetReady && quickAnalyzedAssetCount === (quickRun?.assets.length ?? 0) && !quickAgentState.running;
   const quickStage: QuickRunStage = quickAgentError ? 'error'
     : isCompleteQuickRoughCut(quickCreatedItems, quickRun?.assets.length ?? 0) ? 'ready'
+      : !quickRun?.storyConfirmed && quickStoryReady ? 'review'
       : quickProgressStage;
 
   useEffect(() => {
@@ -839,7 +841,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
       quickAgentStartedRef.current = true;
       return;
     }
-    if (!quickAgentStartedRef.current || quickAgentState.proposalPending || quickCreatedItems.length > 0 || quickRun.error) return;
+    if (!quickAgentStartedRef.current || quickAgentState.proposalPending || quickCreatedItems.length > 0 || quickRun.error || (!quickRun.storyConfirmed && quickStoryReady)) return;
     const timer = window.setTimeout(() => {
       setQuickRun((current) => current ? {
         ...current,
@@ -847,28 +849,45 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
       } : current);
     }, 1_200);
     return () => window.clearTimeout(timer);
-  }, [quickAgentState.error, quickAgentState.proposalPending, quickAgentState.running, quickCreatedItems.length, quickRun]);
+  }, [quickAgentState.error, quickAgentState.proposalPending, quickAgentState.running, quickCreatedItems.length, quickRun, quickStoryReady]);
+
+  const confirmQuickStory = useCallback(() => {
+    const recipe = quickRecipeRef.current;
+    const assets = quickRun?.assets.length ? quickRun.assets : [];
+    if (!recipe || !assets.length) return;
+    const platform = recipe.platform === 'douyin' ? '抖音' : recipe.platform === 'kuaishou' ? '快手' : '视频号';
+    const sourceDurationSeconds = Math.max(1, Math.floor(assets.reduce((total, item) => total + item.durationInFrames, 0) / stateRef.current.fps));
+    const targetDurationSeconds = Math.min(recipe.durationSeconds, sourceDurationSeconds);
+    const sourceManifest = assets.map((item, index) => `第${index + 1}段「${item.name}」（assetId=${item.id}）`).join('；');
+    quickAgentStartedRef.current = false;
+    setQuickProgressStage('selecting');
+    setQuickAgentState({ running: false, proposalPending: false });
+    setQuickRun((current) => current ? { ...current, storyConfirmed: true, error: undefined } : current);
+    quickStoryConfirmedRef.current = true;
+    setChatSeed({
+      nonce: Date.now(), references: assets.map((item) => ({ id: item.id, name: item.name, kind: item.kind })), autoSubmit: true, autoApply: true,
+      text: `用户已确认剧情理解。现在制作短剧片段精修发布版：${sourceManifest}。目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。根据刚才写入的真实视频理解和时间范围选片；上传顺序是默认剧情顺序，只有真实画面或台词明确证明时才调整。调用 assemble_rough_cut 创建独立可编辑粗剪，beats 必须引用多个实际 assetId，不得只使用第一段，不得伪造剧情、字幕或时长。保留原声，不生成付费音乐，不覆盖用户手工修改，最后调用 check_rough_cut_ready 并报告真实结果。`,
+    });
+  }, [quickRun]);
 
   const retryQuickRun = useCallback(() => {
     const recipe = quickRecipeRef.current;
     const assets = quickRun?.assets.length ? quickRun.assets : quickAsset ? [quickAsset] : [];
     if (!recipe || !assets.length) return;
-    const platform = recipe.platform === 'douyin' ? '抖音' : recipe.platform === 'kuaishou' ? '快手' : '视频号';
-    const sourceDurationSeconds = Math.max(1, Math.floor(assets.reduce((total, item) => total + item.durationInFrames, 0) / stateRef.current.fps));
-    const targetDurationSeconds = Math.min(recipe.durationSeconds, sourceDurationSeconds);
     const sourceManifest = assets.map((item, index) => `第${index + 1}段「${item.name}」（assetId=${item.id}）`).join('；');
     const storyContext = recipe.storyOutline ? `用户提供的剧情梗概：${recipe.storyOutline}` : '没有剧情梗概；只能根据真实画面、真实台词和上传顺序判断，不能虚构剧情。';
     const dialogueContext = recipe.dialogue ? `用户提供的关键台词/文案：${recipe.dialogue}` : '没有台词文案；逐段调用 analyze_asset(kind=mimo-asr) 获取真实口语文本，不能将其当作字幕。';
     quickAgentStartedRef.current = false;
     setQuickProgressStage('understanding');
     setQuickAgentState({ running: false, proposalPending: false });
-    setQuickRun((current) => current ? { ...current, error: undefined, dismissed: false } : current);
+    setQuickRun((current) => current ? { ...current, storyConfirmed: false, error: undefined, dismissed: false } : current);
+    quickStoryConfirmedRef.current = false;
     setChatSeed({
       nonce: Date.now(),
       references: assets.map((item) => ({ id: item.id, name: item.name, kind: item.kind })),
       autoSubmit: true,
       autoApply: true,
-      text: `重新制作短剧片段精修发布版。本次素材按剧情发生顺序上传：${sourceManifest}。目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。${storyContext} ${dialogueContext} 每段先 search_media 精确按文件名确认 assetId，再逐段 analyze_asset(kind=video)、analyze_asset(kind=mimo-asr) 与 view_asset_frames，读清剧情和台词后再选段。上传顺序是默认剧情顺序，只有真实画面或台词明确证明时才调整。assemble_rough_cut 必须创建独立可编辑粗剪，并在 beats 中使用多个实际 assetId；不得只使用第一段，不得伪造剧情、字幕或时长。对实际视频轨转写，只有真实词级时间戳才开启字幕；保留原声、不生成付费音乐、不覆盖用户手工修改，最后 check_rough_cut_ready。`,
+      text: `重新理解这组短剧素材，暂时不要创建时间线或粗剪：${sourceManifest}。${storyContext} ${dialogueContext} 每段先 search_media 精确按文件名确认 assetId，再逐段 analyze_asset(kind=video)、analyze_asset(kind=mimo-asr) 与 view_asset_frames，读清剧情、人物关系、冲突、情绪和真实时间范围。上传顺序是默认剧情顺序，不能虚构剧情。完成后只总结每段剧情与关键时间段，等待用户确认；严禁调用 assemble_rough_cut、edit_item、字幕、配音、音乐或任何会改动时间线的工具。`,
     });
   }, [quickAsset, quickRun]);
 
@@ -1151,6 +1170,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
           fps={state.fps}
           error={quickAgentError}
           onRetry={retryQuickRun}
+          onConfirmStory={confirmQuickStory}
           onEnterProfessional={() => setQuickRun((current) => current ? { ...current, dismissed: true } : current)}
           onBack={() => { window.location.hash = '#/quick'; }}
         />

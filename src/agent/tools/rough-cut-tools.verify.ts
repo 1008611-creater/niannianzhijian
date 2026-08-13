@@ -49,4 +49,10 @@ const rejected = await execRoughCutTool('assemble_rough_cut', {
 assert.match(rejected.error ?? '', /no matching assetId/);
 assert.equal(current.timelines.length, 2, 'invalid assembly makes no mutation');
 
+const storyUnconfirmed = await execRoughCutTool('assemble_rough_cut', {
+  beats: [{ assetId: 'asset-demo', sourceDurationMs: 1000 }],
+}, { ...ctx, getQuickStoryConfirmed: () => false }) as { error?: string };
+assert.match(storyUnconfirmed.error ?? '', /先确认 Agent 的剧情理解/);
+assert.equal(current.timelines.length, 2, 'unconfirmed story makes no mutation');
+
 console.log('rough-cut-tools.verify: ok');
