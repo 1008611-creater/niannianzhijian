@@ -60,6 +60,15 @@ async function run() {
   assert.equal(step01.status, 'blocked');
   assert.equal(step01.data.status, 'blocked');
   assert.equal(step01.data.parameters.blocker, 'STEP01_FULL_SOURCE_AUTHORITY_PENDING');
+  assert.deepEqual(step01.data.inputPorts.map(item => item.id), ['source_video']);
+  assert.deepEqual(step01.data.outputPorts.map(item => item.id), ['evidence_manifest','shot_frames']);
+  const sourceNode = built.body.document.nodes.find(item => item.id === 's1-source-input');
+  assert.equal(sourceNode.skillKey, 'mx-shortdrama-00-router');
+  assert.equal(sourceNode.data.parameters.preflightStatus, 'passed');
+  assert.deepEqual(sourceNode.data.outputPorts.map(item => item.id), ['source_asset','preflight_report']);
+  const step02 = built.body.document.nodes.find(item => item.id === 's1-step02-timeline');
+  assert.equal(step02.skillKey, 'mx-shortdrama-02-source-timeline');
+  assert.deepEqual(step02.data.inputPorts.map(item => item.id), ['evidence_manifest']);
   const reloaded = await request('/api/canvas/documents/redraw/' + project.id, {headers:headers()});
   assert.equal(reloaded.body.document.nodes.find(item => item.id === 's1-step02-timeline').status, 'blocked');
   const stale = await request('/api/canvas/documents/redraw/' + project.id + '/s1-chain', {method:'POST',headers:headers({'content-type':'application/json','if-match':'"canvas-rev-0"'}),body:'{}'});

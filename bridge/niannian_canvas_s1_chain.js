@@ -9,6 +9,12 @@ const STEP02_NODE_ID = 's1-step02-timeline';
 const CHAIN_NODE_IDS = Object.freeze([SOURCE_NODE_ID, STEP01_NODE_ID, STEP02_NODE_ID]);
 const LEGACY_SOURCE_ASSET_PREFIX = 'legacy-source:';
 
+const PORTS = Object.freeze({
+  source: {inputPorts:[{id:'source_video',type:'source_video',required:true},{id:'rights_declaration',type:'rights_declaration',required:true}],outputPorts:[{id:'source_asset',type:'source_asset'},{id:'preflight_report',type:'preflight_report'}]},
+  step01: {inputPorts:[{id:'source_video',type:'source_video',required:true}],outputPorts:[{id:'evidence_manifest',type:'evidence_manifest'},{id:'shot_frames',type:'shot_frames'}]},
+  step02: {inputPorts:[{id:'evidence_manifest',type:'evidence_manifest',required:true}],outputPorts:[{id:'accepted_timeline',type:'accepted_timeline'}]}
+});
+
 function text(value, limit = 200) {
   return String(value == null ? '' : value).replace(/[\u0000-\u001f]/g, '').trim().slice(0, limit);
 }
@@ -34,12 +40,14 @@ function createChain({projectId, sourceAssetIds = [], rightsConfirmed = false, p
     kind:'source_input',
     skillKey:'mx-shortdrama-00-router',
     description:'上传有权使用的原片，完成权利声明与媒体预检后进入 Step01。',
+    inputPorts:PORTS.source.inputPorts,
+    outputPorts:PORTS.source.outputPorts,
     parameters:{rightsConfirmed:rightsConfirmed === true, preflightStatus:preflight, gateState:sourceReady ? 'source_ready' : 'source_input_incomplete'},
     assetRefs:assets.map(assetId => ({assetId, projectId, role:'source_video'})),
     status:sourceReady ? 'ready' : 'draft',
     recovery:{actions:['repair_input','reselect_asset'],lastAction:null},
     position:position(SOURCE_NODE_ID, {x:120,y:160}),
-    data:{title:'原片输入与权利确认',note:'先上传原片并完成权利确认、媒体预检。',assetIds:assets,inputAssetIds:[],status:sourceReady ? 'ready' : 'draft',skillKey:'mx-shortdrama-00-router',description:'上传有权使用的原片，完成权利声明与媒体预检后进入 Step01。',parameters:{rightsConfirmed:rightsConfirmed === true,preflightStatus:preflight,gateState:sourceReady ? 'source_ready' : 'source_input_incomplete'},assetRefs:assets.map(assetId => ({assetId,projectId,role:'source_video'})),recovery:{actions:['repair_input','reselect_asset'],lastAction:null}}
+    data:{title:'原片输入与权利确认',note:'先上传原片并完成权利确认、媒体预检。',assetIds:assets,inputAssetIds:[],status:sourceReady ? 'ready' : 'draft',skillKey:'mx-shortdrama-00-router',description:'上传有权使用的原片，完成权利声明与媒体预检后进入 Step01。',inputPorts:PORTS.source.inputPorts,outputPorts:PORTS.source.outputPorts,parameters:{rightsConfirmed:rightsConfirmed === true,preflightStatus:preflight,gateState:sourceReady ? 'source_ready' : 'source_input_incomplete'},assetRefs:assets.map(assetId => ({assetId,projectId,role:'source_video'})),recovery:{actions:['repair_input','reselect_asset'],lastAction:null}}
   };
   const step01Node = {
     id:STEP01_NODE_ID,
@@ -47,11 +55,13 @@ function createChain({projectId, sourceAssetIds = [], rightsConfirmed = false, p
     kind:'analysis',
     skillKey:'mx-shortdrama-01-frame-extract',
     description:'提取原片镜头、关键帧、对白、OCR 与证据清单；没有完整服务器证据时保持阻塞。',
+    inputPorts:PORTS.step01.inputPorts,
+    outputPorts:PORTS.step01.outputPorts,
     parameters:{profile:'hq_full',providerSubmitRequested:false,gateState:sourceReady ? 'step01_full_source_authority_blocked' : 'source_input_incomplete',blocker:sourceReady ? 'STEP01_FULL_SOURCE_AUTHORITY_PENDING' : 'SOURCE_INPUT_INCOMPLETE'},
     status:'blocked',
     recovery:{actions:['repair_input','reconcile_task'],lastAction:null},
     position:position(STEP01_NODE_ID, {x:480,y:160}),
-    data:{title:'Step01 源片分析',note:sourceReady ? '等待 Haika hq_full 完整证据链，不读取旧证据。' : '先完成原片输入、权利确认和媒体预检。',assetIds:[],inputAssetIds:assets,status:'blocked',skillKey:'mx-shortdrama-01-frame-extract',description:'提取原片镜头、关键帧、对白、OCR 与证据清单；没有完整服务器证据时保持阻塞。',parameters:{profile:'hq_full',providerSubmitRequested:false,gateState:sourceReady ? 'step01_full_source_authority_blocked' : 'source_input_incomplete',blocker:sourceReady ? 'STEP01_FULL_SOURCE_AUTHORITY_PENDING' : 'SOURCE_INPUT_INCOMPLETE'},recovery:{actions:['repair_input','reconcile_task'],lastAction:null}}
+    data:{title:'Step01 源片分析',note:sourceReady ? '等待 Haika hq_full 完整证据链，不读取旧证据。' : '先完成原片输入、权利确认和媒体预检。',assetIds:[],inputAssetIds:assets,status:'blocked',skillKey:'mx-shortdrama-01-frame-extract',description:'提取原片镜头、关键帧、对白、OCR 与证据清单；没有完整服务器证据时保持阻塞。',inputPorts:PORTS.step01.inputPorts,outputPorts:PORTS.step01.outputPorts,parameters:{profile:'hq_full',providerSubmitRequested:false,gateState:sourceReady ? 'step01_full_source_authority_blocked' : 'source_input_incomplete',blocker:sourceReady ? 'STEP01_FULL_SOURCE_AUTHORITY_PENDING' : 'SOURCE_INPUT_INCOMPLETE'},recovery:{actions:['repair_input','reconcile_task'],lastAction:null}}
   };
   const step02Node = {
     id:STEP02_NODE_ID,
@@ -59,11 +69,13 @@ function createChain({projectId, sourceAssetIds = [], rightsConfirmed = false, p
     kind:'timeline',
     skillKey:'mx-shortdrama-02-source-timeline',
     description:'只消费已验证的 Step01 证据，生成可确认的源片事实时间线。',
+    inputPorts:PORTS.step02.inputPorts,
+    outputPorts:PORTS.step02.outputPorts,
     parameters:{gateState:'step01_evidence_required',blocker:'STEP01_EVIDENCE_REQUIRED'},
     status:'blocked',
     recovery:{actions:['reconcile_task','rollback'],lastAction:null},
     position:position(STEP02_NODE_ID, {x:840,y:160}),
-    data:{title:'Step02 源片时间线',note:'Step01 通过后自动解锁；不使用旧镜头或目录扫描。',assetIds:[],inputAssetIds:[],status:'blocked',skillKey:'mx-shortdrama-02-source-timeline',description:'只消费已验证的 Step01 证据，生成可确认的源片事实时间线。',parameters:{gateState:'step01_evidence_required',blocker:'STEP01_EVIDENCE_REQUIRED'},recovery:{actions:['reconcile_task','rollback'],lastAction:null}}
+    data:{title:'Step02 源片时间线',note:'Step01 通过后自动解锁；不使用旧镜头或目录扫描。',assetIds:[],inputAssetIds:[],status:'blocked',skillKey:'mx-shortdrama-02-source-timeline',description:'只消费已验证的 Step01 证据，生成可确认的源片事实时间线。',inputPorts:PORTS.step02.inputPorts,outputPorts:PORTS.step02.outputPorts,parameters:{gateState:'step01_evidence_required',blocker:'STEP01_EVIDENCE_REQUIRED'},recovery:{actions:['reconcile_task','rollback'],lastAction:null}}
   };
   return {nodes:[sourceNode, step01Node, step02Node],edges:[edge('s1-edge-source-step01', SOURCE_NODE_ID, STEP01_NODE_ID),edge('s1-edge-step01-step02', STEP01_NODE_ID, STEP02_NODE_ID)],sourceReady};
 }
@@ -81,4 +93,4 @@ function mergeChain(document, chain) {
   };
 }
 
-module.exports = {CHAIN_NODE_IDS,SOURCE_NODE_ID,STEP01_NODE_ID,STEP02_NODE_ID,LEGACY_SOURCE_ASSET_PREFIX,createChain,mergeChain,uniqueIds,legacySourceAssetId,isLegacySourceAssetId};
+module.exports = {CHAIN_NODE_IDS,SOURCE_NODE_ID,STEP01_NODE_ID,STEP02_NODE_ID,LEGACY_SOURCE_ASSET_PREFIX,PORTS,createChain,mergeChain,uniqueIds,legacySourceAssetId,isLegacySourceAssetId};

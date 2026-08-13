@@ -44,27 +44,30 @@
     var style = document.createElement('style');
     style.id = 's1-chain-ui-styles';
     style.textContent = [
-      '#s1-chain-panel{position:fixed;left:18px;top:72px;z-index:120;width:min(360px,calc(100vw - 36px));max-height:calc(100vh - 96px);overflow:auto;padding:16px;color:#2a2118;background:rgba(255,252,246,.96);border:1px solid rgba(90,64,42,.18);border-radius:12px;box-shadow:0 18px 50px rgba(42,33,24,.16);font:13px/1.45 Inter,system-ui,sans-serif;backdrop-filter:blur(14px)}',
-      '#s1-chain-panel[hidden]{display:none}#s1-chain-panel h2{margin:0;font-size:16px;font-weight:700}#s1-chain-panel p{margin:5px 0 12px;color:#786958}#s1-chain-panel .s1-eyebrow{font-size:10px;letter-spacing:.12em;color:#9a6a3c;font-weight:700}#s1-chain-panel .s1-assets{display:grid;gap:6px;margin:10px 0 12px}',
-      '#s1-chain-panel label.s1-asset{display:flex;gap:8px;align-items:center;padding:8px;border:1px solid rgba(90,64,42,.12);border-radius:8px;background:#fffaf3;cursor:pointer}#s1-chain-panel label.s1-asset:hover{border-color:#b78455}#s1-chain-panel .s1-asset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-      '#s1-chain-panel .s1-row{display:flex;gap:8px;align-items:center;margin:8px 0}#s1-chain-panel select{flex:1;padding:7px;border:1px solid rgba(90,64,42,.2);border-radius:7px;background:#fff}#s1-chain-panel button{border:0;border-radius:7px;padding:8px 11px;background:#2a2118;color:#fff;cursor:pointer;font-weight:600}#s1-chain-panel button[disabled]{opacity:.45;cursor:default}#s1-chain-panel .s1-secondary{background:#efe5d8;color:#4c3828}#s1-chain-panel .s1-status{margin-top:10px;padding:9px;border-radius:8px;background:#f4eee6;color:#5d4d3d;white-space:pre-wrap}#s1-chain-panel .s1-status.error{background:#fff0ee;color:#a33b2d}#s1-chain-panel .s1-nodes{display:grid;gap:5px;margin-top:10px}#s1-chain-panel .s1-node{display:flex;justify-content:space-between;gap:8px;padding:7px 8px;background:#faf5ef;border-radius:7px}#s1-chain-panel .s1-node small{color:#8b7764}',
-      '@media (max-width:600px){#s1-chain-panel{left:10px;top:58px;width:calc(100vw - 20px);max-height:calc(100vh - 70px)}}'
+      '#s1-chain-canvas{position:absolute;inset:0;z-index:18;overflow:auto;padding:88px 28px 40px;color:#2a2118;font:13px/1.45 Inter,system-ui,sans-serif;pointer-events:none}',
+      '#s1-chain-canvas[hidden]{display:none}#s1-chain-canvas .s1-chain-title{max-width:1080px;margin:0 auto 18px;padding:0 4px;color:#786958}#s1-chain-canvas .s1-eyebrow{font-size:10px;letter-spacing:.12em;color:#9a6a3c;font-weight:700}#s1-chain-canvas h2{margin:2px 0 0;color:#2a2118;font-size:18px;font-weight:750}',
+      '#s1-chain-canvas .s1-chain-flow{position:relative;display:grid;grid-template-columns:repeat(3,minmax(230px,300px));gap:76px;align-items:start;justify-content:center;min-width:840px;padding:0 24px 60px}',
+      '#s1-chain-canvas .s1-edge{position:absolute;top:122px;height:2px;background:rgba(154,106,60,.48);width:76px;transform:translateX(-50%);pointer-events:none}#s1-chain-canvas .s1-edge.one{left:calc(33.333% + 4px)}#s1-chain-canvas .s1-edge.two{left:calc(66.666% - 4px)}#s1-chain-canvas .s1-node{position:relative;min-height:212px;padding:15px;border:1px solid rgba(90,64,42,.2);border-radius:14px;background:rgba(255,252,246,.97);box-shadow:0 16px 36px rgba(42,33,24,.13);pointer-events:auto}#s1-chain-canvas .s1-node[data-status=blocked]{border-color:rgba(154,106,60,.26)}#s1-chain-canvas .s1-node[data-status=ready]{border-color:#5b8d6b}#s1-chain-canvas .s1-node h3{margin:4px 0 5px;font-size:15px}#s1-chain-canvas .s1-node p{margin:0 0 12px;color:#786958;font-size:12px}',
+      '#s1-chain-canvas .s1-meta{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px;color:#8b7764;font-size:11px}#s1-chain-canvas .s1-status{margin-top:10px;padding:8px;border-radius:8px;background:#f4eee6;color:#5d4d3d;white-space:pre-wrap}#s1-chain-canvas .s1-status.error{background:#fff0ee;color:#a33b2d}#s1-chain-canvas .s1-assets{display:grid;gap:5px;margin:8px 0 10px}#s1-chain-canvas label.s1-asset{display:flex;gap:7px;align-items:center;padding:7px;border:1px solid rgba(90,64,42,.12);border-radius:8px;background:#fffaf3;cursor:pointer}#s1-chain-canvas .s1-asset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#s1-chain-canvas .s1-row{display:flex;gap:7px;align-items:center;margin:7px 0}#s1-chain-canvas select{flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:7px;background:#fff}#s1-chain-canvas button{border:0;border-radius:7px;padding:7px 9px;background:#2a2118;color:#fff;cursor:pointer;font-weight:650;font-size:12px}#s1-chain-canvas button[disabled]{opacity:.45;cursor:default}#s1-chain-canvas .s1-secondary{background:#efe5d8;color:#4c3828}#s1-chain-canvas .s1-node small{color:#8b7764}#s1-chain-canvas .s1-contract{display:grid;gap:4px;margin:8px 0;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-contract span{display:block;padding:5px 7px;border-radius:6px;background:#faf5ef}',
+      '@media (max-width:900px){#s1-chain-canvas{padding:72px 14px 30px}#s1-chain-canvas .s1-chain-flow{justify-content:start;min-width:840px}}@media (max-width:600px){#s1-chain-canvas{padding-top:62px}#s1-chain-canvas .s1-chain-title{margin-bottom:12px}}'
     ].join('');
     document.head.appendChild(style);
   }
 
   function mount() {
-    if (document.getElementById('s1-chain-panel')) return;
+    if (document.getElementById('s1-chain-canvas')) return;
+    var host = document.querySelector('[aria-label="AI 影像创作画布"]') || document.body;
+    if (host !== document.body && getComputedStyle(host).position === 'static') host.style.position = 'relative';
     var panel = document.createElement('section');
-    panel.id = 's1-chain-panel';
+    panel.id = 's1-chain-canvas';
     panel.setAttribute('aria-label', 'S1 原片到时间线');
     panel.hidden = true;
-    panel.innerHTML = '<div class="s1-eyebrow">S1 CANVAS CHAIN</div><h2>原片到 Step02 时间线</h2><p>选择当前项目的视频素材，完成权利与媒体预检后创建三个可恢复节点。</p><div class="s1-assets" data-s1-assets><span>正在读取项目素材...</span></div><label class="s1-row"><input type="checkbox" data-s1-rights> 我确认拥有该原片的使用权</label><div class="s1-row"><span>媒体预检</span><select data-s1-preflight><option value="pending">未完成</option><option value="passed">已通过</option></select></div><div class="s1-row"><button type="button" data-s1-refresh class="s1-secondary">刷新素材</button><button type="button" data-s1-create disabled>创建 S1 节点链</button></div><div class="s1-row"><button type="button" data-s1-start disabled>开始 Step01 分析</button></div><div class="s1-status" data-s1-status>等待选择视频素材。</div><div class="s1-nodes" data-s1-nodes hidden></div>';
-    document.body.appendChild(panel);
+    panel.innerHTML = '<div class="s1-chain-title"><div class="s1-eyebrow">S1 CANVAS CHAIN</div><h2>原片到 Step02 时间线</h2></div><div class="s1-chain-flow"><div class="s1-edge one"></div><div class="s1-edge two"></div><article class="s1-node" data-node="source" data-status="draft"><div class="s1-meta"><span>输入节点</span><small data-node-status>draft</small></div><h3>原片输入与权利确认</h3><p>上传原片，确认使用权并完成媒体预检。</p><div class="s1-contract"><span>输入：source_video · rights_declaration</span><span>输出：source_asset · preflight_report</span></div><div class="s1-assets" data-s1-assets><span>正在读取项目素材...</span></div><label class="s1-row"><input type="checkbox" data-s1-rights> 我确认拥有该原片的使用权</label><div class="s1-row"><span>媒体预检</span><select data-s1-preflight><option value="pending">未完成</option><option value="passed">已通过</option></select></div><div class="s1-row"><button type="button" data-s1-refresh class="s1-secondary">刷新素材</button><button type="button" data-s1-create disabled>创建节点链</button></div></article><article class="s1-node" data-node="step01" data-status="blocked"><div class="s1-meta"><span>Skill 节点 · mx-shortdrama-01</span><small data-node-status>blocked</small></div><h3>Step01 源片分析</h3><p>提取镜头、关键帧、对白、OCR 与证据清单。</p><div class="s1-contract"><span>输入：source_video</span><span>输出：evidence_manifest · shot_frames</span><span>参数：hq_full · 服务器证据门</span></div><div class="s1-status" data-s1-status>等待原片节点就绪。</div><div class="s1-row"><button type="button" data-s1-start disabled>开始 Step01 分析</button></div></article><article class="s1-node" data-node="step02" data-status="blocked"><div class="s1-meta"><span>Skill 节点 · mx-shortdrama-02</span><small data-node-status>blocked</small></div><h3>Step02 源片时间线</h3><p>只消费已验证的 Step01 证据，生成可确认时间线。</p><div class="s1-contract"><span>输入：evidence_manifest</span><span>输出：accepted_timeline</span><span>预览：时间线与镜头事实</span></div><div class="s1-status">等待 Step01 证据完成。</div></article></div>';
+    host.appendChild(panel);
     installStyles();
     var assetsEl = panel.querySelector('[data-s1-assets]');
     var statusEl = panel.querySelector('[data-s1-status]');
-    var nodesEl = panel.querySelector('[data-s1-nodes]');
+    var nodesEl = panel.querySelector('.s1-chain-flow');
     var createBtn = panel.querySelector('[data-s1-create]');
     var startBtn = panel.querySelector('[data-s1-start]');
     var rightsEl = panel.querySelector('[data-s1-rights]');
@@ -79,8 +82,7 @@
     function renderNodes(nodes) {
       var chainNodes = (Array.isArray(nodes) ? nodes : []).filter(function (node) { return /^s1-/.test(node.id); });
       chainReady = chainNodes.some(function (node) { return node.id === 's1-source-input' && node.status === 'ready'; });
-      nodesEl.hidden = chainNodes.length === 0;
-      nodesEl.innerHTML = chainNodes.map(function (node) { return '<div class="s1-node"><span>' + escapeHtml(node.data && node.data.title || node.id) + '</span><small>' + escapeHtml(node.status) + '</small></div>'; }).join('');
+      chainNodes.forEach(function (node) { var key = node.id === 's1-source-input' ? 'source' : node.id === 's1-step01-analysis' ? 'step01' : 'step02'; var card = panel.querySelector('[data-node="' + key + '"]'); if (!card) return; card.dataset.status = node.status; var status = card.querySelector('[data-node-status]'); if (status) status.textContent = node.status; });
       syncButton();
     }
     function renderAssets() {
@@ -101,7 +103,8 @@
         renderAssets();
         var existingNodes = doc.body.document && doc.body.document.nodes || [];
         renderNodes(existingNodes);
-        setStatus(existingNodes.some(function (node) { return node.id === 's1-source-input'; }) ? 'S1 节点链已存在，可继续在画布中编辑。' : '等待选择视频素材。');
+        var existingChain = existingNodes.some(function (node) { return node.id === 's1-source-input'; });
+        if (existingChain) setStatus('S1 节点链已存在，可继续在画布中编辑。');
       } catch (error) { setStatus(error.message || '读取项目状态失败', true); }
     }
     async function create() {
