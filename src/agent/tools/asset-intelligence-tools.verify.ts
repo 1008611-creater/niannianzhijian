@@ -100,4 +100,22 @@ try {
 } finally {
   globalThis.fetch = originalFetch;
 }
+
+globalThis.fetch = (async () => new Response(JSON.stringify({
+  text: '', model: 'mimo-v2.5-asr', language: 'auto', noSpeech: true, timing: 'none',
+}), { status: 200, headers: { 'Content-Type': 'application/json' } })) as typeof fetch;
+try {
+  const ctx = {
+    getDoc: () => ({ assets: [current] }),
+    commands: { editMediaAsset: (_id: string, patch: Partial<MediaAsset>) => { current = { ...current, ...patch }; } },
+  } as unknown as AgentContext;
+  const result = await execAssetIntelligenceTool('analyze_asset', { assetId: 'asset-1', kind: 'mimo-asr' }, ctx) as {
+    ok?: boolean; chars?: number; noSpeech?: boolean;
+  };
+  assert.equal(result.ok, true);
+  assert.equal(result.chars, 0);
+  assert.equal(result.noSpeech, true, 'video without speech is analysis evidence, not a fatal error');
+} finally {
+  globalThis.fetch = originalFetch;
+}
 console.log('asset-intelligence-tools.verify: ok');

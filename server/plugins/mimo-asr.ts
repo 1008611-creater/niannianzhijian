@@ -27,10 +27,17 @@ export interface MimoAsrResult {
   text: string;
   model: string;
   language: 'auto' | 'zh' | 'en';
+  /** The media has no extractable speech. This is an expected result, not an ASR failure. */
+  noSpeech?: true;
 }
 
 export function isNoSpeechTranscript(text: string): boolean {
   return /^[（(]?\s*(?:无|没有|未检测到)\s*(?:语音|人声|说话|口播)(?:内容)?\s*[）)]?$/.test(text.trim());
+}
+
+function isNoAudioStreamError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /output file does not contain any stream|stream map .*matches no streams|matches no streams/i.test(message);
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
@@ -174,30 +181,37 @@ export async function runMimoAsr(
   if (!options.apiKey.trim()) throw new Error('MiMo API Key is not configured. Configure MiMo TTS once; ASR reuses the same key.');
   const selectedLanguage = language(requestedLanguage);
   const model = options.model.trim() || 'mimo-v2.5';
-  return withMimoAudio(input, async (audio, kind) => {
-    if (audio.length > MAX_AUDIO_BYTES || Math.ceil(audio.length / 3) * 4 > MAX_ENCODED_AUDIO_BYTES) {
-      throw new Error('MiMo ASR input is too large after encoding (maximum Base64 audio is 10 MB); split the media before transcribing');
-    }
-    const endpoint = `${options.baseUrl.trim().replace(/\/+$/, '')}/chat/completions`;
-    const response = await fetchUpstream(endpoint, {
-      method: 'POST', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      headers: { 'Content-Type': 'application/json', 'api-key': options.apiKey.trim() },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: [
-          { type: 'input_audio', input_audio: {
-            data: `data:${kind.mime};base64,${audio.toString('base64')}`,
-            format: kind.format,
-          } },
-          { type: 'text', text: selectedLanguage === 'en'
-            ? 'Transcribe this audio accurately. Return only the transcript, with no commentary.'
-            : '请准确转写这段音频。只返回转写文本，不要解释或添加其他内容。' },
-        ] }],
-      }),
+  try {
+    return await withMimoAudio(input, async (audio, kind) => {
+      if (audio.length > MAX_AUDIO_BYTES || Math.ceil(audio.length / 3) * 4 > MAX_ENCODED_AUDIO_BYTES) {
+        throw new Error('MiMo ASR input is too large after encoding (maximum Base64 audio is 10 MB); split the media before transcribing');
+      }
+      const endpoint = `${options.baseUrl.trim().replace(/\/+$/, '')}/chat/completions`;
+      const response = await fetchUpstream(endpoint, {
+        method: 'POST', signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        headers: { 'Content-Type': 'application/json', 'api-key': options.apiKey.trim() },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: [
+            { type: 'input_audio', input_audio: {
+              data: `data:${kind.mime};base64,${audio.toString('base64')}`,
+              format: kind.format,
+            } },
+            { type: 'text', text: selectedLanguage === 'en'
+              ? 'Transcribe this audio accurately. Return only the transcript, with no commentary.'
+              : '请准确转写这段音频。只返回转写文本，不要解释或添加其他内容。' },
+          ] }],
+        }),
+      });
+      if (!response.ok) throw new Error(await upstreamError(response));
+      return { text: parseMimoAsrResponse(await response.json().catch(() => null)), model, language: selectedLanguage };
     });
-    if (!response.ok) throw new Error(await upstreamError(response));
-    return { text: parseMimoAsrResponse(await response.json().catch(() => null)), model, language: selectedLanguage };
-  });
+  } catch (error) {
+    if (isNoAudioStreamError(error) || (error instanceof Error && error.message === 'MiMo ASR detected no spoken content in this media')) {
+      return { text: '', model, language: selectedLanguage, noSpeech: true };
+    }
+    throw error;
+  }
 }
 
 export async function handleMimoAsr(
@@ -222,7 +236,7 @@ export async function handleMimoAsr(
     if (!source) return sendJson(res, 400, { error: 'src must be a local /media/uploads/<safe-name> media path' });
     const result = await runMimoAsr(source.file, options, body.language, dependencies.fetchUpstream ?? fetch);
     // This is intentionally text-only. Do not synthesize word timestamps here.
-    return sendJson(res, 200, { ok: true, text: result.text, model: result.model, language: result.language, timing: 'none' });
+    return sendJson(res, 200, { ok: true, text: result.text, model: result.model, language: result.language, timing: 'none', ...(result.noSpeech ? { noSpeech: true } : {}) });
   } catch (error) {
     return sendJson(res, 502, { error: error instanceof Error ? error.message : String(error) });
   }

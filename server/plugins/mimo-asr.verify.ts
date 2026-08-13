@@ -35,6 +35,11 @@ try {
   assert.match(body.messages[0].content[1].text, /转写/);
   assert.equal('words' in result, false, 'MiMo ASR must never fabricate timestamped words');
   assert.equal(JSON.stringify(result).includes('server-only-secret'), false, 'the server key never enters the result');
+
+  const noSpeech = await runMimoAsr(file, {
+    baseUrl: 'https://api.xiaomimimo.com/v1/', apiKey: 'server-only-secret', model: 'mimo-v2.5',
+  }, 'auto', (async () => Response.json({ choices: [{ message: { content: '无语音内容' } }] })) as typeof fetch);
+  assert.deepEqual(noSpeech, { text: '', model: 'mimo-v2.5', language: 'auto', noSpeech: true }, 'an upstream no-speech result is a usable analysis outcome');
 } finally {
   await rm(directory, { recursive: true, force: true });
 }
