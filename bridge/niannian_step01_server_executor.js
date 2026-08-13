@@ -7,6 +7,7 @@ const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
 const {spawn} = require('child_process');
+const sharp = require('sharp');
 const evidencePackage = require('./niannian_step01_evidence_package');
 const evidenceEvents = require('./niannian_step01_evidence_events');
 
@@ -91,6 +92,12 @@ function hqCapabilities(env = process.env) {
   return {credentials_configured:true, required_services:['mimo_asr', 'paddle_ocr', 'gpt_5_6'], missing:[]};
 }
 async function runHqWorker({sourcePath, root, project, analysisRun, env = process.env}) {
+  const manifestPath = path.join(root, 'step01_evidence_manifest.json');
+  const existingManifest = await fsp.readFile(manifestPath, 'utf8').then(JSON.parse).catch(error => error.code === 'ENOENT' ? null : Promise.reject(error));
+  if (existingManifest) {
+    validateHqManifest(existingManifest, project, analysisRun);
+    return existingManifest;
+  }
   const roots = hqSkillRoots(env);
   hqCapabilities(env);
   const runner = hqRunnerPath(env);
@@ -98,10 +105,22 @@ async function runHqWorker({sourcePath, root, project, analysisRun, env = proces
   if (!runnerStats?.isFile()) throw coded('STEP01_HQ_RUNNER_MISSING', '完整原片分析执行器缺失');
   const episodeId = 'EP001';
   await run(hqPythonCommand(env), [runner, '--source', sourcePath, '--output', root, '--episode-id', episodeId, '--project-id', project.id, '--analysis-run-id', analysisRun.id, '--source-revision', String(analysisRun.source_revision), '--source-sha256', project.source.sha256, '--source-bytes', String(project.source.bytes), '--step01-skill-root', roots.step01, '--step02-skill-root', roots.step02], {cwd:root,timeoutMs:Math.max(300000, Number(env.NIANNIAN_STEP01_HQ_TIMEOUT_MS || 3600000))});
-  const manifestPath = path.join(root, 'step01_evidence_manifest.json');
   const manifest = JSON.parse(await fsp.readFile(manifestPath, 'utf8'));
-  if (manifest.schema_version !== 'step01_evidence_manifest_v1' || manifest.profile !== EVIDENCE_PROFILE || manifest.status !== 'verified' || manifest.downstream_consumable !== true || manifest.project_id !== project.id || manifest.analysis_run_id !== analysisRun.id || manifest.source_sha256 !== project.source.sha256 || Number(manifest.source_bytes) !== Number(project.source.bytes)) throw coded('STEP01_HQ_MANIFEST_INVALID', '完整原片证据未通过校验');
+  validateHqManifest(manifest, project, analysisRun);
   return manifest;
+}
+function validateHqManifest(manifest, project, analysisRun) {
+  if (manifest.schema_version !== 'step01_evidence_manifest_v1'
+    || manifest.profile !== EVIDENCE_PROFILE
+    || manifest.status !== 'verified'
+    || manifest.downstream_consumable !== true
+    || manifest.project_id !== project.id
+    || manifest.analysis_run_id !== analysisRun.id
+    || Number(manifest.source_revision) !== Number(project.sourceRevision)
+    || manifest.source_sha256 !== project.source.sha256
+    || Number(manifest.source_bytes) !== Number(project.source.bytes)) {
+    throw coded('STEP01_HQ_MANIFEST_INVALID', '完整原片证据未通过校验');
+  }
 }
 async function readVerifiedJsonPointer(root, pointer, code) {
   const relative = String(pointer?.relative_path || '').replace(/\\/g, '/');
@@ -126,12 +145,51 @@ async function attachHqVisualFacts({root, manifest, project, analysisRun, env, f
     const evidence = await fileEvidence(filePath);
     if (evidence.sha256 !== frame.sha256 || evidence.bytes !== frame.bytes) throw coded('STEP01_HQ_FRAME_HASH_INVALID', '真实镜头关键帧哈希不一致');
   }
-  const visual = await analyzeFramesWithRetry({config:modelConfig(env),root,project,analysisRun,timeline,frames,fetchImpl});
+  const visualInputs = await createVisualAnalysisFrames({
+    root,
+    frames,
+    maxDimension:Number(env.NIANNIAN_STEP01_GPT_FRAME_MAX_DIMENSION || 1024),
+    quality:Number(env.NIANNIAN_STEP01_GPT_FRAME_JPEG_QUALITY || 72)
+  });
+  manifest.visual_inputs = visualInputs.manifest;
+  await atomicJson(path.join(root, 'step01_evidence_manifest.json'), manifest);
+  const visual = await analyzeFramesBatched({
+    config:modelConfig(env), root, project, analysisRun, timeline, frames:visualInputs.frames, fetchImpl,
+    batchSize:Number(env.NIANNIAN_STEP01_GPT_SHOT_BATCH_SIZE || 1)
+  });
   const visualFacts = await writeJsonArtifact(root, 'artifacts/visual_facts.json', {schema_version:'niannian_haika_step01_visual_facts_v1',project_id:project.id,analysis_run_id:analysisRun.id,source_sha256:project.source.sha256,model:visual.model,segments:visual.segments});
   manifest.visual_facts = visualFacts;
   manifest.execution = {...manifest.execution,model:visual.model};
   await atomicJson(path.join(root, 'step01_evidence_manifest.json'), manifest);
   return {manifest, visualFacts};
+}
+async function createVisualAnalysisFrames({root, frames, maxDimension = 1024, quality = 72}) {
+  const limit = Math.max(512, Math.min(1536, Number(maxDimension || 1024)));
+  const jpegQuality = Math.max(50, Math.min(90, Number(quality || 72)));
+  const outputFrames = [];
+  const mappings = [];
+  for (const frame of frames) {
+    const sourcePath = path.resolve(root, frame.relative_path);
+    if (!isInside(root, sourcePath)) throw coded('STEP01_HQ_FRAME_POINTER_INVALID', '真实镜头关键帧路径无效');
+    const fileName = 'S' + String(frame.shot_id).padStart(4, '0') + '_' + String(frame.point) + '.jpg';
+    const targetPath = path.resolve(root, 'artifacts', 'visual_inputs', fileName);
+    if (!isInside(root, targetPath)) throw coded('STEP01_HQ_VISUAL_INPUT_PATH_INVALID', '视觉分析副本路径无效');
+    await fsp.mkdir(path.dirname(targetPath), {recursive:true});
+    const temporaryPath = targetPath + '.tmp-' + process.pid + '-' + crypto.randomBytes(4).toString('hex');
+    try {
+      await sharp(sourcePath, {failOn:'error'}).rotate().resize({width:limit,height:limit,fit:'inside',withoutEnlargement:true}).jpeg({quality:jpegQuality,chromaSubsampling:'4:2:0'}).toFile(temporaryPath);
+      await fsp.rm(targetPath, {force:true});
+      await fsp.rename(temporaryPath, targetPath);
+    } finally {
+      await fsp.rm(temporaryPath, {force:true}).catch(() => {});
+    }
+    const derivative = await fileEvidence(targetPath);
+    const relativePath = path.relative(root, targetPath).replace(/\\/g, '/');
+    outputFrames.push({...frame,relative_path:relativePath,sha256:derivative.sha256,bytes:derivative.bytes});
+    mappings.push({shot_id:String(frame.shot_id),point:String(frame.point),source:{relative_path:String(frame.relative_path).replace(/\\/g, '/'),sha256:String(frame.sha256),bytes:Number(frame.bytes)},analysis_copy:{relative_path:relativePath,sha256:derivative.sha256,bytes:derivative.bytes}});
+  }
+  const manifest = await writeJsonArtifact(root, 'artifacts/visual_input_derivatives.json', {schema_version:'niannian_step01_visual_input_derivatives_v1',transformation:{format:'jpeg',max_dimension:limit,quality:jpegQuality,fit:'inside',source_frames_preserved:true},frames:mappings});
+  return {frames:outputFrames,manifest,mappings};
 }
 async function probe(sourcePath) {
   const {stdout} = await run(ffprobeCommand(), ['-v','error','-show_entries','format=duration:stream=codec_type,width,height,avg_frame_rate','-of','json',sourcePath]);
@@ -248,6 +306,29 @@ async function analyzeFramesWithRetry(options) {
   }
   throw lastError;
 }
+async function analyzeFramesBatched(options) {
+  const timeline = options.timeline || [];
+  const frames = options.frames || [];
+  const batchSize = Math.max(1, Math.min(8, Number(options.batchSize || 1)));
+  const completed = [];
+  let model = options.config.model;
+  async function analyzeBatch(batchTimeline) {
+    const shotIds = new Set(batchTimeline.map(shot => String(shot.shot_id)));
+    const batchFrames = frames.filter(frame => shotIds.has(String(frame.shot_id)));
+    try {
+      const result = await analyzeFramesWithRetry({...options, timeline:batchTimeline, frames:batchFrames});
+      model = result.model;
+      completed.push(...result.segments);
+    } catch (error) {
+      if (String(error?.code || '') !== 'STEP01_SERVER_GPT_HTTP_413' || batchTimeline.length <= 1) throw error;
+      const middle = Math.ceil(batchTimeline.length / 2);
+      await analyzeBatch(batchTimeline.slice(0, middle));
+      await analyzeBatch(batchTimeline.slice(middle));
+    }
+  }
+  for (let start = 0; start < timeline.length; start += batchSize) await analyzeBatch(timeline.slice(start, start + batchSize));
+  return {segments:validateModelOutput({segments:completed}, timeline), model};
+}
 async function writeServerEvidence({root, project, analysisRun, sourcePath, probeValue, timeline, frames, visual}) {
   const manifestRoot = root;
   const probe = await writeJsonArtifact(root, 'artifacts/media_probe.json', probeValue);
@@ -336,4 +417,4 @@ async function runProject(options = {}) {
 
 if (require.main === module) runProject().catch(error => { process.stderr.write('step01_server_executor_failed: ' + String(error.code || error.message || error) + '\n'); process.exitCode = 1; });
 
-module.exports = {PROFILE, EVIDENCE_PROFILE, ROUTES, analyzeFrames, analyzeFramesWithRetry, attachHqVisualFacts, hqCapabilities, modelConfig, runHqWorker, runProject, segmentTimeline, validateModelOutput};
+module.exports = {PROFILE, EVIDENCE_PROFILE, ROUTES, analyzeFrames, analyzeFramesWithRetry, analyzeFramesBatched, attachHqVisualFacts, createVisualAnalysisFrames, hqCapabilities, modelConfig, runHqWorker, runProject, segmentTimeline, validateModelOutput};

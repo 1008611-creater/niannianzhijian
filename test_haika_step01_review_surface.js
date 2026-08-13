@@ -8,7 +8,7 @@ const ledgerClient = fs.readFileSync(path.join(__dirname, 'mvp-step01-ledger-r1.
 
 assert.doesNotMatch(client, /function renderStep01AnalysisWorkspace\(project\)/);
 assert.match(client, /function renderExactStep01ReviewStudio\(project\)/);
-assert.match(client, /if \(selected === '01' && project\) return renderExactStep01ReviewStudio\(project\);/);
+assert.match(client, /if \(selected === '01' && project\?\.id === exactStep01ProjectId\) return renderExactStep01ReviewStudio\(project\);/);
 assert.match(client, /if \(event\.target\.closest\('\[data-go-step01\]'\)\) \{[\s\S]*?location\.hash='redraw\/'\+encodeURIComponent\(step02ProjectId\)\+'\/stage\/01';[\s\S]*?openRedrawStudio\(step02ProjectId,\{updateHash:false\}\);/);
 assert.match(sourceTruthClient, /\[data-source-truth-revise\][\s\S]*?location\.hash = 'redraw-ledger\/' \+ encodeURIComponent\(state\.route\.projectId\);/);
 assert.match(ledgerClient, /\[data-ledger-back\][\s\S]*?location\.hash='redraw\/'\+encodeURIComponent\(state\.route\.projectId\)\+'\/stage\/01';/);

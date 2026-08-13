@@ -56,6 +56,8 @@ const canvasVideoChannels = require('./bridge/niannian_canvas_video_channels');
 const canvasProviderConfig = require('./bridge/niannian_canvas_provider_config');
 const canvasTextRuntimeModule = require('./bridge/niannian_canvas_text_runtime');
 const canvasTextJobs = require('./bridge/niannian_canvas_text_jobs');
+const canvasSkillNodes = require('./bridge/niannian_canvas_skill_nodes');
+const canvasS1Chain = require('./bridge/niannian_canvas_s1_chain');
 const nomiRunningHubH3 = require('./bridge/niannian_nomi_runninghub_h3');
 const h3MediaValidation = require('./bridge/niannian_h3_media_validation');
 const nomiWebTaskStoreModule = require('./bridge/niannian_nomi_web_task_store');
@@ -6850,22 +6852,36 @@ function normalizeDirectorPlan(value) {
 
 function normalizeCanvasDocument(value, project) {
   const raw = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-  const allowedTypes = new Set(['intent','character','scene','shot','reference','image','video','director','delivery','note']);
-  const allowedStatuses = new Set(['draft','ready','awaiting_authorization','queued','running','succeeded','failed','review']);
+  const allowedTypes = new Set(['intent','source_input','analysis','timeline','adaptation','character','scene','shot','reference','image','video','smart_cut','director','delivery','note','text','skill']);
+  const allowedStatuses = new Set(['draft','blocked','ready','awaiting_authorization','queued','running','succeeded','failed','needs_review','review']);
   const ids = new Set();
   const nodes = Array.isArray(raw.nodes) ? raw.nodes.slice(0, 300).flatMap((node, index) => {
     if (!node || typeof node !== 'object' || Array.isArray(node)) return [];
-    const id = canvasText(node.id, 80);
-    const type = canvasText(node.type, 40);
+    const id = canvasText(node.id || node.nodeId, 80);
+    const type = canvasText(node.type || node.kind, 40);
     if (!/^[A-Za-z0-9_-]{4,80}$/.test(id) || ids.has(id) || !allowedTypes.has(type)) return [];
     ids.add(id);
     const sourceData = node.data && typeof node.data === 'object' && !Array.isArray(node.data) ? node.data : {};
+    const skillNode = canvasSkillNodes.normalizeSkillNode(node, {projectId:project.id, index});
     const assetIds = Array.isArray(sourceData.assetIds) ? [...new Set(sourceData.assetIds.map(item => canvasText(item, 120)).filter(Boolean))].slice(0, 24) : [];
     const inputAssetIds = Array.isArray(sourceData.inputAssetIds) ? [...new Set(sourceData.inputAssetIds.map(item => canvasText(item, 120)).filter(Boolean))].slice(0, 24) : [];
     const status = allowedStatuses.has(canvasText(sourceData.status, 24)) ? canvasText(sourceData.status, 24) : 'draft';
     return [{
       id,
+      nodeId:skillNode?.nodeId || id,
       type,
+      kind:skillNode?.kind || type,
+      status:skillNode?.status || status,
+      skillKey:skillNode?.skillKey || null,
+      skillVersion:skillNode?.skillVersion || null,
+      description:skillNode?.description || null,
+      inputPorts:skillNode?.inputPorts || [],
+      outputPorts:skillNode?.outputPorts || [],
+      parameters:skillNode?.parameters || {},
+      assetRefs:skillNode?.assetRefs || [],
+      taskRef:skillNode?.taskRef || null,
+      preview:skillNode?.preview || null,
+      recovery:skillNode?.recovery || {actions:['retry'],lastAction:null},
       position:{x:canvasNumber(node.position?.x, 120 + index * 36, -20000, 20000),y:canvasNumber(node.position?.y, 120 + index * 28, -20000, 20000)},
       data:{
         projectId:project.id,
@@ -6882,7 +6898,17 @@ function normalizeCanvasDocument(value, project) {
         aspectRatio:/^\d{1,2}:\d{1,2}$/.test(canvasText(sourceData.aspectRatio || '1:1', 16)) ? canvasText(sourceData.aspectRatio || '1:1', 16) : '1:1',
         durationSeconds:Number.isFinite(Number(sourceData.durationSeconds)) ? Math.max(4, Math.min(15, Number(sourceData.durationSeconds))) : 5,
         shotId:canvasText(sourceData.shotId, 120) || null,
-        directorPlan:type === 'director' ? normalizeDirectorPlan(sourceData.directorPlan) : null
+        directorPlan:type === 'director' ? normalizeDirectorPlan(sourceData.directorPlan) : null,
+        skillKey:skillNode?.skillKey || null,
+        skillVersion:skillNode?.skillVersion || null,
+        description:skillNode?.description || null,
+        inputPorts:skillNode?.inputPorts || [],
+        outputPorts:skillNode?.outputPorts || [],
+        parameters:skillNode?.parameters || {},
+        assetRefs:skillNode?.assetRefs || [],
+        taskRef:skillNode?.taskRef || null,
+        preview:skillNode?.preview || null,
+        recovery:skillNode?.recovery || {actions:['retry'],lastAction:null}
       }
     }];
   }) : [];
@@ -7146,6 +7172,42 @@ async function handleCanvasDocumentApi(request, response, pathname, user) {
     return json(response, 200, {revision:saved.revision,document:saved.document,updatedAt:saved.updatedAt}, {ETag:canvasEtag(saved.revision), 'Cache-Control':'no-store'});
   } catch (error) {
     return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_DOCUMENT_INVALID',error:error.message || '画布保存失败'});
+  }
+}
+
+async function handleCanvasS1ChainApi(request, response, pathname, user) {
+  const match = pathname.match(/^\/api\/canvas\/documents\/(redraw|script)\/([^/]+)\/s1-chain$/);
+  if (!match) return false;
+  const projectKind = match[1];
+  const projectId = decodeURIComponent(match[2]);
+  const project = await canvasOwnedProject(user, projectKind, projectId);
+  if (!project) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
+  if (request.method !== 'POST') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
+  try {
+    const body = await readBodyJson(request);
+    const sourceAssetIds = canvasS1Chain.uniqueIds(body.sourceAssetIds);
+    for (const assetId of sourceAssetIds) {
+      const asset = await canvasAssetService.getOwned(user.id, projectId, assetId);
+      if (!asset || asset.projectKind !== projectKind || asset.kind !== 'reference_video') throw Object.assign(new Error('原片素材不存在或不是当前项目的视频素材'), {code:'CANVAS_S1_SOURCE_ASSET_INVALID',httpStatus:422});
+    }
+    const key = canvasDocumentKey(projectKind, projectId);
+    const saved = await withCanvasDocumentsWriteLock(async () => {
+      const documents = await readCanvasDocuments();
+      const current = documents[key] || null;
+      const currentRevision = Number(current?.revision || 0);
+      if (request.headers['if-match'] !== canvasEtag(currentRevision)) throw Object.assign(new Error('画布已在其他页面更新，请先重新载入。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:412});
+      const currentDocument = normalizeCanvasDocument(current?.document, project);
+      const chain = canvasS1Chain.createChain({projectId,sourceAssetIds,rightsConfirmed:body.rightsConfirmed === true,preflightStatus:body.preflightStatus,existingNodes:currentDocument.nodes});
+      const document = normalizeCanvasDocument(canvasS1Chain.mergeChain(currentDocument, chain), project);
+      const revision = currentRevision + 1;
+      const record = {schemaVersion:'niannian.canvas-document.v1',projectId:project.id,projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
+      documents[key] = record;
+      await writeCanvasDocuments(documents);
+      return {record,chain};
+    });
+    return json(response, 201, {code:'CANVAS_S1_CHAIN_READY',revision:saved.record.revision,document:saved.record.document,chain:{nodeIds:canvasS1Chain.CHAIN_NODE_IDS,sourceReady:saved.chain.sourceReady},updatedAt:saved.record.updatedAt}, {ETag:canvasEtag(saved.record.revision),'Cache-Control':'no-store'});
+  } catch (error) {
+    return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_S1_CHAIN_FAILED',error:error.message || 'S1 节点链创建失败'});
   }
 }
 
@@ -8387,6 +8449,8 @@ async function handleApi(request, response, pathname) {
     if (handled) return;
   }
   if (pathname.startsWith('/api/canvas/documents/')) {
+    const s1ChainHandled = await handleCanvasS1ChainApi(request, response, pathname, user);
+    if (s1ChainHandled) return;
     const handled = await handleCanvasDocumentApi(request, response, pathname, user);
     if (handled) return;
   }
