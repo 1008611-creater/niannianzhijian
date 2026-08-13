@@ -794,6 +794,31 @@ await assert.rejects(
   AgentPreOutputFailure,
   'a pre-output 403 escapes the API runtime so the outer runtime can try the next provider',
 );
+const emptyStartThen403 = new MockLanguageModelV4({
+  doStream: {
+    stream: simulateReadableStream({
+      chunks: [
+        { type: 'text-start', id: 'empty-start' },
+        { type: 'error', error: Object.assign(new Error('authentication rejected'), { statusCode: 403 }) },
+      ],
+    }),
+  },
+});
+await assert.rejects(
+  runApiAgent(
+    [{ role: 'user', content: 'Retry after a protocol-only start event.' }],
+    apiContext,
+    () => undefined,
+    apiChoice,
+    'Test system prompt.',
+    false,
+    1_000,
+    undefined,
+    { model: emptyStartThen403 },
+  ),
+  AgentPreOutputFailure,
+  'an empty stream start must not block an automatic provider fallback',
+);
 const usage = {
   inputTokens: { total: 1, noCache: 1, cacheRead: undefined, cacheWrite: undefined },
   outputTokens: { total: 1, text: 1, reasoning: undefined },
