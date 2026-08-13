@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Plugin } from 'vite';
 
-import { ffmpegBin } from '../media-binaries.ts';
+import { ffmpegBin, ffprobeBin } from '../media-binaries.ts';
 import { isSafeUploadName, resolveUploadFile } from '../media-dir.ts';
 
 const MAX_JSON_BYTES = 32 * 1024;
@@ -16,6 +16,7 @@ const VISION_TIMEOUT_MS = 75_000;
 const MAX_VISION_IMAGE_BYTES = 12 * 1024 * 1024;
 const VIDEO_UNDERSTANDING_TIMEOUT_MS = 180_000;
 const MAX_INLINE_VIDEO_BYTES = 18 * 1024 * 1024;
+const MAX_SAMPLED_VIDEO_FRAMES = 8;
 const IMAGE_EXTENSIONS = new Set(['.avif', '.bmp', '.gif', '.heic', '.jpeg', '.jpg', '.png', '.tif', '.tiff', '.webp']);
 const VISION_IMAGE_EXTENSIONS = new Set(['.jpeg', '.jpg', '.png', '.webp']);
 const VISION_ENTITY_KINDS = new Set(['product', 'person', 'brand', 'scene', 'text']);
@@ -155,6 +156,15 @@ async function captureVisionFrame(input: string, timeMs: number, directory: stri
   return output;
 }
 
+async function probeVideoDurationMs(input: string): Promise<number> {
+  const result = await run(ffprobeBin(), [
+    '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', input,
+  ], VISION_TIMEOUT_MS);
+  const seconds = Number(result.stdout.trim());
+  if (!Number.isFinite(seconds) || seconds <= 0) throw new Error('无法读取视频时长');
+  return Math.round(seconds * 1000);
+}
+
 function extension(path: string): string {
   const match = /\.[^.]+$/.exec(path);
   return match?.[0].toLowerCase() ?? '';
@@ -257,6 +267,54 @@ function videoUnderstandingPrompt(customPrompt?: string): string {
   ].join(' ');
 }
 
+function sampledVideoPrompt(times: number[], customPrompt?: string): string {
+  const focus = normalizedLabel(customPrompt, 600);
+  return [
+    'Analyze the attached video frames in chronological order for a professional short-video editor.',
+    `Frame timestamps in milliseconds, in the same order as the images: ${times.join(', ')}.`,
+    'Return JSON only: {"summary":string,"tags":[string],"segments":[{"startMs":number,"endMs":number,"label":string}]}.',
+    'Use only visible evidence from the frames. Create real ranges using the supplied timestamps; do not invent unseen dialogue or exact video content. Combine adjacent frames into useful scene/action ranges and cover the observed sequence.',
+    'Use Chinese. Keep segments <= 120 and tags <= 48.',
+    ...(focus ? [`Editing focus: ${focus}`] : []),
+  ].join(' ');
+}
+
+async function runSampledVideoUnderstanding(
+  input: string,
+  options: AssetIntelligenceOptions,
+  prompt?: string,
+): Promise<VideoUnderstandingResult> {
+  const baseUrl = options.videoBaseUrl.trim().replace(/\/+$/, '');
+  const endpoint = `${baseUrl.replace(/\/v1beta$/i, '/v1')}/chat/completions`;
+  const durationMs = await probeVideoDurationMs(input);
+  const frameCount = Math.min(MAX_SAMPLED_VIDEO_FRAMES, Math.max(2, Math.ceil(durationMs / 10_000)));
+  const times = Array.from({ length: frameCount }, (_, index) => Math.min(durationMs - 1, Math.round(index * durationMs / frameCount)));
+  const temp = await mkdtemp(join(tmpdir(), 'openchatcut-video-sampled-'));
+  try {
+    const content: Array<Record<string, unknown>> = [{ type: 'text', text: sampledVideoPrompt(times, prompt) }];
+    for (const timeMs of times) {
+      const frame = await captureVisionFrame(input, timeMs, temp);
+      const image = await readFile(frame);
+      content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${image.toString('base64')}`, detail: 'low' } });
+    }
+    const response = await fetch(endpoint, {
+      method: 'POST', signal: AbortSignal.timeout(VIDEO_UNDERSTANDING_TIMEOUT_MS),
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${options.videoApiKey.trim()}` },
+      body: JSON.stringify({
+        model: options.videoModel.trim() || 'gemini-3.5-flash-lite', temperature: 0.1,
+        response_format: { type: 'json_object' }, messages: [{ role: 'user', content }],
+      }),
+    });
+    if (!response.ok) throw new Error(`云雾视觉帧分析请求失败（HTTP ${response.status}）`);
+    const body = await response.json().catch(() => null) as { choices?: Array<{ message?: { content?: unknown } }> } | null;
+    const text = body?.choices?.[0]?.message?.content;
+    if (typeof text !== 'string') throw new Error('云雾视觉帧分析未返回内容');
+    return { ...parseVideoUnderstanding(text), model: `${options.videoModel.trim() || 'gemini-3.5-flash-lite'}-sampled-frames`, videoTokens: frameCount };
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+}
+
 async function prepareInlineVideo(input: string, directory: string): Promise<string> {
   const original = await stat(input);
   if (original.size <= MAX_INLINE_VIDEO_BYTES) return input;
@@ -283,6 +341,7 @@ export async function runVideoUnderstanding(
   if (!options.videoApiKey.trim()) throw new Error('尚未配置 Gemini API Key');
   const model = options.videoModel.trim() || 'gemini-3.5-flash-lite';
   const baseUrl = options.videoBaseUrl.trim().replace(/\/+$/, '').replace(/\/openai$/i, '');
+  if (/api3\.wlai\.vip$/i.test(baseUrl)) return runSampledVideoUnderstanding(input, options, prompt);
   if (!/\/v1beta$/i.test(baseUrl)) throw new Error('Gemini Base URL 必须以 /v1beta 结尾');
   const temp = await mkdtemp(join(tmpdir(), 'openchatcut-video-understanding-'));
   try {
