@@ -776,7 +776,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
           references: [{ id: asset.id, name: asset.name, kind: asset.kind }],
           autoSubmit: true,
           autoApply: true,
-          text: `制作一条短剧片段精修发布版。运行编号为${initialRecipe.workflowRunId ?? '未记录'}。只使用已上传素材「${asset.name}」，目标平台为${platform}，${durationConstraint} 输出竖屏 9:16。先调用 analyze_asset(kind=video) 理解完整视频并取得真实源时间段，再用 view_asset_frames 核对画面。若视频有剧情，必须选择能看懂起因/钩子、冲突/升级、结果/收尾的 2-6 段连续源区间，优先去掉空镜、重复和无效停顿，不要把整段原片当成粗剪；若视频只是连续展示或没有叙事冲突，必须如实保留完整展示序列并将粗剪命名为“展示精修”，不要伪造剧情。然后调用 assemble_rough_cut 创建新的可编辑粗剪，不能用 edit_item 把素材直接放进当前时间线。粗剪创建后，先调用 edit_track(action=list) 查出新序列中承载该视频片段的真实视频轨别名；若视频有声音，只能对这个视频轨调用 transcribe_track(provider=mimo-qwen-asr)，不能猜测或使用不存在的 A1。MiMo 返回 no-audio/no-speech 时停止转写并标注“原声无可用字幕”，绝不切换其他 ASR。只有真实词级时间戳可用时才调用 edit_captions(action=enable) 开启字幕；不要按文案长度伪造时间。若项目已有可用 BGM 素材，可调用 place_rough_cut_bgm 放置低音量音乐床；不要自动生成付费音乐。保留原声，不要覆盖用户手工修改，最后调用 check_rough_cut_ready 并检查真实时长、片段数量和画面结构，只报告真实完成的步骤。`,
+          text: `制作一条短剧片段精修发布版。运行编号为${initialRecipe.workflowRunId ?? '未记录'}。只使用刚上传素材「${asset.name}」（assetId=${asset.id}），目标平台为${platform}，${durationConstraint} 输出竖屏 9:16。第一步必须调用 search_media(query="${asset.name}", modalities=["metadata"], limit=1)，只接受返回 assetId=${asset.id} 的 filename 命中；没有这个精确命中就停止并报告“未找到刚上传的素材”，不得分析、粗剪或改动其他素材。确认后才调用 analyze_asset(kind=video) 理解完整视频并取得真实源时间段，再用 view_asset_frames 核对画面。若视频有剧情，必须选择能看懂起因/钩子、冲突/升级、结果/收尾的 2-6 段连续源区间，优先去掉空镜、重复和无效停顿，不要把整段原片当成粗剪；若视频只是连续展示或没有叙事冲突，必须如实保留完整展示序列并将粗剪命名为“展示精修”，不要伪造剧情。然后调用 assemble_rough_cut 创建新的可编辑粗剪，不能用 edit_item 把素材直接放进当前时间线。粗剪创建后，先调用 edit_track(action=list) 查出新序列中承载该视频片段的真实视频轨别名；若视频有声音，只能对这个视频轨调用 transcribe_track(provider=mimo-qwen-asr)，不能猜测或使用不存在的 A1。MiMo 返回 no-audio/no-speech 时停止转写并标注“原声无可用字幕”，绝不切换其他 ASR。只有真实词级时间戳可用时才调用 edit_captions(action=enable) 开启字幕；不要按文案长度伪造时间。若项目已有可用 BGM 素材，可调用 place_rough_cut_bgm 放置低音量音乐床；不要自动生成付费音乐。保留原声，不要覆盖用户手工修改，最后调用 check_rough_cut_ready 并检查真实时长、片段数量和画面结构，只报告真实完成的步骤。`,
         });
         onRecipeConsumed?.();
       } catch (error) {
@@ -844,7 +844,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
       references: [{ id: asset.id, name: asset.name, kind: asset.kind }],
       autoSubmit: true,
       autoApply: true,
-      text: `重新制作短剧片段精修发布版。只使用素材「${asset.name}」，目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。复用或更新整段视频理解，核对真实源画面：有剧情就选钩子/冲突/结果的多段连续区间，无剧情就命名为“展示精修”并保留完整展示序列。调用 assemble_rough_cut 创建新的可编辑粗剪；随后先用 edit_track(action=list) 查出承载该视频片段的真实视频轨，再对该轨调用 transcribe_track(provider=mimo-qwen-asr) 获取真实时间戳，不能猜测 A1；再按真实字幕状态开启字幕。已有 BGM 才放置，不生成付费音乐。不要伪造字幕或时长，不要覆盖用户手工修改。`,
+      text: `重新制作短剧片段精修发布版。只使用刚上传素材「${asset.name}」（assetId=${asset.id}），目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。第一步必须调用 search_media(query="${asset.name}", modalities=["metadata"], limit=1)，只接受返回 assetId=${asset.id} 的 filename 命中；没有这个精确命中就停止并报告“未找到刚上传的素材”，不得分析、粗剪或改动其他素材。确认后复用或更新整段视频理解，核对真实源画面：有剧情就选钩子/冲突/结果的多段连续区间，无剧情就命名为“展示精修”并保留完整展示序列。调用 assemble_rough_cut 创建新的可编辑粗剪；随后先用 edit_track(action=list) 查出承载该视频片段的真实视频轨，再对该轨调用 transcribe_track(provider=mimo-qwen-asr) 获取真实时间戳，不能猜测 A1；再按真实字幕状态开启字幕。已有 BGM 才放置，不生成付费音乐。不要伪造字幕或时长，不要覆盖用户手工修改。`,
     });
   }, [quickAsset]);
 
