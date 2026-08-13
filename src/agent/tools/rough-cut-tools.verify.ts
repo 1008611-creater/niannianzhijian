@@ -63,4 +63,12 @@ const storyExcluded = await execRoughCutTool('assemble_rough_cut', {
 assert.match(storyExcluded.error ?? '', /不要用/);
 assert.equal(current.timelines.length, 2, 'excluded story range makes no mutation');
 
+const storyDirection = await execRoughCutTool('assemble_rough_cut', {
+  beats: [{ assetId: 'asset-demo', sourceStartMs: 0, sourceDurationMs: 1000 }],
+}, { ...ctx, getQuickStoryConfirmed: () => true, getQuickStoryDirection: () => ({
+  id: 'hook-first', title: '先放关键一幕', description: '', agentInstruction: '', requiredOpening: { assetId: 'asset-demo', startMs: 3000, endMs: 5000 },
+}) }) as { error?: string };
+assert.match(storyDirection.error ?? '', /指定剧情段开始/);
+assert.equal(current.timelines.length, 2, 'violating story direction makes no mutation');
+
 console.log('rough-cut-tools.verify: ok');
