@@ -7223,6 +7223,46 @@ async function handleCanvasS1ChainApi(request, response, pathname, user) {
   }
 }
 
+async function handleCanvasSkillNodeLayoutApi(request, response, pathname, user) {
+  const match = pathname.match(/^\/api\/canvas\/documents\/(redraw|script)\/([^/]+)\/skill-node-layout$/);
+  if (!match) return false;
+  const projectKind = match[1];
+  const projectId = decodeURIComponent(match[2]);
+  const project = await canvasOwnedProject(user, projectKind, projectId);
+  if (!project) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
+  if (request.method !== 'POST') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
+  try {
+    const body = await readBodyJson(request);
+    const requested = body.positions && typeof body.positions === 'object' && !Array.isArray(body.positions) ? body.positions : {};
+    const allowed = new Set([...canvasS1Chain.CHAIN_NODE_IDS, canvasImage2Node.IMAGE2_NODE_ID]);
+    const positions = Object.fromEntries(Object.entries(requested).flatMap(([id, value]) => {
+      if (!allowed.has(id) || !value || typeof value !== 'object' || Array.isArray(value)) return [];
+      const x = Number(value.x); const y = Number(value.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return [];
+      return [[id, {x:Math.max(-20000,Math.min(20000,Math.round(x))),y:Math.max(-20000,Math.min(20000,Math.round(y)))}]];
+    }));
+    const key = canvasDocumentKey(projectKind, projectId);
+    const saved = await withCanvasDocumentsWriteLock(async () => {
+      const documents = await readCanvasDocuments();
+      const current = documents[key] || null;
+      const currentRevision = Number(current?.revision || 0);
+      if (request.headers['if-match'] !== canvasEtag(currentRevision)) throw Object.assign(new Error('画布已在其他页面更新，请先重新载入。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:412});
+      const currentDocument = normalizeCanvasDocument(current?.document, project);
+      const nodes = currentDocument.nodes.map(node => positions[node.id] ? {...node,position:positions[node.id]} : node);
+      const document = normalizeCanvasDocument({...currentDocument,nodes}, project);
+      const revision = currentRevision + 1;
+      const record = {schemaVersion:'niannian.canvas-document.v1',projectId:project.id,projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
+      documents[key] = record;
+      await syncSkillDocumentToNomiCanvas({documents,project,projectKind,skillDocument:document});
+      await writeCanvasDocuments(documents);
+      return record;
+    });
+    return json(response, 200, {code:'CANVAS_SKILL_NODE_LAYOUT_SAVED',revision:saved.revision,document:saved.document,updatedAt:saved.updatedAt}, {ETag:canvasEtag(saved.revision),'Cache-Control':'no-store'});
+  } catch (error) {
+    return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_SKILL_NODE_LAYOUT_FAILED',error:error.message || '节点位置保存失败'});
+  }
+}
+
 async function handleCanvasImage2NodeApi(request, response, pathname, user) {
   const match = pathname.match(/^\/api\/canvas\/documents\/(redraw|script)\/([^/]+)\/s2-image2$/);
   if (!match) return false;
@@ -8516,6 +8556,10 @@ async function handleApi(request, response, pathname) {
   }
   if (pathname.match(/^\/api\/canvas\/documents\/(redraw|script)\/[^/]+\/s2-image2$/)) {
     const handled = await handleCanvasImage2NodeApi(request, response, pathname, user);
+    if (handled) return;
+  }
+  if (pathname.match(/^\/api\/canvas\/documents\/(redraw|script)\/[^/]+\/skill-node-layout$/)) {
+    const handled = await handleCanvasSkillNodeLayoutApi(request, response, pathname, user);
     if (handled) return;
   }
   if (pathname.match(/^\/api\/projects\/[^/]+\/canvas\/director-import$/)) {

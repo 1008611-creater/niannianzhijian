@@ -8,7 +8,7 @@ const root = __dirname;
 const html = fs.readFileSync(path.join(root, 'studio', 'index.html'), 'utf8');
 const source = fs.readFileSync(path.join(root, 'studio', 'assets', 's1-chain-ui.js'), 'utf8');
 
-assert.match(html, /assets\/s1-chain-ui\.js\?v=20260814-s1-chain-ui-r4/);
+assert.match(html, /assets\/s1-chain-ui\.js\?v=20260814-s1-chain-ui-r5/);
 assert.match(source, /\/api\/canvas\/documents\//);
 assert.match(source, /\/s1-chain/);
 assert.match(source, /if-match/);
@@ -30,6 +30,9 @@ assert.match(source, /yunfei-gpt-image-2-hd/);
 assert.match(source, /data-s2-resolution/);
 assert.match(source, /data-s2-aspect/);
 assert.match(source, /data-s2-assets/);
+assert.match(source, /skill-node-layout/);
+assert.match(source, /setPointerCapture/);
+assert.match(source, /\[data-node-id\^="nn-skill-"\]/);
 assert.match(source, /selectedImage2Ids/);
 assert.match(source, /referenceAssetIds/);
 assert.match(source, /s2-image2/);
