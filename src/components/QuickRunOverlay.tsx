@@ -2,7 +2,7 @@ import type { MediaAsset, TimelineItem } from '../editor/types';
 import type { QuickRecipeInput } from './QuickHome';
 import './quickRunOverlay.css';
 
-export type QuickRunStage = 'importing' | 'understanding' | 'selecting' | 'assembling' | 'ready' | 'error';
+export type QuickRunStage = 'importing' | 'understanding' | 'review' | 'selecting' | 'assembling' | 'ready' | 'error';
 
 interface QuickRunOverlayProps {
   stage: QuickRunStage;
@@ -16,6 +16,7 @@ interface QuickRunOverlayProps {
   fps: number;
   error?: string;
   onRetry: () => void;
+  onConfirmStory: () => void;
   onEnterProfessional: () => void;
   onBack: () => void;
 }
@@ -30,6 +31,7 @@ const STEPS = [
 const STAGE_INDEX: Record<QuickRunStage, number> = {
   importing: 0,
   understanding: 1,
+  review: 2,
   selecting: 2,
   assembling: 3,
   ready: 4,
@@ -61,6 +63,7 @@ export function QuickRunOverlay({
   fps,
   error,
   onRetry,
+  onConfirmStory,
   onEnterProfessional,
   onBack,
 }: QuickRunOverlayProps) {
@@ -69,12 +72,19 @@ export function QuickRunOverlay({
     ...scene,
     assetName: item.name,
   }))).slice(0, 4);
+  const storyCards = assets.map((item, index) => ({
+    index: index + 1,
+    name: item.name,
+    summary: item.intelligence?.videoSummary,
+    scenes: item.intelligence?.scenes?.slice(0, 2) ?? [],
+  })).filter((item) => !!item.summary || item.scenes.length > 0);
   const durationFrames = createdItems.reduce((maximum, item) => Math.max(maximum, item.startFrame + item.durationInFrames), 0);
   const resultSeconds = Math.round(durationFrames / Math.max(1, fps));
   const targetSeconds = stage === 'ready' && resultSeconds > 0 ? resultSeconds : recipe.durationSeconds;
   const percent = stage === 'ready' ? 100
     : stage === 'importing' ? Math.max(8, Math.round(importedRatio * 25))
       : stage === 'understanding' ? 44
+        : stage === 'review' ? 56
         : stage === 'selecting' ? 68
           : stage === 'assembling' ? 86
             : 0;
@@ -91,7 +101,7 @@ export function QuickRunOverlay({
         <section className="qrun-heading">
           <div>
             <span className="qrun-kicker">短剧片段精修</span>
-            <h1>{stage === 'ready' ? '发布版粗剪已生成' : stage === 'error' ? '本次制作没有完成' : '正在制作发布版'}</h1>
+            <h1>{stage === 'ready' ? '发布版粗剪已生成' : stage === 'review' ? '先确认 Agent 的剧情理解' : stage === 'error' ? '本次制作没有完成' : '正在制作发布版'}</h1>
           </div>
           <div className="qrun-target">
             <span>{platformLabel(recipe.platform)}</span>
@@ -143,6 +153,19 @@ export function QuickRunOverlay({
               </div>
             )}
 
+            {stage === 'review' && storyCards.length > 0 && (
+              <div className="qrun-story-cards">
+                <div className="qrun-section-title"><strong>Agent 读到的剧情</strong><span>仅来自已导入素材</span></div>
+                {storyCards.map((card) => (
+                  <article className="qrun-story-card" key={card.name}>
+                    <strong>第 {card.index} 段 · {card.name}</strong>
+                    {card.summary && <p>{card.summary}</p>}
+                    {card.scenes.map((scene) => <small key={scene.id}>{timeLabel(scene.startMs)} - {timeLabel(scene.endMs)} {scene.label || '剧情片段'}</small>)}
+                  </article>
+                ))}
+              </div>
+            )}
+
             {stage === 'ready' && (
               <div className="qrun-result">
                 <div><strong>{analyzedAssetCount}/{assets.length}</strong><span>段已理解素材</span></div>
@@ -157,6 +180,8 @@ export function QuickRunOverlay({
             <div className="qrun-actions">
               {stage === 'ready' ? (
                 <button type="button" className="qrun-primary" onClick={onEnterProfessional}>查看并继续精修</button>
+              ) : stage === 'review' ? (
+                <button type="button" className="qrun-primary" onClick={onConfirmStory}>剧情理解正确，开始精剪</button>
               ) : stage === 'error' ? (
                 <><button type="button" className="qrun-primary" onClick={onRetry}>重新制作</button><button type="button" className="qrun-secondary" onClick={onEnterProfessional}>保留素材进入编辑</button></>
               ) : (

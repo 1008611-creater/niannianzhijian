@@ -67,6 +67,9 @@ export async function execRoughCutTool(name: string, args: Args, ctx: AgentConte
   if (name === 'place_rough_cut_bgm') return execRoughCutBgmTool(name, args, ctx);
   if (name === 'check_rough_cut_ready') return execRoughCutReadyTool(name, args, ctx);
   if (name !== 'assemble_rough_cut') return undefined;
+  if (ctx.getQuickStoryConfirmed?.() === false) {
+    return { error: '请先确认 Agent 的剧情理解，再生成可编辑粗剪。' };
+  }
   const parsed = parseBeats(args.beats, ctx.getDoc().assets);
   if (!parsed.beats) return { error: parsed.error };
   const transitionType = transition(args.transition);
