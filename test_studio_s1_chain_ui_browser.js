@@ -61,7 +61,9 @@ async function main() {
     await panel.locator('[data-s1-preflight]').selectOption('passed');
     await panel.getByRole('button', {name:'创建节点链'}).click();
     await panel.getByText('已创建 3 个节点和 2 条依赖边。').waitFor();
-    assert.equal(await panel.locator('.s1-node').count(), 3);
+    assert.equal(await panel.locator('.s1-node').count(), 4);
+    await panel.locator('[data-node="image2"]').getByText('Image2 关键帧生成').waitFor();
+    assert.equal(await panel.locator('[data-s2-dry]').isDisabled(), true, 'Image2 preparation stays disabled before the node is saved');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'desktop must not overflow');
     await page.setViewportSize({width:390,height:844});
     await page.reload({waitUntil:'networkidle'});

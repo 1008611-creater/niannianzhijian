@@ -69,6 +69,17 @@ async function run() {
   const step02 = built.body.document.nodes.find(item => item.id === 's1-step02-timeline');
   assert.equal(step02.skillKey, 'mx-shortdrama-02-source-timeline');
   assert.deepEqual(step02.data.inputPorts.map(item => item.id), ['evidence_manifest']);
+  const image2 = await request('/api/canvas/documents/redraw/' + project.id + '/s2-image2', {method:'POST',headers:headers({'content-type':'application/json','if-match':built.response.headers.get('etag')}),body:JSON.stringify({prompt:'角色站在街角，电影感关键帧',imageChannel:'yunfei-gpt-image-2-1k',resolution:'1k',aspectRatio:'1:1',referenceAssetIds:[]})});
+  assert.equal(image2.response.status, 201, JSON.stringify(image2.body));
+  assert.equal(image2.body.node.skillKey, 'image2-storyboard-video');
+  assert.deepEqual(image2.body.node.inputPorts.map(item => item.id), ['prompt','reference_asset']);
+  assert.deepEqual(image2.body.node.outputPorts.map(item => item.id), ['image_asset']);
+  assert.equal(image2.body.node.parameters.resolution, '1k');
+  assert.equal(image2.body.node.parameters.aspectRatio, '1:1');
+  assert.equal(image2.body.node.parameters.providerSubmitRequested, false);
+  assert.equal(image2.body.node.status, 'ready');
+  const image2Reload = await request('/api/canvas/documents/redraw/' + project.id, {headers:headers()});
+  assert.equal(image2Reload.body.document.nodes.find(item => item.id === 's2-image2-keyframe').data.prompt, '角色站在街角，电影感关键帧');
   const reloaded = await request('/api/canvas/documents/redraw/' + project.id, {headers:headers()});
   assert.equal(reloaded.body.document.nodes.find(item => item.id === 's1-step02-timeline').status, 'blocked');
   const stale = await request('/api/canvas/documents/redraw/' + project.id + '/s1-chain', {method:'POST',headers:headers({'content-type':'application/json','if-match':'"canvas-rev-0"'}),body:'{}'});

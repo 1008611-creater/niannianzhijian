@@ -58,6 +58,7 @@ const canvasTextRuntimeModule = require('./bridge/niannian_canvas_text_runtime')
 const canvasTextJobs = require('./bridge/niannian_canvas_text_jobs');
 const canvasSkillNodes = require('./bridge/niannian_canvas_skill_nodes');
 const canvasS1Chain = require('./bridge/niannian_canvas_s1_chain');
+const canvasImage2Node = require('./bridge/niannian_canvas_image2_node');
 const nomiRunningHubH3 = require('./bridge/niannian_nomi_runninghub_h3');
 const h3MediaValidation = require('./bridge/niannian_h3_media_validation');
 const nomiWebTaskStoreModule = require('./bridge/niannian_nomi_web_task_store');
@@ -7220,6 +7221,45 @@ async function handleCanvasS1ChainApi(request, response, pathname, user) {
   }
 }
 
+async function handleCanvasImage2NodeApi(request, response, pathname, user) {
+  const match = pathname.match(/^\/api\/canvas\/documents\/(redraw|script)\/([^/]+)\/s2-image2$/);
+  if (!match) return false;
+  const projectKind = match[1];
+  const projectId = decodeURIComponent(match[2]);
+  const project = await canvasOwnedProject(user, projectKind, projectId);
+  if (!project) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
+  if (request.method !== 'POST') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
+  try {
+    const body = await readBodyJson(request);
+    const referenceAssetIds = canvasImage2Node.ids(body.referenceAssetIds || body.inputAssetIds);
+    for (const assetId of referenceAssetIds) {
+      const asset = await canvasAssetService.getOwned(user.id, projectId, assetId);
+      if (!asset || asset.projectKind !== projectKind || asset.kind !== 'reference_image') {
+        throw Object.assign(new Error('参考素材不存在或不是当前项目的图片资产'), {code:'CANVAS_S2_REFERENCE_ASSET_INVALID',httpStatus:422});
+      }
+    }
+    const key = canvasDocumentKey(projectKind, projectId);
+    const saved = await withCanvasDocumentsWriteLock(async () => {
+      const documents = await readCanvasDocuments();
+      const current = documents[key] || null;
+      const currentRevision = Number(current?.revision || 0);
+      if (request.headers['if-match'] !== canvasEtag(currentRevision)) throw Object.assign(new Error('画布已在其他页面更新，请先重新载入。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:412});
+      const currentDocument = normalizeCanvasDocument(current?.document, project);
+      const prior = currentDocument.nodes.find(node => node.id === canvasImage2Node.IMAGE2_NODE_ID) || null;
+      const node = canvasImage2Node.createImage2Node({projectId, referenceAssetIds, existingNode:{...prior, data:{...(prior?.data || {}), prompt:body.prompt, imageChannel:body.imageChannel, resolution:body.resolution, aspectRatio:body.aspectRatio, outputSize:body.outputSize}}});
+      const document = normalizeCanvasDocument({...currentDocument, nodes:[...currentDocument.nodes.filter(item => item.id !== node.id), node]}, project);
+      const revision = currentRevision + 1;
+      const record = {schemaVersion:'niannian.canvas-document.v1',projectId:project.id,projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
+      documents[key] = record;
+      await writeCanvasDocuments(documents);
+      return record;
+    });
+    return json(response, 201, {code:'CANVAS_S2_IMAGE2_NODE_READY',revision:saved.revision,node:saved.document.nodes.find(item => item.id === canvasImage2Node.IMAGE2_NODE_ID),imageChannels:canvasProviderConfig.publicCanvasProviderStatus().imageChannels,updatedAt:saved.updatedAt}, {ETag:canvasEtag(saved.revision),'Cache-Control':'no-store'});
+  } catch (error) {
+    return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_S2_IMAGE2_NODE_FAILED',error:error.message || 'Image2 节点创建失败'});
+  }
+}
+
 function decodeDirectorDeskCapture(value) {
   const match = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(value || '').trim());
   if (!match) throw Object.assign(new Error('导演台截图格式无效'), {code:'DIRECTOR_CAPTURE_INVALID',httpStatus:422});
@@ -8431,6 +8471,10 @@ async function handleApi(request, response, pathname) {
   }
   if (pathname.startsWith('/api/canvas/director-desk/')) {
     const handled = await handleDirectorDeskApi(request, response, pathname, user);
+    if (handled) return;
+  }
+  if (pathname.match(/^\/api\/canvas\/documents\/(redraw|script)\/[^/]+\/s2-image2$/)) {
+    const handled = await handleCanvasImage2NodeApi(request, response, pathname, user);
     if (handled) return;
   }
   if (pathname.match(/^\/api\/projects\/[^/]+\/canvas\/director-import$/)) {

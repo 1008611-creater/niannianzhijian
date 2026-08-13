@@ -8,7 +8,7 @@ const root = __dirname;
 const html = fs.readFileSync(path.join(root, 'studio', 'index.html'), 'utf8');
 const source = fs.readFileSync(path.join(root, 'studio', 'assets', 's1-chain-ui.js'), 'utf8');
 
-assert.match(html, /assets\/s1-chain-ui\.js\?v=20260814-s1-chain-ui-r2/);
+assert.match(html, /assets\/s1-chain-ui\.js\?v=20260814-s1-chain-ui-r3/);
 assert.match(source, /\/api\/canvas\/documents\//);
 assert.match(source, /\/s1-chain/);
 assert.match(source, /if-match/);
@@ -23,7 +23,17 @@ assert.match(source, /data-node="step02"/);
 assert.match(source, /Skill 节点/);
 assert.match(source, /输入节点/);
 assert.match(source, /输出/);
+assert.match(source, /Image2 关键帧生成/);
+assert.match(source, /image2-storyboard-video/);
+assert.match(source, /yunfei-gpt-image-2-1k/);
+assert.match(source, /yunfei-gpt-image-2-hd/);
+assert.match(source, /data-s2-resolution/);
+assert.match(source, /data-s2-aspect/);
+assert.match(source, /s2-image2/);
+assert.match(source, /建立 Image2 候选并执行 dry-run/);
+assert.ok(source.includes('/canvas/jobs'));
+assert.ok(source.includes('/dry-run'));
+assert.match(source, /idempotency-key/);
 assert.doesNotMatch(source, /confirmProviderSpend/);
-assert.doesNotMatch(source, /\/canvas\/jobs/);
 
 console.log(JSON.stringify({ok:true,verified:['Studio loads the S1 control surface','legacy and canvas video assets are selected through the API','revision protection is sent on creation','Step01 uses the source-only server route','the UI cannot submit a paid canvas provider job']}));

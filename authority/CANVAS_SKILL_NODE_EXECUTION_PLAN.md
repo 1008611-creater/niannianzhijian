@@ -48,6 +48,36 @@
 
 原创短剧可复用 04-08，但输入节点改为剧本/Word 事实账本，不得把源视频 Step01 事实伪造为剧本分析结果。
 
+### 3.1 节点实施合同（输入、内置 Skill、输出）
+
+下面的合同是实现顺序和验收边界。每个节点必须是画布中的可移动、可连接、可恢复卡片；弹窗只能用于系统级确认，不能承载节点本身的输入或结果。
+
+| 节点 | 用户输入/端口 | 内置 Skill 与服务端执行器 | 参数控件 | 输出/预览 | 解锁条件 |
+| --- | --- | --- | --- | --- | --- |
+| 原片输入 | `source_video`、`rights_declaration` | `mx-shortdrama-00-router`；媒体预检与项目资产服务 | 文件、权利确认、预检状态 | `source_asset`、`preflight_report`；视频缩略图、时长、尺寸 | 视频资产存在且权利/预检通过 |
+| Step01 源片分析 | `source_video` | `mx-shortdrama-01-frame-extract`；Haika `hq_full` server executor | 分析档位、授权状态 | `evidence_manifest`、`shot_frames`；首/中/尾帧、对白/OCR、证据状态 | 只允许绑定当前项目已验证原片；执行授权存在 |
+| Step02 时间线 | `evidence_manifest` | `mx-shortdrama-02-source-timeline`；immutable evidence reducer | 镜头排序、确认/退回 | `accepted_timeline`；镜头事实、revision、恢复入口 | Step01 证据完整且未过期 |
+| 地区改编 | `accepted_timeline`、文本事实 | `mx-shortdrama-03-mexico-localize`；改编候选服务 | 目标地区、语言、风格、保留/改写规则 | `adaptation_candidate`；差异表、待确认项 | 时间线已人工确认；不得自动覆盖原事实 |
+| 角色/场景资产 | `accepted_timeline`、`shot_frames` | `mx-shortdrama-04-character-assets`；参考资产服务 | 角色身份、场景、参考帧、采用版本 | `reference_asset`；角色卡、场景卡、可预览参考图 | 只消费已确认镜头和参考帧 |
+| Image2 关键帧 | `prompt`、`reference_asset` | `image2-storyboard-video`；Image2 adapter（RunningHub/云飞渠道） | 渠道 `1K`/`2K`/`4K`、比例、输出尺寸、提示词 | `image_asset`；图片预览、宽高、渠道和规格回读 | 规格组合合法；未授权只建候选，不提交 Provider |
+| H3 视频 | `image_asset`、`prompt` | `minimaxh3skill`；H3 server adapter | 时长、比例、提示词、输入图 | `video_asset`；播放预览、任务状态、费用回读 | 首帧已采用；单次提交授权 |
+| Animate 动作迁移 | `image_asset`、`motion_video` | `runninghub-animate-motion-transfer`；RunningHub workflow adapter | 动作参考视频、时长、比例、工作流版本 | `video_asset`；播放预览、RH 币结算、失败恢复 | 同项目图片+视频资产；单次提交授权 |
+| 智能剪辑/交付 | `project_assets` | `mx-shortdrama-production-harness`；外部 `edit.cauai.fun` 入口 | 剪辑参数、采用素材、导出规格 | `editor_session`、`delivery_asset`；可播放/下载成片 | 外部会话建立成功，回传资产可被网站读取 |
+
+每个节点还必须持久化四类运行信息：`taskRef`（仅服务端任务引用）、`status`、`preview`、`recovery`。Provider 凭据、原始响应、签名 URL 和媒体字节永远不进入节点文档。节点状态只能按“输入就绪 → 参数合法 → 用户授权 → 服务端提交 → 查询回读 → 资产登记 → 用户采用”推进，不能由前端点击直接标记成功。
+
+### 3.2 节点与 Skill 的内置方式
+
+Skill 不作为可编辑脚本塞进节点，也不在浏览器直接调用 Provider。每个节点只保存稳定的 `skillKey`/`skillVersion` 和可审计参数；服务端 Skill registry 决定输入端口、输出端口、参数校验、执行器和恢复动作。画布前端从 registry 读取能力清单，渲染统一的输入区、参数区、状态区、预览区和恢复区。这样可以替换渠道而不改变用户画布，也避免用户看到密钥或内部任务号。
+
+节点实现必须按以下顺序完成：
+
+1. 先注册 Skill 合同和端口，拒绝未知 Skill、跨项目资产和不合法参数。
+2. 再接服务端 dry-run，返回规格、预计费用字段、授权要求和可用性；dry-run 不发 Provider 请求。
+3. 用户明确授权后才允许唯一一次 submit；查询失败只进入恢复状态，禁止自动重提。
+4. 结果必须登记为当前项目资产，节点写入 `preview` 和可恢复 `taskRef`，刷新后仍能读回。
+5. 最后用真实浏览器验证桌面/移动核心路径，才可把该节点标记为“可生产”。
+
 ## 4. 分阶段实施
 
 ### S0：节点合同与画布数据模型
@@ -121,3 +151,14 @@ S0 已在候选分支实现，范围严格限定为画布文档持久化边界�
 证据：`npm run test:quality-gate` 通过 21/21，`npm run typecheck` 通过，`npm run lint` 通过，画布文档/生成/导演台 HTTP 合同测试通过。构建将在干净提交上复跑；本阶段没有真实 Provider 调用、费用、生产部署或用户素材写入。
 
 S0 仍不代表任何转绘 Skill 已达到“可生产”：S1 的真实 Step01 执行、S2/S3 的真实结果回资产库和 S4 的外部剪辑回读仍保持阻塞/候选状态。
+
+## 9. S2 Image2 节点实施回读（2026-08-14）
+
+本轮把 S2 的第一条节点合同落到现有画布，不把它做成弹窗：
+
+- `image2-storyboard-video` 节点持久化 `prompt`、`reference_asset` 输入端口、`image_asset` 输出端口、渠道、分辨率、比例、输出尺寸、预览和恢复动作。
+- 画布卡片提供云飞 1K、云飞 2K/4K、RunningHub Image2 的选择，并在前端显示当前规格组合是否有效；服务端再次校验，不信任前端状态。
+- “保存 Image2 节点”只写画布文档；“准备任务”创建幂等的待授权候选并调用 dry-run；UI 不持有 `confirmProviderSpend`，不会绕过授权门提交 Provider。
+- 节点刷新后从项目文档恢复，结果仍未标记为可生产；真实 Provider 调用、费用、结果资产回库和用户采用留到 S2 真实测试授权后。
+
+证据：`test_canvas_s1_chain_http.js`、`test_canvas_generation_http.js`、`test_canvas_skill_nodes.js`、`test_studio_s1_chain_ui_contract.js`、`test_studio_s1_chain_ui_browser.js`、`npm run typecheck`、`npm run lint` 均通过。本轮没有真实 Image2 调用、费用或生产部署。
