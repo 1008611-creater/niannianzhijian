@@ -1,5 +1,6 @@
 import type { MediaAsset, TimelineItem } from '../editor/types';
 import type { QuickRecipeInput } from './QuickHome';
+import { quickStorySceneKey, type QuickStoryPreferences } from '../quickStoryPreferences';
 import './quickRunOverlay.css';
 
 export type QuickRunStage = 'importing' | 'understanding' | 'review' | 'selecting' | 'assembling' | 'ready' | 'error';
@@ -15,6 +16,8 @@ interface QuickRunOverlayProps {
   roughCutSourceCount: number;
   fps: number;
   error?: string;
+  storyPreferences: QuickStoryPreferences;
+  onStoryPreferenceChange: (key: string, preference?: 'priority' | 'exclude') => void;
   onRetry: () => void;
   onConfirmStory: () => void;
   onEnterProfessional: () => void;
@@ -62,6 +65,8 @@ export function QuickRunOverlay({
   roughCutSourceCount,
   fps,
   error,
+  storyPreferences,
+  onStoryPreferenceChange,
   onRetry,
   onConfirmStory,
   onEnterProfessional,
@@ -160,7 +165,17 @@ export function QuickRunOverlay({
                   <article className="qrun-story-card" key={card.name}>
                     <strong>第 {card.index} 段 · {card.name}</strong>
                     {card.summary && <p>{card.summary}</p>}
-                    {card.scenes.map((scene) => <small key={scene.id}>{timeLabel(scene.startMs)} - {timeLabel(scene.endMs)} {scene.label || '剧情片段'}</small>)}
+                    {card.scenes.map((scene) => {
+                      const key = quickStorySceneKey(assets[card.index - 1]!.id, scene.id);
+                      const preference = storyPreferences[key];
+                      return <div className="qrun-story-choice" key={scene.id}>
+                        <small>{timeLabel(scene.startMs)} - {timeLabel(scene.endMs)} {scene.label || '剧情片段'}</small>
+                        <div role="group" aria-label={`${card.name} ${scene.label || '剧情片段'}选择`}>
+                          <button type="button" className={preference === 'priority' ? 'selected' : ''} onClick={() => onStoryPreferenceChange(key, preference === 'priority' ? undefined : 'priority')}>重点保留</button>
+                          <button type="button" className={preference === 'exclude' ? 'selected' : ''} onClick={() => onStoryPreferenceChange(key, preference === 'exclude' ? undefined : 'exclude')}>不要用</button>
+                        </div>
+                      </div>;
+                    })}
                   </article>
                 ))}
               </div>
