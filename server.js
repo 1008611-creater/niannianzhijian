@@ -1258,7 +1258,7 @@ async function createSession(user, request, response) {
 
 async function currentUser(request) {
   const token = parseCookies(request).niannian_session;
-  if (!token) return null;
+  if (!token) return previewAutoLogin ? previewUser : null;
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
   const sessions = await readJson(sessionsPath);
   const session = sessions.find(item => item.tokenHash === tokenHash && new Date(item.expiresAt).getTime() > Date.now());
