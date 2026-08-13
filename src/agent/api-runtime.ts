@@ -13,7 +13,6 @@ import {
   shouldFallbackAgentModel,
   shouldRetryCompatibleMediaRequest,
   shouldRetryTransientAgentRequest,
-  streamPartStartsCompatibleMediaOutput,
 } from './api-retry';
 export {
   isCompatibleMediaFallbackError,
@@ -328,16 +327,22 @@ export async function runApiAgent(
 
         try {
           for await (const part of result.stream) {
-            if (streamPartStartsCompatibleMediaOutput(part.type)) {
-              outputStarted = true;
-              outputObserved = true;
-            }
             if (part.type === 'text-delta') {
+              // A provider can emit an empty text-start before rejecting the
+              // request. Only actual user-visible text prevents a safe retry.
+              if (part.text) {
+                outputStarted = true;
+                outputObserved = true;
+              }
               const extracted = extract.push(part.text);
               if (extracted.thinking) onEvent({ type: 'thinking-delta', delta: extracted.thinking });
               if (extracted.text) emitText(extracted.text);
             } else if (part.type === 'reasoning-delta') {
-              if (part.text) onEvent({ type: 'thinking-delta', delta: part.text });
+              if (part.text) {
+                outputStarted = true;
+                outputObserved = true;
+                onEvent({ type: 'thinking-delta', delta: part.text });
+              }
             } else if (part.type === 'tool-input-start') {
               onEvent({ type: 'tool-input-start', name: part.toolName });
             } else if (part.type === 'tool-input-delta') {
