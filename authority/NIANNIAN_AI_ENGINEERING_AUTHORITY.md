@@ -37,6 +37,13 @@ The planned beta scope is ASXS text with `gpt-5.6-luna`, RunningHub Image2, and
 RunningHub H3. Audio, 3D generation, whiteboard, panorama, and scene-3D remain
 edit/reference-only until a complete server execution path exists.
 
+The authoritative plan for turning redraw Skills into persistent canvas nodes is
+[CANVAS_SKILL_NODE_EXECUTION_PLAN.md](CANVAS_SKILL_NODE_EXECUTION_PLAN.md). It
+defines the node contract, input/output ports, preview and recovery states, and
+the evidence required before a node may be called production-ready. The plan is
+not an implementation claim: Step01 real execution and the complete upload to
+delivery chain remain explicitly gated.
+
 ## Image2 routing metadata
 
 The user-supplied `yunfei-1k` channel is recorded in
