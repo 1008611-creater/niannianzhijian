@@ -93,6 +93,7 @@ import { QuickRunOverlay, type QuickRunStage } from './components/QuickRunOverla
 import { isCompleteQuickRoughCut, roughCutSourceCount } from './quickRunEvidence';
 import { quickRunErrorMessage } from './quickRunError';
 import { priorityStoryOrder, selectedQuickStoryRanges, type QuickStoryPreferences } from './quickStoryPreferences';
+import { quickStoryDirections, type QuickStoryDirection } from './quickStoryDirections';
 
 interface EditorProps {
   initial: ProjectDoc;
@@ -126,6 +127,7 @@ interface QuickRunRuntime {
   storyConfirmed: boolean;
   storyPreferences: QuickStoryPreferences;
   storyPriorityOrder: string[];
+  storyDirectionId?: QuickStoryDirection['id'];
   error?: string;
   dismissed: boolean;
 }
@@ -326,6 +328,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
   allTemplatesRef.current = allTemplates;
   const quickStoryConfirmedRef = useRef(false);
   const quickStoryRangesRef = useRef<ReturnType<typeof selectedQuickStoryRanges>>([]);
+  const quickStoryDirectionRef = useRef<QuickStoryDirection | undefined>(undefined);
   const agentCtx = useMemo(
     () => ({
       commands,
@@ -335,6 +338,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
       getCreativeMode: () => creativeModeRef.current,
       getQuickStoryConfirmed: () => quickStoryConfirmedRef.current,
       getQuickStoryRanges: () => quickStoryRangesRef.current,
+      getQuickStoryDirection: () => quickStoryDirectionRef.current,
       getUndoTarget,
       getRedoTarget,
       getApprovalMode: () => (loadChatAutoApply(project.id) ? 'auto' : 'manual'),
@@ -473,6 +477,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
   useEffect(() => {
     quickStoryConfirmedRef.current = !!quickRun?.storyConfirmed;
     quickStoryRangesRef.current = selectedQuickStoryRanges(quickRun?.assets ?? [], quickRun?.storyPreferences ?? {}, quickRun?.storyPriorityOrder ?? []);
+    quickStoryDirectionRef.current = quickStoryDirections(quickRun?.assets ?? []).find((direction) => direction.id === quickRun?.storyDirectionId);
   }, [quickRun]);
   const [quickProgressStage, setQuickProgressStage] = useState<Exclude<QuickRunStage, 'ready' | 'error'>>('importing');
   // Design style (brand) editor pop-up window.
@@ -865,6 +870,8 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     const recipe = quickRecipeRef.current;
     const assets = quickRun?.assets.length ? quickRun.assets : [];
     if (!recipe || !assets.length) return;
+    const direction = quickStoryDirections(assets).find((item) => item.id === quickRun?.storyDirectionId);
+    if (!direction) return;
     const platform = recipe.platform === 'douyin' ? '抖音' : recipe.platform === 'kuaishou' ? '快手' : '视频号';
     const sourceDurationSeconds = Math.max(1, Math.floor(assets.reduce((total, item) => total + item.durationInFrames, 0) / stateRef.current.fps));
     const targetDurationSeconds = Math.min(recipe.durationSeconds, sourceDurationSeconds);
@@ -878,9 +885,10 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     setQuickRun((current) => current ? { ...current, storyConfirmed: true, error: undefined } : current);
     quickStoryConfirmedRef.current = true;
     quickStoryRangesRef.current = ranges;
+    quickStoryDirectionRef.current = direction;
     setChatSeed({
       nonce: Date.now(), references: assets.map((item) => ({ id: item.id, name: item.name, kind: item.kind })), autoSubmit: true, autoApply: true,
-      text: `用户已确认剧情理解。现在制作短剧片段精修发布版：${sourceManifest}。目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。用户标记必须重点保留的真实源时间范围：${priority}。用户标记绝不使用的真实源时间范围：${excluded}。根据刚才写入的真实视频理解和时间范围选片；上传顺序是默认剧情顺序，只有真实画面或台词明确证明时才调整。调用 assemble_rough_cut 创建独立可编辑粗剪，beats 必须引用多个实际 assetId，必须包含全部重点保留范围且不能与不要用范围重叠；不得只使用第一段，不得伪造剧情、字幕或时长。保留原声，不生成付费音乐，不覆盖用户手工修改，最后调用 check_rough_cut_ready 并报告真实结果。`,
+      text: `用户已确认剧情理解，并选择「${direction.title}」：${direction.agentInstruction}。现在制作短剧片段精修发布版：${sourceManifest}。目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。用户标记必须重点保留的真实源时间范围：${priority}。用户标记绝不使用的真实源时间范围：${excluded}。根据刚才写入的真实视频理解和时间范围选片；上传顺序是默认剧情顺序，只有真实画面或台词明确证明时才调整。调用 assemble_rough_cut 创建独立可编辑粗剪，beats 必须引用多个实际 assetId，必须包含全部重点保留范围且不能与不要用范围重叠；不得只使用第一段，不得伪造剧情、字幕或时长。保留原声，不生成付费音乐，不覆盖用户手工修改，最后调用 check_rough_cut_ready 并报告真实结果。`,
     });
   }, [quickRun]);
 
@@ -894,7 +902,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     quickAgentStartedRef.current = false;
     setQuickProgressStage('understanding');
     setQuickAgentState({ running: false, proposalPending: false });
-    setQuickRun((current) => current ? { ...current, storyConfirmed: false, storyPreferences: {}, storyPriorityOrder: [], error: undefined, dismissed: false } : current);
+    setQuickRun((current) => current ? { ...current, storyConfirmed: false, storyPreferences: {}, storyPriorityOrder: [], storyDirectionId: undefined, error: undefined, dismissed: false } : current);
     quickStoryConfirmedRef.current = false;
     setChatSeed({
       nonce: Date.now(),
@@ -1185,6 +1193,8 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
           error={quickAgentError}
           storyPreferences={quickRun.storyPreferences}
           storyPriorityOrder={quickRun.storyPriorityOrder}
+          storyDirections={quickStoryDirections(quickRun.assets)}
+          selectedStoryDirectionId={quickRun.storyDirectionId}
           onStoryPreferenceChange={(key, preference) => setQuickRun((current) => current ? (() => {
             const storyPreferences = preference ? { ...current.storyPreferences, [key]: preference } : Object.fromEntries(Object.entries(current.storyPreferences).filter(([entry]) => entry !== key));
             return { ...current, storyPreferences, storyPriorityOrder: priorityStoryOrder(storyPreferences, current.storyPriorityOrder) };
@@ -1198,6 +1208,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
             [storyPriorityOrder[from], storyPriorityOrder[to]] = [storyPriorityOrder[to]!, storyPriorityOrder[from]!];
             return { ...current, storyPriorityOrder };
           })}
+          onStoryDirectionChange={(storyDirectionId) => setQuickRun((current) => current ? { ...current, storyDirectionId } : current)}
           onRetry={retryQuickRun}
           onConfirmStory={confirmQuickStory}
           onEnterProfessional={() => setQuickRun((current) => current ? { ...current, dismissed: true } : current)}

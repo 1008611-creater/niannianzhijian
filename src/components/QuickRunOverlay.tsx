@@ -1,6 +1,7 @@
 import type { MediaAsset, TimelineItem } from '../editor/types';
 import type { QuickRecipeInput } from './QuickHome';
 import { quickStorySceneKey, type QuickStoryPreferences } from '../quickStoryPreferences';
+import type { QuickStoryDirection } from '../quickStoryDirections';
 import './quickRunOverlay.css';
 
 export type QuickRunStage = 'importing' | 'understanding' | 'review' | 'selecting' | 'assembling' | 'ready' | 'error';
@@ -18,8 +19,11 @@ interface QuickRunOverlayProps {
   error?: string;
   storyPreferences: QuickStoryPreferences;
   storyPriorityOrder: string[];
+  storyDirections: QuickStoryDirection[];
+  selectedStoryDirectionId?: QuickStoryDirection['id'];
   onStoryPreferenceChange: (key: string, preference?: 'priority' | 'exclude') => void;
   onStoryPriorityMove: (key: string, direction: -1 | 1) => void;
+  onStoryDirectionChange: (id: QuickStoryDirection['id']) => void;
   onRetry: () => void;
   onConfirmStory: () => void;
   onEnterProfessional: () => void;
@@ -69,8 +73,11 @@ export function QuickRunOverlay({
   error,
   storyPreferences,
   storyPriorityOrder,
+  storyDirections,
+  selectedStoryDirectionId,
   onStoryPreferenceChange,
   onStoryPriorityMove,
+  onStoryDirectionChange,
   onRetry,
   onConfirmStory,
   onEnterProfessional,
@@ -187,6 +194,20 @@ export function QuickRunOverlay({
               </div>
             )}
 
+            {stage === 'review' && storyDirections.length > 0 && (
+              <section className="qrun-story-directions" aria-labelledby="qrun-story-direction-title">
+                <div className="qrun-section-title"><strong id="qrun-story-direction-title">你想怎么讲这段故事？</strong><span>根据上面的真实剧情生成</span></div>
+                <div className="qrun-direction-list" role="radiogroup" aria-label="剧情剪辑方向">
+                  {storyDirections.map((direction) => {
+                    const selected = selectedStoryDirectionId === direction.id;
+                    return <button type="button" role="radio" aria-checked={selected} className={`qrun-direction${selected ? ' selected' : ''}`} key={direction.id} onClick={() => onStoryDirectionChange(direction.id)}>
+                      <strong>{direction.title}</strong><span>{direction.description}</span>
+                    </button>;
+                  })}
+                </div>
+              </section>
+            )}
+
             {stage === 'ready' && (
               <div className="qrun-result">
                 <div><strong>{analyzedAssetCount}/{assets.length}</strong><span>段已理解素材</span></div>
@@ -202,7 +223,7 @@ export function QuickRunOverlay({
               {stage === 'ready' ? (
                 <button type="button" className="qrun-primary" onClick={onEnterProfessional}>查看并继续精修</button>
               ) : stage === 'review' ? (
-                <button type="button" className="qrun-primary" onClick={onConfirmStory}>剧情理解正确，开始精剪</button>
+                <button type="button" className="qrun-primary" disabled={!selectedStoryDirectionId} onClick={onConfirmStory}>{selectedStoryDirectionId ? '按这个方向开始精剪' : '先选择一个剪辑方向'}</button>
               ) : stage === 'error' ? (
                 <><button type="button" className="qrun-primary" onClick={onRetry}>重新制作</button><button type="button" className="qrun-secondary" onClick={onEnterProfessional}>保留素材进入编辑</button></>
               ) : (
