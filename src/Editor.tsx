@@ -90,6 +90,8 @@ import {
 import { updateCaptionSelections } from './captions/captionSelectionInteraction';
 import type { QuickRecipeInput } from './components/QuickHome';
 import { QuickRunOverlay, type QuickRunStage } from './components/QuickRunOverlay';
+import { isCompleteQuickRoughCut, roughCutSourceCount } from './quickRunEvidence';
+import { quickRunErrorMessage } from './quickRunError';
 
 interface EditorProps {
   initial: ProjectDoc;
@@ -808,6 +810,11 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
         .flatMap((timeline) => timeline.items)
         .filter((item) => !quickInitialItemIdsRef.current.has(item.id))
     : [];
+  const quickAnalyzedAssetCount = quickRun?.assets.filter((asset) => {
+    const current = (state.assets ?? []).find((item) => item.id === asset.id) ?? asset;
+    return !!current.intelligence?.videoSummary || !!current.intelligence?.scenes?.length;
+  }).length ?? 0;
+  const quickRoughCutSourceCount = roughCutSourceCount(quickCreatedItems);
   const quickObservedStage: Exclude<QuickRunStage, 'ready' | 'error'> = !quickRun?.assetReady ? 'importing'
     : quickAgentState.liveTool === 'assemble_rough_cut'
         || quickAgentState.liveTool === 'check_rough_cut_ready'
@@ -821,8 +828,9 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
       ? quickObservedStage
       : current);
   }, [quickObservedStage]);
-  const quickStage: QuickRunStage = quickRun?.error || quickAgentState.error ? 'error'
-    : quickCreatedItems.length > 0 ? 'ready'
+  const quickAgentError = quickRunErrorMessage(quickRun?.error || quickAgentState.error);
+  const quickStage: QuickRunStage = quickAgentError ? 'error'
+    : isCompleteQuickRoughCut(quickCreatedItems, quickRun?.assets.length ?? 0) ? 'ready'
       : quickProgressStage;
 
   useEffect(() => {
@@ -1135,10 +1143,13 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
           stage={quickStage}
           recipe={quickRun.recipe}
           asset={quickAsset}
+          assets={quickRun.assets.map((asset) => (state.assets ?? []).find((item) => item.id === asset.id) ?? asset)}
           importedRatio={quickRun.importedRatio}
           createdItems={quickCreatedItems}
+          analyzedAssetCount={quickAnalyzedAssetCount}
+          roughCutSourceCount={quickRoughCutSourceCount}
           fps={state.fps}
-          error={quickRun.error || quickAgentState.error}
+          error={quickAgentError}
           onRetry={retryQuickRun}
           onEnterProfessional={() => setQuickRun((current) => current ? { ...current, dismissed: true } : current)}
           onBack={() => { window.location.hash = '#/quick'; }}

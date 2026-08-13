@@ -8,8 +8,11 @@ interface QuickRunOverlayProps {
   stage: QuickRunStage;
   recipe: QuickRecipeInput;
   asset?: MediaAsset;
+  assets: MediaAsset[];
   importedRatio: number;
   createdItems: TimelineItem[];
+  analyzedAssetCount: number;
+  roughCutSourceCount: number;
   fps: number;
   error?: string;
   onRetry: () => void;
@@ -50,8 +53,11 @@ export function QuickRunOverlay({
   stage,
   recipe,
   asset,
+  assets,
   importedRatio,
   createdItems,
+  analyzedAssetCount,
+  roughCutSourceCount,
   fps,
   error,
   onRetry,
@@ -59,7 +65,10 @@ export function QuickRunOverlay({
   onBack,
 }: QuickRunOverlayProps) {
   const stageIndex = STAGE_INDEX[stage];
-  const scenes = asset?.intelligence?.scenes?.slice(0, 4) ?? [];
+  const scenes = assets.flatMap((item) => (item.intelligence?.scenes ?? []).map((scene) => ({
+    ...scene,
+    assetName: item.name,
+  }))).slice(0, 4);
   const durationFrames = createdItems.reduce((maximum, item) => Math.max(maximum, item.startFrame + item.durationInFrames), 0);
   const resultSeconds = Math.round(durationFrames / Math.max(1, fps));
   const targetSeconds = stage === 'ready' && resultSeconds > 0 ? resultSeconds : recipe.durationSeconds;
@@ -128,7 +137,7 @@ export function QuickRunOverlay({
                 {scenes.map((scene) => (
                   <div className="qrun-scene" key={scene.id}>
                     <time>{timeLabel(scene.startMs)} - {timeLabel(scene.endMs)}</time>
-                    <span>{scene.label || '剧情片段'}</span>
+                    <span>{scene.label || '剧情片段'} · {scene.assetName}</span>
                   </div>
                 ))}
               </div>
@@ -136,7 +145,8 @@ export function QuickRunOverlay({
 
             {stage === 'ready' && (
               <div className="qrun-result">
-                <div><strong>{createdItems.length}</strong><span>个可编辑片段</span></div>
+                <div><strong>{analyzedAssetCount}/{assets.length}</strong><span>段已理解素材</span></div>
+                <div><strong>{roughCutSourceCount}</strong><span>段真实来源</span></div>
                 <div><strong>{resultSeconds || recipe.durationSeconds}s</strong><span>当前成片时长</span></div>
                 <div><strong>真实</strong><span>素材时间轴</span></div>
               </div>
