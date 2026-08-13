@@ -60,6 +60,33 @@ export type AgentEvent =
   | { type: 'model-fallback'; from: string; to: string }
   | { type: 'error'; message: string };
 
+/**
+ * Run API candidates in order. Only failures before any visible output or tool
+ * execution may advance to another provider.
+ */
+export async function runWithAgentFallback<T>(
+  candidates: readonly AgentModelChoice[],
+  attempt: (choice: AgentModelChoice) => Promise<T>,
+  onFallback: (from: AgentModelChoice, to: AgentModelChoice) => void,
+  onError: (error: unknown) => void,
+): Promise<T | undefined> {
+  for (const [index, choice] of candidates.entries()) {
+    try {
+      return await attempt(choice);
+    } catch (error) {
+      const next = candidates[index + 1];
+      if (error instanceof AgentPreOutputFailure && next) {
+        selectAgentModel(next.id);
+        onFallback(choice, next);
+        continue;
+      }
+      onError(error);
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 export function initialMessages(): LLMMessage[] {
   return [];
 }
@@ -129,7 +156,9 @@ export async function runAgent(
     return conv;
   }
   const candidates = getAutomaticAgentFallbackChoices();
-  for (const [index, choice] of candidates.entries()) {
+  const result = await runWithAgentFallback(
+    candidates,
+    async (choice) => {
     const compact = usesSmallContextMode(choice);
     const system = compact
       ? buildCompactAgentSystemPrompt(ctx)
@@ -137,7 +166,6 @@ export async function runAgent(
     const availableToolSchemas = !choice.capabilities.supportsTools.value
       ? []
       : opts?.askOnly ? ASK_MODE_TOOL_SCHEMAS : toolSchemasForChoice(choice);
-    try {
       const prepared = await prepareAgentContext({
         messages: conv,
         system,
@@ -149,7 +177,7 @@ export async function runAgent(
       });
       onEvent({ type: 'context-usage', usage: prepared.usage });
       return choice.backend === 'codex'
-        ? runCodexBackend(
+        ? await runCodexBackend(
             prepared.messages,
             ctx,
             onEvent,
@@ -162,7 +190,7 @@ export async function runAgent(
             opts,
             availableToolSchemas,
           )
-        : runApiAgent(
+        : await runApiAgent(
             prepared.messages,
             ctx,
             onEvent,
@@ -174,19 +202,14 @@ export async function runAgent(
             undefined,
             availableToolSchemas,
           );
-    } catch (error) {
-      if (opts?.signal?.aborted) return conv;
-      const next = candidates[index + 1];
-      if (error instanceof AgentPreOutputFailure && next) {
-        selectAgentModel(next.id);
-        onEvent({ type: 'model-fallback', from: choice.providerLabel, to: next.providerLabel });
-        continue;
-      }
+    },
+    (from, to) => onEvent({ type: 'model-fallback', from: from.providerLabel, to: to.providerLabel }),
+    (error) => {
+      if (opts?.signal?.aborted) return;
       const message = error instanceof Error ? error.message : String(error);
       onEvent({ type: 'error', message: `Unable to prepare model context: ${message}` });
-      return conv;
-    }
-  }
-  return conv;
+    },
+  );
+  return result ?? conv;
 }
 
