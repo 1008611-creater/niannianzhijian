@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { projectReduce } from '../editor/reduce';
 import type { ProjectDoc, Timeline } from '../editor/types';
-import { buildOperation, compactOperations } from './proposal';
+import { buildOperation, compactOperations, partitionProposalActions } from './proposal';
 
 const denoise = (src: string | null) => buildOperation(
   'isolate_voice',
@@ -49,5 +49,13 @@ const doc: ProjectDoc = {
   activeTimelineId: timeline.id,
 };
 assert.equal(projectReduce(doc, { type: 'tl.switch', id: timeline.id }), doc);
+
+const analysisAction = { type: 'pool.updateAsset' as const, id: 'asset-1', patch: {
+  intelligence: { version: 1 as const, sourceRevision: 'rev-1', analyzedAt: 1, videoSummary: '真实画面摘要' },
+} };
+const metadataAction = { type: 'pool.updateAsset' as const, id: 'asset-1', patch: { name: '用户改名.mp4' } };
+const partitioned = partitionProposalActions([analysisAction, metadataAction]);
+assert.deepEqual(partitioned.persistent, [analysisAction], 'source-bound analysis must persist for the next Agent step');
+assert.deepEqual(partitioned.proposed, [metadataAction], 'ordinary presentation changes remain reviewable');
 
 console.log('proposal compaction checks passed');

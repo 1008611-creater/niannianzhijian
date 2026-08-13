@@ -94,6 +94,7 @@ import { isCompleteQuickRoughCut, roughCutSourceCount } from './quickRunEvidence
 import { quickRunErrorMessage } from './quickRunError';
 import { priorityStoryOrder, selectedQuickStoryRanges, type QuickStoryPreferences } from './quickStoryPreferences';
 import { quickStoryDirections, type QuickStoryDirection } from './quickStoryDirections';
+import { requestAssetMimoAsr, requestAssetVideoUnderstanding, mimoAsrIntelligenceFor, videoIntelligenceFor } from './media/assetIntelligenceApi';
 
 interface EditorProps {
   initial: ProjectDoc;
@@ -339,6 +340,13 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
       getQuickStoryConfirmed: () => quickStoryConfirmedRef.current,
       getQuickStoryRanges: () => quickStoryRangesRef.current,
       getQuickStoryDirection: () => quickStoryDirectionRef.current,
+      onQuickAssetIntelligence: (assetId: string, intelligence: NonNullable<MediaAsset['intelligence']>) => {
+        setQuickRun((current) => current ? {
+          ...current,
+          assets: current.assets.map((asset) => asset.id === assetId ? { ...asset, intelligence } : asset),
+          ...(current.asset && current.asset.id === assetId ? { asset: { ...current.asset, intelligence } } : {}),
+        } : current);
+      },
       getUndoTarget,
       getRedoTarget,
       getApprovalMode: () => (loadChatAutoApply(project.id) ? 'auto' : 'manual'),
@@ -474,11 +482,20 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     dismissed: false,
   } : null);
   const [quickAgentState, setQuickAgentState] = useState<AgentRunState>({ running: false, proposalPending: false });
+  // The import result is an immutable ingest snapshot. Video understanding is
+  // returned to quick mode before the persistent media-pool write completes,
+  // so retain its intelligence while preferring all other live asset fields.
+  const quickRunAssets = useMemo(() => quickRun?.assets.map((snapshot) => {
+    const live = doc.assets.find((item) => item.id === snapshot.id);
+    return live
+      ? { ...snapshot, ...live, intelligence: live.intelligence ?? snapshot.intelligence }
+      : snapshot;
+  }) ?? [], [quickRun?.assets, doc.assets]);
   useEffect(() => {
     quickStoryConfirmedRef.current = !!quickRun?.storyConfirmed;
-    quickStoryRangesRef.current = selectedQuickStoryRanges(quickRun?.assets ?? [], quickRun?.storyPreferences ?? {}, quickRun?.storyPriorityOrder ?? []);
-    quickStoryDirectionRef.current = quickStoryDirections(quickRun?.assets ?? []).find((direction) => direction.id === quickRun?.storyDirectionId);
-  }, [quickRun]);
+    quickStoryRangesRef.current = selectedQuickStoryRanges(quickRunAssets, quickRun?.storyPreferences ?? {}, quickRun?.storyPriorityOrder ?? []);
+    quickStoryDirectionRef.current = quickStoryDirections(quickRunAssets).find((direction) => direction.id === quickRun?.storyDirectionId);
+  }, [quickRun, quickRunAssets]);
   const [quickProgressStage, setQuickProgressStage] = useState<Exclude<QuickRunStage, 'ready' | 'error'>>('importing');
   // Design style (brand) editor pop-up window.
   const [showDesign, setShowDesign] = useState(false);
@@ -761,8 +778,9 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     }
   }, [commands, startAssetTranscription, t]);
 
-  // Quick mode hands the selected source into the same professional project and
-  // seeds the existing Agent workflow; no second timeline is created.
+  // Quick mode hands the selected source into the same professional project.
+  // It first obtains source-bound video evidence locally, then hands the
+  // confirmed narrative direction to the existing Agent workflow.
   const quickRecipeStartedRef = useRef(false);
   useEffect(() => {
     if (!initialRecipe || quickRecipeStartedRef.current) return;
@@ -796,18 +814,36 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
           importedRatio: 1,
           error: undefined,
         } : current);
-        const sourceManifest = assets.map((item, index) => `第${index + 1}段「${item.name}」（assetId=${item.id}）`).join('；');
-        const storyContext = initialRecipe.storyOutline ? `用户提供的剧情梗概：${initialRecipe.storyOutline}` : '用户没有提供剧情梗概；只能从真实画面、真实台词与上传顺序判断，不能虚构剧情。';
-        const dialogueContext = initialRecipe.dialogue ? `用户提供的关键台词/文案：${initialRecipe.dialogue}` : '用户没有提供台词文案；先对每段调用 analyze_asset(kind=mimo-asr) 获取可检索的真实口语文本，不能把无时间戳 ASR 当作字幕。';
-        changeCreativeMode('11111111-1240-4000-8000-000000000004');
-        setChatCollapsed(false);
-        setChatSeed({
-          nonce: Date.now(),
-          references: assets.map((item) => ({ id: item.id, name: item.name, kind: item.kind })),
-          autoSubmit: true,
-          autoApply: true,
-          text: `先理解这组短剧素材，暂时不要创建时间线或粗剪。运行编号为${initialRecipe.workflowRunId ?? '未记录'}。本次素材按剧情发生顺序上传：${sourceManifest}。${storyContext} ${dialogueContext} 每段先用 search_media(query=文件名, modalities=["metadata"], limit=1) 精确确认对应 assetId；任一段未命中就停止并报告。随后逐段调用 analyze_asset(kind=video)、analyze_asset(kind=mimo-asr) 和 view_asset_frames，读取人物、关系、冲突、情绪变化和真实时间范围。保留上传顺序为默认剧情顺序，不能虚构剧情。完成后只用简洁中文总结每段剧情与关键时间段，等待用户确认；本轮严禁调用 assemble_rough_cut、edit_item、字幕、配音、音乐或任何会改动时间线的工具。`,
-        });
+        setQuickProgressStage('understanding');
+        setChatCollapsed(true);
+        for (const imported of assets) {
+          const sourceRevision = sourceRevisionOf(imported);
+          const video = await requestAssetVideoUnderstanding(imported);
+          const live = docRef.current.assets.find((item) => item.id === imported.id);
+          if (!live || sourceRevisionOf(live) !== sourceRevision) {
+            throw new Error('素材在理解过程中已被替换，请重新制作');
+          }
+          const intelligence = videoIntelligenceFor(live, video);
+          commands.editMediaAsset(live.id, { intelligence });
+          setQuickRun((current) => current ? {
+            ...current,
+            assets: current.assets.map((item) => item.id === live.id ? { ...item, intelligence } : item),
+            ...(current.asset?.id === live.id ? { asset: { ...current.asset, intelligence } } : {}),
+          } : current);
+          // ASR is helpful context for the later rough cut, but neither a missing
+          // audio stream nor an ASR outage may block evidence-backed story cards.
+          void requestAssetMimoAsr(live).then((result) => {
+            const current = docRef.current.assets.find((item) => item.id === live.id);
+            if (!current || sourceRevisionOf(current) !== sourceRevision) return;
+            const updated = mimoAsrIntelligenceFor(current, result);
+            commands.editMediaAsset(current.id, { intelligence: updated });
+            setQuickRun((run) => run ? {
+              ...run,
+              assets: run.assets.map((item) => item.id === current.id ? { ...item, intelligence: updated } : item),
+              ...(run.asset?.id === current.id ? { asset: { ...run.asset, intelligence: updated } } : {}),
+            } : run);
+          }).catch(() => undefined);
+        }
         onRecipeConsumed?.();
       } catch (error) {
         const message = error instanceof Error ? error.message : '短剧素材导入失败';
@@ -815,20 +851,19 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
         showAppToast(message, { error: true });
       }
     })();
-  }, [changeCreativeMode, importToPool, initialRecipe, onRecipeConsumed, setChatCollapsed]);
+  }, [commands, importToPool, initialRecipe, onRecipeConsumed, setChatCollapsed]);
 
   const quickAsset = quickRun?.assetId
-    ? (state.assets ?? []).find((asset) => asset.id === quickRun.assetId) ?? quickRun.asset
+    ? doc.assets.find((asset) => asset.id === quickRun.assetId) ?? quickRun.asset
     : quickRun?.asset;
   const quickCreatedItems = quickRun
     ? doc.timelines
         .flatMap((timeline) => timeline.items)
         .filter((item) => !quickInitialItemIdsRef.current.has(item.id))
     : [];
-  const quickAnalyzedAssetCount = quickRun?.assets.filter((asset) => {
-    const current = (state.assets ?? []).find((item) => item.id === asset.id) ?? asset;
-    return !!current.intelligence?.videoSummary || !!current.intelligence?.scenes?.length;
-  }).length ?? 0;
+  const quickAnalyzedAssetCount = quickRunAssets.filter((asset) =>
+    !!asset.intelligence?.videoSummary || !!asset.intelligence?.scenes?.length,
+  ).length;
   const quickRoughCutSourceCount = roughCutSourceCount(quickCreatedItems);
   const quickObservedStage: Exclude<QuickRunStage, 'ready' | 'error'> = !quickRun?.assetReady ? 'importing'
     : quickAgentState.liveTool === 'assemble_rough_cut'
@@ -844,7 +879,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
       : current);
   }, [quickObservedStage]);
   const quickAgentError = quickRunErrorMessage(quickRun?.error || quickAgentState.error);
-  const quickStoryReady = !!quickRun?.assetReady && quickAnalyzedAssetCount === (quickRun?.assets.length ?? 0) && !quickAgentState.running;
+  const quickStoryReady = !!quickRun?.assetReady && quickAnalyzedAssetCount === quickRunAssets.length && !quickAgentState.running;
   const quickStage: QuickRunStage = quickAgentError ? 'error'
     : isCompleteQuickRoughCut(quickCreatedItems, quickRun?.assets.length ?? 0) ? 'ready'
       : !quickRun?.storyConfirmed && quickStoryReady ? 'review'
@@ -856,7 +891,10 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
       quickAgentStartedRef.current = true;
       return;
     }
-    if (!quickAgentStartedRef.current || quickAgentState.proposalPending || quickCreatedItems.length > 0 || quickRun.error || (!quickRun.storyConfirmed && quickStoryReady)) return;
+    // Analysis deliberately stops before any timeline mutation. Only report a
+    // missing rough cut after the user chose a direction and that second run
+    // has actually started and finished.
+    if (!quickRun.storyConfirmed || !quickAgentStartedRef.current || quickAgentState.proposalPending || quickCreatedItems.length > 0 || quickRun.error) return;
     const timer = window.setTimeout(() => {
       setQuickRun((current) => current ? {
         ...current,
@@ -868,7 +906,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
 
   const confirmQuickStory = useCallback(() => {
     const recipe = quickRecipeRef.current;
-    const assets = quickRun?.assets.length ? quickRun.assets : [];
+    const assets = quickRunAssets;
     if (!recipe || !assets.length) return;
     const direction = quickStoryDirections(assets).find((item) => item.id === quickRun?.storyDirectionId);
     if (!direction) return;
@@ -879,6 +917,8 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     const ranges = selectedQuickStoryRanges(assets, quickRun?.storyPreferences ?? {}, quickRun?.storyPriorityOrder ?? []);
     const priority = ranges.filter((range) => range.preference === 'priority').map((range) => `${(range.order ?? 0) + 1}. ${range.assetId} ${range.startMs}-${range.endMs}ms`).join('；') || '无';
     const excluded = ranges.filter((range) => range.preference === 'exclude').map((range) => `${range.assetId} ${range.startMs}-${range.endMs}ms`).join('；') || '无';
+    const storyContext = recipe.storyOutline ? `用户补充的剧情梗概：${recipe.storyOutline}。` : '用户没有补充剧情梗概；以已写入素材的真实视频理解为准，不能虚构剧情。';
+    const dialogueContext = recipe.dialogue ? `用户补充的关键台词/文案：${recipe.dialogue}。` : '用户没有补充台词文案；只有现有真实转写可用时才能引用台词。';
     quickAgentStartedRef.current = false;
     setQuickProgressStage('selecting');
     setQuickAgentState({ running: false, proposalPending: false });
@@ -888,17 +928,17 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     quickStoryDirectionRef.current = direction;
     setChatSeed({
       nonce: Date.now(), references: assets.map((item) => ({ id: item.id, name: item.name, kind: item.kind })), autoSubmit: true, autoApply: true,
-      text: `用户已确认剧情理解，并选择「${direction.title}」：${direction.agentInstruction}。现在制作短剧片段精修发布版：${sourceManifest}。目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。用户标记必须重点保留的真实源时间范围：${priority}。用户标记绝不使用的真实源时间范围：${excluded}。根据刚才写入的真实视频理解和时间范围选片；上传顺序是默认剧情顺序，只有真实画面或台词明确证明时才调整。调用 assemble_rough_cut 创建独立可编辑粗剪，beats 必须引用多个实际 assetId，必须包含全部重点保留范围且不能与不要用范围重叠；不得只使用第一段，不得伪造剧情、字幕或时长。保留原声，不生成付费音乐，不覆盖用户手工修改，最后调用 check_rough_cut_ready 并报告真实结果。`,
+      text: `用户已确认剧情理解，并选择「${direction.title}」：${direction.agentInstruction}。现在制作短剧片段精修发布版：${sourceManifest}。${storyContext}${dialogueContext}目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。用户标记必须重点保留的真实源时间范围：${priority}。用户标记绝不使用的真实源时间范围：${excluded}。根据已经写入的真实视频理解、真实时间范围和可用真实转写选片；上传顺序是默认剧情顺序，只有真实画面或台词明确证明时才调整。先 search_media 精确确认 assetId；仅当素材元数据缺少对应证据时才调用 analyze_asset 或 view_asset_frames。调用 assemble_rough_cut 创建独立可编辑粗剪，beats 必须引用多个实际 assetId，必须包含全部重点保留范围且不能与不要用范围重叠；不得只使用第一段，不得伪造剧情、字幕或时长。保留原声，不生成付费音乐，不覆盖用户手工修改，最后调用 check_rough_cut_ready 并报告真实结果。`,
     });
-  }, [quickRun]);
+  }, [quickRun, quickRunAssets]);
 
   const retryQuickRun = useCallback(() => {
     const recipe = quickRecipeRef.current;
-    const assets = quickRun?.assets.length ? quickRun.assets : quickAsset ? [quickAsset] : [];
+    const assets = quickRunAssets.length ? quickRunAssets : quickAsset ? [quickAsset] : [];
     if (!recipe || !assets.length) return;
     const sourceManifest = assets.map((item, index) => `第${index + 1}段「${item.name}」（assetId=${item.id}）`).join('；');
     const storyContext = recipe.storyOutline ? `用户提供的剧情梗概：${recipe.storyOutline}` : '没有剧情梗概；只能根据真实画面、真实台词和上传顺序判断，不能虚构剧情。';
-    const dialogueContext = recipe.dialogue ? `用户提供的关键台词/文案：${recipe.dialogue}` : '没有台词文案；逐段调用 analyze_asset(kind=mimo-asr) 获取真实口语文本，不能将其当作字幕。';
+    const dialogueContext = recipe.dialogue ? `用户提供的关键台词/文案：${recipe.dialogue}` : '没有台词文案；逐段调用 analyze_asset(kind=mimo-asr) 尝试获取真实口语文本。若返回 noSpeech=true，继续按真实画面理解，不能将其当作字幕。';
     quickAgentStartedRef.current = false;
     setQuickProgressStage('understanding');
     setQuickAgentState({ running: false, proposalPending: false });
@@ -909,9 +949,9 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
       references: assets.map((item) => ({ id: item.id, name: item.name, kind: item.kind })),
       autoSubmit: true,
       autoApply: true,
-      text: `重新理解这组短剧素材，暂时不要创建时间线或粗剪：${sourceManifest}。${storyContext} ${dialogueContext} 每段先 search_media 精确按文件名确认 assetId，再逐段 analyze_asset(kind=video)、analyze_asset(kind=mimo-asr) 与 view_asset_frames，读清剧情、人物关系、冲突、情绪和真实时间范围。上传顺序是默认剧情顺序，不能虚构剧情。完成后只总结每段剧情与关键时间段，等待用户确认；严禁调用 assemble_rough_cut、edit_item、字幕、配音、音乐或任何会改动时间线的工具。`,
+      text: `重新理解这组短剧素材，暂时不要创建时间线或粗剪：${sourceManifest}。${storyContext} ${dialogueContext} 每段先 search_media 精确按文件名确认 assetId，再逐段 analyze_asset(kind=video)、analyze_asset(kind=mimo-asr) 与 view_asset_frames，读清剧情、人物关系、冲突、情绪和真实时间范围。若转写没有人声，仍继续按视频理解与画面分析完成剧情摘要。上传顺序是默认剧情顺序，不能虚构剧情。完成后只总结每段剧情与关键时间段，等待用户确认；严禁调用 assemble_rough_cut、edit_item、字幕、配音、音乐或任何会改动时间线的工具。`,
     });
-  }, [quickAsset, quickRun]);
+  }, [quickAsset, quickRun, quickRunAssets]);
 
   const dropExternalFilesToTimeline = useCallback(async (
     files: File[],
@@ -1184,7 +1224,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
           stage={quickStage}
           recipe={quickRun.recipe}
           asset={quickAsset}
-          assets={quickRun.assets.map((asset) => (state.assets ?? []).find((item) => item.id === asset.id) ?? asset)}
+          assets={quickRunAssets}
           importedRatio={quickRun.importedRatio}
           createdItems={quickCreatedItems}
           analyzedAssetCount={quickAnalyzedAssetCount}
@@ -1193,7 +1233,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
           error={quickAgentError}
           storyPreferences={quickRun.storyPreferences}
           storyPriorityOrder={quickRun.storyPriorityOrder}
-          storyDirections={quickStoryDirections(quickRun.assets)}
+          storyDirections={quickStoryDirections(quickRunAssets)}
           selectedStoryDirectionId={quickRun.storyDirectionId}
           onStoryPreferenceChange={(key, preference) => setQuickRun((current) => current ? (() => {
             const storyPreferences = preference ? { ...current.storyPreferences, [key]: preference } : Object.fromEntries(Object.entries(current.storyPreferences).filter(([entry]) => entry !== key));

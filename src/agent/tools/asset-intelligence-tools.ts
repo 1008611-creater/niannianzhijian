@@ -48,7 +48,11 @@ export async function execAssetIntelligenceTool(name: string, args: Args, ctx: A
       if (!current || sourceRevisionOf(current) !== sourceRevision) {
         return { stale: true, assetId: asset.id, note: '素材在整段视频理解期间已被替换，结果未写入' };
       }
-      ctx.commands.editMediaAsset(asset.id, { intelligence: videoIntelligenceFor(current, result) });
+      const intelligence = videoIntelligenceFor(current, result);
+      ctx.commands.editMediaAsset(asset.id, { intelligence });
+      // Quick mode must render its story choices from the same source-bound
+      // result immediately; the project store still owns durable persistence.
+      ctx.onQuickAssetIntelligence?.(asset.id, intelligence);
       const sourceSegments = result.segments.map((segment) => ({
         sourceStartMs: segment.startMs,
         sourceEndMs: segment.endMs,
@@ -86,7 +90,10 @@ export async function execAssetIntelligenceTool(name: string, args: Args, ctx: A
       return {
         ok: true, assetId: asset.id, sourceRevision, model: result.model,
         chars: result.text.length, language: result.language, timing: 'none',
-        note: 'MiMo 转写已写入素材文本索引；它没有词级时间戳，不能用于字幕或时间线文本编辑。',
+        ...(result.noSpeech ? { noSpeech: true } : {}),
+        note: result.noSpeech
+          ? '素材没有可转写的音轨或人声；这是预期结果。继续使用真实画面和整段视频理解，不得伪造台词或字幕。'
+          : 'MiMo 转写已写入素材文本索引；它没有词级时间戳，不能用于字幕或时间线文本编辑。',
       };
     }
     const result = await requestAssetOcr(asset, { timeMs, language });

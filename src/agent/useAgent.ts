@@ -6,6 +6,7 @@ import { normalizeLlmProvider, PROVIDER } from './providerConfig';
 import type { LlmProvider } from './providerConfig';
 import { normalizeLlmMessages, prepareMessagesForProvider } from './messages';
 import { makeDraft, replayActions } from '../editor/store';
+import type { AnyAction } from '../editor/reduce';
 import { buildOperation, buildProposal, isProposalStale, partitionProposalActions, type Operation, type Proposal } from './proposal';
 import { isCostAllowed, rememberCostAllowed, type GuardDecision } from './skills/costGuard';
 import { loadChat, saveChat } from '../persist/projectStore';
@@ -169,6 +170,7 @@ export function useAgent(ctx: AgentContext, projectId: string, yoloAutoApply = f
         getQuickStoryConfirmed: ctxRef.current.getQuickStoryConfirmed,
         getQuickStoryRanges: ctxRef.current.getQuickStoryRanges,
         getQuickStoryDirection: ctxRef.current.getQuickStoryDirection,
+        onQuickAssetIntelligence: ctxRef.current.onQuickAssetIntelligence,
       };
       const ops: Operation[] = [];
       const persistentOps: Operation[] = [];
@@ -272,7 +274,26 @@ export function useAgent(ctx: AgentContext, projectId: string, yoloAutoApply = f
             setLiveTool(null);
             setMessages((m) => [...m, { role: 'tool', text: '', tool: { name: ev.name, args: ev.args, result: ev.result } }]);
             const actions = draft.takeActions(); // actions this tool produced (empty for read-only tools)
-            const { persistent, proposed } = partitionProposalActions(actions);
+            const partitioned = partitionProposalActions(actions);
+            let persistent = partitioned.persistent;
+            const proposed = partitioned.proposed;
+            // Quick mode needs source evidence before the Agent's prose turn has
+            // finished: its story cards only read persisted media intelligence.
+            // This writes analysis metadata only; timeline mutations still wait
+            // for the user to choose a story direction and assemble a rough cut.
+            const quickAnalysis = new Set<AnyAction>();
+            if (quickAutoApply) {
+              for (const action of persistent) {
+                if (action.type === 'pool.updateAsset' && action.patch.intelligence !== undefined) {
+                  ctxRef.current.commands.editMediaAsset(action.id, action.patch);
+                  ctxRef.current.onQuickAssetIntelligence?.(action.id, action.patch.intelligence);
+                  quickAnalysis.add(action);
+                }
+              }
+            }
+            if (quickAnalysis.size) {
+              persistent = persistent.filter((action) => !quickAnalysis.has(action));
+            }
             if (persistent.length) {
               const observed = ctxRef.current.getDoc();
               if (!persistentBeforeDoc) {

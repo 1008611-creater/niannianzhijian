@@ -180,10 +180,15 @@ export function isProposalStale(proposal: Proposal, currentDoc: ProjectDoc): boo
   }
 }
 
-/** Generated files are durable side effects: save assets now, propose only timeline edits. */
+/**
+ * Generated files and source-bound analysis are durable evidence: save them now,
+ * propose only user-authored timeline and presentation changes.
+ */
 export function partitionProposalActions(actions: AnyAction[]): { persistent: AnyAction[]; proposed: AnyAction[] } {
   return {
-    persistent: actions.filter((action) => action.type === 'addAsset'),
-    proposed: actions.filter((action) => action.type !== 'addAsset'),
+    persistent: actions.filter((action) => action.type === 'addAsset'
+      || (action.type === 'pool.updateAsset' && action.patch.intelligence !== undefined)),
+    proposed: actions.filter((action) => action.type !== 'addAsset'
+      && !(action.type === 'pool.updateAsset' && action.patch.intelligence !== undefined)),
   };
 }

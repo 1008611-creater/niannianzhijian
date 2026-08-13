@@ -1,5 +1,5 @@
 import type { EditorCommands } from '../editor/store';
-import type { ProjectDoc, TimelineItem, TimelineState } from '../editor/types';
+import type { AssetIntelligence, ProjectDoc, TimelineItem, TimelineState } from '../editor/types';
 import { trackAlias } from '../editor/types';
 import { sourceWindowForTimelineRange } from '../editor/sourceLimit';
 import type { Tpl } from '../types';
@@ -73,6 +73,8 @@ export interface AgentContext {
   getQuickStoryRanges?: () => readonly QuickStoryRange[];
   /** User-selected, evidence-backed narrative direction for the current quick rough cut. */
   getQuickStoryDirection?: () => QuickStoryDirection | undefined;
+  /** Publishes source-bound analysis to the active quick-run UI without changing a timeline. */
+  onQuickAssetIntelligence?: (assetId: string, intelligence: AssetIntelligence) => void;
   /** Proposal confirmation mode (built-in chat: auto-apply setting; external: session approvalMode).
    * Drives provider routing: 'manual' asks the user once among several providers; 'auto' lets the agent pick. */
   getApprovalMode?: () => ApprovalMode;

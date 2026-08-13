@@ -59,6 +59,7 @@ export interface AssetMimoAsrResult {
   text: string;
   language: 'auto' | 'zh' | 'en';
   model: string;
+  noSpeech?: true;
 }
 
 export async function requestAssetOcr(asset: MediaAsset, options: AssetOcrOptions = {}): Promise<AssetOcrResult> {
@@ -86,11 +87,13 @@ export async function requestAssetMimoAsr(asset: MediaAsset, language: 'auto' | 
   const body = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) throw new Error(typeof body.error === 'string' ? body.error : `MiMo ASR failed (${response.status})`);
   const text = typeof body.text === 'string' ? body.text.replace(/\s+/g, ' ').trim().slice(0, 200_000) : '';
-  if (!text) throw new Error('MiMo ASR returned no transcript text');
+  const noSpeech = body.noSpeech === true;
+  if (!text && !noSpeech) throw new Error('MiMo ASR returned no transcript text');
   return {
     text,
     language: body.language === 'zh' || body.language === 'en' ? body.language : 'auto',
     model: typeof body.model === 'string' && body.model.trim() ? body.model.trim().slice(0, 160) : 'mimo-v2.5-asr',
+    ...(noSpeech ? { noSpeech: true as const } : {}),
   };
 }
 
