@@ -4,6 +4,7 @@ import type { AgentContext } from '../context';
 import { makeDraft } from '../../editor/store';
 import { ASPECT_PRESETS, defaultTrackId, trackAlias, type MediaAsset, type TransitionType } from '../../editor/types';
 import { execRoughCutBgmTool, execRoughCutCaptionsTool, execRoughCutReadyTool, execRoughCutVoiceoverTool } from './rough-cut-voiceover';
+import { quickStoryPreferenceError } from '../../quickStoryPreferences';
 
 type Args = Record<string, unknown>;
 type VisualAsset = MediaAsset & { kind: 'video' | 'image' | 'gif' | 'svg' };
@@ -72,6 +73,10 @@ export async function execRoughCutTool(name: string, args: Args, ctx: AgentConte
   }
   const parsed = parseBeats(args.beats, ctx.getDoc().assets);
   if (!parsed.beats) return { error: parsed.error };
+  const preferenceError = quickStoryPreferenceError(parsed.beats.map((beat) => ({
+    assetId: beat.asset.id, sourceStartMs: beat.sourceStartMs, sourceDurationMs: beat.sourceDurationMs,
+  })), ctx.getQuickStoryRanges?.() ?? []);
+  if (preferenceError) return { error: preferenceError };
   const transitionType = transition(args.transition);
   if (transitionType === 'invalid') return { error: 'transition must be none, cross-dissolve, soft-wipe, or flash' };
   const ratio = typeof args.ratio === 'string' ? ASPECT_PRESETS.find((preset) => preset.label === args.ratio) : undefined;

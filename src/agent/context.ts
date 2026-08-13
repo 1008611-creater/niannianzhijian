@@ -6,6 +6,7 @@ import type { Tpl } from '../types';
 import type { AudioAsset } from '../audio/library';
 import type { LibraryDragKind } from '../library/drag';
 import type { ApprovalMode } from './capabilities';
+import type { QuickStoryRange } from '../quickStoryPreferences';
 import {
   SELECTION_REF_CATEGORY, isSelectionRefKind, timelineIdOf,
   type AssetRefKind, type SelectionReference,
@@ -67,6 +68,8 @@ export interface AgentContext {
   onRoughCutAssembled?: (doc: ProjectDoc, timelineId: string) => void;
   /** Quick short-drama runs stay analysis-only until the user confirms the story cards. */
   getQuickStoryConfirmed?: () => boolean;
+  /** User-confirmed story constraints for the current quick short-drama rough cut. */
+  getQuickStoryRanges?: () => readonly QuickStoryRange[];
   /** Proposal confirmation mode (built-in chat: auto-apply setting; external: session approvalMode).
    * Drives provider routing: 'manual' asks the user once among several providers; 'auto' lets the agent pick. */
   getApprovalMode?: () => ApprovalMode;

@@ -167,6 +167,7 @@ export function useAgent(ctx: AgentContext, projectId: string, yoloAutoApply = f
         getUndoTarget: ctxRef.current.getUndoTarget,
         getRedoTarget: ctxRef.current.getRedoTarget,
         getQuickStoryConfirmed: ctxRef.current.getQuickStoryConfirmed,
+        getQuickStoryRanges: ctxRef.current.getQuickStoryRanges,
       };
       const ops: Operation[] = [];
       const persistentOps: Operation[] = [];

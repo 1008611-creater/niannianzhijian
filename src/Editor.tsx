@@ -92,6 +92,7 @@ import type { QuickRecipeInput } from './components/QuickHome';
 import { QuickRunOverlay, type QuickRunStage } from './components/QuickRunOverlay';
 import { isCompleteQuickRoughCut, roughCutSourceCount } from './quickRunEvidence';
 import { quickRunErrorMessage } from './quickRunError';
+import { selectedQuickStoryRanges, type QuickStoryPreferences } from './quickStoryPreferences';
 
 interface EditorProps {
   initial: ProjectDoc;
@@ -123,6 +124,7 @@ interface QuickRunRuntime {
   assets: MediaAsset[];
   assetReady: boolean;
   storyConfirmed: boolean;
+  storyPreferences: QuickStoryPreferences;
   error?: string;
   dismissed: boolean;
 }
@@ -322,6 +324,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
   const allTemplatesRef = useRef(allTemplates);
   allTemplatesRef.current = allTemplates;
   const quickStoryConfirmedRef = useRef(false);
+  const quickStoryRangesRef = useRef<ReturnType<typeof selectedQuickStoryRanges>>([]);
   const agentCtx = useMemo(
     () => ({
       commands,
@@ -330,6 +333,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
       getOfflineMediaSrcs: () => offlineSrcsRef.current,
       getCreativeMode: () => creativeModeRef.current,
       getQuickStoryConfirmed: () => quickStoryConfirmedRef.current,
+      getQuickStoryRanges: () => quickStoryRangesRef.current,
       getUndoTarget,
       getRedoTarget,
       getApprovalMode: () => (loadChatAutoApply(project.id) ? 'auto' : 'manual'),
@@ -460,10 +464,14 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     assets: [],
     assetReady: false,
     storyConfirmed: false,
+    storyPreferences: {},
     dismissed: false,
   } : null);
   const [quickAgentState, setQuickAgentState] = useState<AgentRunState>({ running: false, proposalPending: false });
-  useEffect(() => { quickStoryConfirmedRef.current = !!quickRun?.storyConfirmed; }, [quickRun?.storyConfirmed]);
+  useEffect(() => {
+    quickStoryConfirmedRef.current = !!quickRun?.storyConfirmed;
+    quickStoryRangesRef.current = selectedQuickStoryRanges(quickRun?.assets ?? [], quickRun?.storyPreferences ?? {});
+  }, [quickRun]);
   const [quickProgressStage, setQuickProgressStage] = useState<Exclude<QuickRunStage, 'ready' | 'error'>>('importing');
   // Design style (brand) editor pop-up window.
   const [showDesign, setShowDesign] = useState(false);
@@ -859,14 +867,18 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     const sourceDurationSeconds = Math.max(1, Math.floor(assets.reduce((total, item) => total + item.durationInFrames, 0) / stateRef.current.fps));
     const targetDurationSeconds = Math.min(recipe.durationSeconds, sourceDurationSeconds);
     const sourceManifest = assets.map((item, index) => `第${index + 1}段「${item.name}」（assetId=${item.id}）`).join('；');
+    const ranges = selectedQuickStoryRanges(assets, quickRun?.storyPreferences ?? {});
+    const priority = ranges.filter((range) => range.preference === 'priority').map((range) => `${range.assetId} ${range.startMs}-${range.endMs}ms`).join('；') || '无';
+    const excluded = ranges.filter((range) => range.preference === 'exclude').map((range) => `${range.assetId} ${range.startMs}-${range.endMs}ms`).join('；') || '无';
     quickAgentStartedRef.current = false;
     setQuickProgressStage('selecting');
     setQuickAgentState({ running: false, proposalPending: false });
     setQuickRun((current) => current ? { ...current, storyConfirmed: true, error: undefined } : current);
     quickStoryConfirmedRef.current = true;
+    quickStoryRangesRef.current = ranges;
     setChatSeed({
       nonce: Date.now(), references: assets.map((item) => ({ id: item.id, name: item.name, kind: item.kind })), autoSubmit: true, autoApply: true,
-      text: `用户已确认剧情理解。现在制作短剧片段精修发布版：${sourceManifest}。目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。根据刚才写入的真实视频理解和时间范围选片；上传顺序是默认剧情顺序，只有真实画面或台词明确证明时才调整。调用 assemble_rough_cut 创建独立可编辑粗剪，beats 必须引用多个实际 assetId，不得只使用第一段，不得伪造剧情、字幕或时长。保留原声，不生成付费音乐，不覆盖用户手工修改，最后调用 check_rough_cut_ready 并报告真实结果。`,
+      text: `用户已确认剧情理解。现在制作短剧片段精修发布版：${sourceManifest}。目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。用户标记必须重点保留的真实源时间范围：${priority}。用户标记绝不使用的真实源时间范围：${excluded}。根据刚才写入的真实视频理解和时间范围选片；上传顺序是默认剧情顺序，只有真实画面或台词明确证明时才调整。调用 assemble_rough_cut 创建独立可编辑粗剪，beats 必须引用多个实际 assetId，必须包含全部重点保留范围且不能与不要用范围重叠；不得只使用第一段，不得伪造剧情、字幕或时长。保留原声，不生成付费音乐，不覆盖用户手工修改，最后调用 check_rough_cut_ready 并报告真实结果。`,
     });
   }, [quickRun]);
 
@@ -880,7 +892,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     quickAgentStartedRef.current = false;
     setQuickProgressStage('understanding');
     setQuickAgentState({ running: false, proposalPending: false });
-    setQuickRun((current) => current ? { ...current, storyConfirmed: false, error: undefined, dismissed: false } : current);
+    setQuickRun((current) => current ? { ...current, storyConfirmed: false, storyPreferences: {}, error: undefined, dismissed: false } : current);
     quickStoryConfirmedRef.current = false;
     setChatSeed({
       nonce: Date.now(),
@@ -1169,6 +1181,11 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
           roughCutSourceCount={quickRoughCutSourceCount}
           fps={state.fps}
           error={quickAgentError}
+          storyPreferences={quickRun.storyPreferences}
+          onStoryPreferenceChange={(key, preference) => setQuickRun((current) => current ? {
+            ...current,
+            storyPreferences: preference ? { ...current.storyPreferences, [key]: preference } : Object.fromEntries(Object.entries(current.storyPreferences).filter(([entry]) => entry !== key)),
+          } : current)}
           onRetry={retryQuickRun}
           onConfirmStory={confirmQuickStory}
           onEnterProfessional={() => setQuickRun((current) => current ? { ...current, dismissed: true } : current)}

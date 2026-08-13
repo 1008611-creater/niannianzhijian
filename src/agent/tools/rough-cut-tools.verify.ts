@@ -55,4 +55,12 @@ const storyUnconfirmed = await execRoughCutTool('assemble_rough_cut', {
 assert.match(storyUnconfirmed.error ?? '', /先确认 Agent 的剧情理解/);
 assert.equal(current.timelines.length, 2, 'unconfirmed story makes no mutation');
 
+const storyExcluded = await execRoughCutTool('assemble_rough_cut', {
+  beats: [{ assetId: 'asset-demo', sourceStartMs: 1000, sourceDurationMs: 1000 }],
+}, { ...ctx, getQuickStoryConfirmed: () => true, getQuickStoryRanges: () => [{
+  assetId: 'asset-demo', sceneId: 'exclude', startMs: 500, endMs: 2500, preference: 'exclude' as const,
+}] }) as { error?: string };
+assert.match(storyExcluded.error ?? '', /不要用/);
+assert.equal(current.timelines.length, 2, 'excluded story range makes no mutation');
+
 console.log('rough-cut-tools.verify: ok');
