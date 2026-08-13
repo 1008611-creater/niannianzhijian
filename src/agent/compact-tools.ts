@@ -18,6 +18,8 @@ const COMPACT_TOOL_CATALOG_MODELS = new Set(['tokenrhythm:glm-5.1']);
 
 const SMALL_CONTEXT_TOOL_NAMES = new Set([
   'read_timeline',
+  'search_media',
+  'manage_timelines',
   'view_asset_frames',
   'analyze_asset',
   'assemble_rough_cut',
@@ -27,7 +29,6 @@ const SMALL_CONTEXT_TOOL_NAMES = new Set([
   'check_rough_cut_ready',
   'view_timeline_frames',
   'list_audio',
-  'submit_music',
   'track_progress',
 ]);
 
