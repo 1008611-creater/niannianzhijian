@@ -74,11 +74,8 @@ applyAgentModelStatus({
 }, { LLM_PROVIDER: 'openai' });
 assert.equal(PROVIDER, 'openai', 'preferred configured provider synchronizes runtime fallback');
 assert.equal(MODEL, 'gpt-5', 'preferred configured model synchronizes runtime fallback');
-const gemini = getAgentModelSnapshot().choices.find((choice) => choice.provider === 'gemini');
-assert.ok(gemini);
-selectAgentModel(gemini.id);
-assert.equal(getAgentModelSnapshot().activeId, gemini.id);
-assert.equal(PROVIDER, 'gemini', 'manual API selection synchronizes runtime metadata');
+assert.equal(getAgentModelSnapshot().choices.some((choice) => choice.provider === 'gemini'), false,
+  'Gemini is reserved for source-video understanding and never appears as a chat Agent model');
 applyAgentModelStatus({
   LLM_OPENAI_API_KEY: { configured: true },
   LLM_GEMINI_API_KEY: { configured: true },
@@ -86,8 +83,8 @@ applyAgentModelStatus({
   LLM_PROVIDER: 'openai',
   [MODEL_CAPABILITY_OVERRIDES_KEY]: '[]',
 });
-assert.equal(getAgentModelSnapshot().activeId, gemini.id, 'override refresh preserves the active API model');
-assert.equal(PROVIDER, 'gemini', 'refresh synchronizes the preserved API model, not the preferred fallback');
+assert.equal(getAgentModelSnapshot().activeId, 'openai:gpt-5', 'Gemini configuration cannot become the active chat Agent');
+assert.equal(PROVIDER, 'openai', 'chat routing remains on the selected GPT-compatible provider');
 applyAgentModelStatus({
   LLM_OPENAI_API_KEY: { configured: true },
   LLM_GEMINI_API_KEY: { configured: true },
@@ -102,12 +99,12 @@ applyAgentModelStatus({
   LLM_MCGROX_API_KEY: { configured: true },
 }, {
   LLM_PROVIDER: 'openai',
-  LLM_AGENT_FALLBACK_ORDER: 'mcgrox,gemini,unknown,gemini',
+  LLM_AGENT_FALLBACK_ORDER: 'mcgrox,gemini,anthropic,unknown,mcgrox',
 }, true);
 assert.deepEqual(
   getAutomaticAgentFallbackChoices().map((choice) => choice.provider),
-  ['openai', 'mcgrox', 'gemini'],
-  'fallback uses the administrator order, removes unknown/duplicate providers, and stops at three attempts',
+  ['openai', 'mcgrox'],
+  'automatic chat recovery excludes Gemini even when it appears in the configured order',
 );
 
 const signedInCodex = {

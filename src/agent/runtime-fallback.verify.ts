@@ -9,7 +9,7 @@ const choice = (id: string, providerLabel: string) => ({
 } as AgentModelChoice);
 
 const primary = choice('openai:primary', 'OpenAI');
-const fallback = choice('gemini:fallback', 'Google · Gemini');
+const fallback = choice('mcgrox:fallback', 'McGrox');
 const attempts: string[] = [];
 const switches: string[] = [];
 const result = await runWithAgentFallback(

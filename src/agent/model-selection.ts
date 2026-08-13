@@ -41,6 +41,17 @@ export interface AgentModelSnapshot {
 }
 
 const MAX_AUTOMATIC_AGENT_MODELS = 3;
+const VIDEO_UNDERSTANDING_PROVIDER: LlmProvider = 'gemini';
+
+/** Gemini is reserved for the source-video analysis tool, never chat orchestration. */
+function isChatAgentProvider(provider: LlmProvider): boolean {
+  return provider !== VIDEO_UNDERSTANDING_PROVIDER;
+}
+
+/** Only chat-capable providers may take over a failed chat request. */
+function isAutomaticChatFallbackProvider(provider: LlmProvider): boolean {
+  return isChatAgentProvider(provider);
+}
 
 let snapshot: AgentModelSnapshot = { choices: [], activeId: '', loaded: false };
 let apiModelChoices: readonly AgentModelChoice[] = [];
@@ -89,6 +100,7 @@ function apiChoices(
   models: Record<string, string>,
 ): readonly AgentModelChoice[] {
   return LLM_PROVIDER_PRESETS.flatMap((preset): AgentModelChoice[] => {
+    if (!isChatAgentProvider(preset.id)) return [];
     const names = llmProviderConfigNames(preset.id);
     const savedModel = models[names.model]?.trim() ?? '';
     if (isLocalLlmProvider(preset.id) ? !savedModel : !keys[names.apiKey]?.configured) return [];
@@ -124,6 +136,7 @@ function configuredFallbackProviders(raw: unknown): readonly LlmProvider[] {
     const candidate = part.trim().toLowerCase();
     if (!available.has(candidate)) return [];
     const provider = candidate as LlmProvider;
+    if (!isAutomaticChatFallbackProvider(provider)) return [];
     if (seen.has(provider)) return [];
     seen.add(provider);
     return [provider];
@@ -231,7 +244,8 @@ export function getActiveAgentModelChoice(): AgentModelChoice | undefined {
 export function getAutomaticAgentFallbackChoices(): readonly AgentModelChoice[] {
   const active = getActiveAgentModelChoice();
   if (!active || active.backend !== 'api') return active ? [active] : [];
-  const configured = apiModelChoices.filter((choice) => choice.id !== active.id);
+  const configured = apiModelChoices.filter((choice) =>
+    choice.id !== active.id && isAutomaticChatFallbackProvider(choice.provider));
   const ordered = fallbackProviderOrder.length
     ? fallbackProviderOrder.flatMap((provider) => configured.filter((choice) => choice.provider === provider))
     : configured;
