@@ -102,8 +102,8 @@ export function QuickRunOverlay({
               </div>
             )}
             <div className="qrun-media-caption">
-              <strong>{asset?.name ?? recipe.file.name}</strong>
-              <span>{asset ? '原素材已进入当前工程' : '不会上传到公开素材库'}</span>
+              <strong>{asset?.name ?? recipe.files[0]?.name ?? '短剧片段'}</strong>
+              <span>{recipe.files.length > 1 ? `共 ${recipe.files.length} 段素材，按剧情顺序导入` : asset ? '原素材已进入当前工程' : '不会上传到公开素材库'}</span>
             </div>
           </div>
 

@@ -117,6 +117,8 @@ interface QuickRunRuntime {
   importedRatio: number;
   assetId?: string;
   asset?: MediaAsset;
+  assetIds: string[];
+  assets: MediaAsset[];
   assetReady: boolean;
   error?: string;
   dismissed: boolean;
@@ -448,6 +450,8 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
   const [quickRun, setQuickRun] = useState<QuickRunRuntime | null>(() => initialRecipe ? {
     recipe: initialRecipe,
     importedRatio: 0,
+    assetIds: [],
+    assets: [],
     assetReady: false,
     dismissed: false,
   } : null);
@@ -742,41 +746,50 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     quickRecipeStartedRef.current = true;
     void (async () => {
       try {
-        const asset = await importToPool(
-          initialRecipe.file,
-          (ratio) => {
-            setQuickRun((current) => current ? { ...current, importedRatio: ratio } : current);
-          },
-          {
-            onPlaceholder: (placeholder) => {
-              setQuickRun((current) => current ? { ...current, assetId: placeholder.id, asset: placeholder } : current);
+        const assets: MediaAsset[] = [];
+        for (const [index, file] of initialRecipe.files.entries()) {
+          const asset = await importToPool(
+            file,
+            (ratio) => {
+              setQuickRun((current) => current ? { ...current, importedRatio: (index + ratio) / initialRecipe.files.length } : current);
             },
-          },
-        );
+            {
+              onPlaceholder: (placeholder) => {
+                setQuickRun((current) => current ? { ...current, assetId: placeholder.id, asset: placeholder } : current);
+              },
+            },
+          );
+          assets.push(asset);
+        }
+        const asset = assets[0];
+        if (!asset) throw new Error('没有可导入的短剧片段');
         setQuickRun((current) => current ? {
           ...current,
           assetId: asset.id,
           asset,
+          assetIds: assets.map((item) => item.id),
+          assets,
           assetReady: true,
           importedRatio: 1,
           error: undefined,
         } : current);
         const platform = initialRecipe.platform === 'douyin' ? '抖音' : initialRecipe.platform === 'kuaishou' ? '快手' : '视频号';
-        const sourceDurationSeconds = Math.max(1, Math.floor(asset.durationInFrames / stateRef.current.fps));
+        const sourceDurationSeconds = Math.max(1, Math.floor(assets.reduce((total, item) => total + item.durationInFrames, 0) / stateRef.current.fps));
         const targetDurationSeconds = Math.min(initialRecipe.durationSeconds, sourceDurationSeconds);
         const durationConstraint = sourceDurationSeconds < initialRecipe.durationSeconds
-          ? `素材真实时长只有约${sourceDurationSeconds}秒，无法做成${initialRecipe.durationSeconds}秒；请只制作约${targetDurationSeconds}秒的真实片段，绝不补帧、重复或伪造时长。`
-          : `目标时长严格为${targetDurationSeconds}秒。`;
-        // A quick recipe is a single-source short-form edit, not a blank chat.
-        // This narrows the Agent toolset to the workflow that preserves source ranges.
+          ? `所有素材真实总时长约${sourceDurationSeconds}秒，无法做成${initialRecipe.durationSeconds}秒；请只制作约${targetDurationSeconds}秒的真实片段，绝不补帧、重复或伪造时长。`
+          : `目标时长不超过${targetDurationSeconds}秒。`;
+        const sourceManifest = assets.map((item, index) => `第${index + 1}段「${item.name}」（assetId=${item.id}）`).join('；');
+        const storyContext = initialRecipe.storyOutline ? `用户提供的剧情梗概：${initialRecipe.storyOutline}` : '用户没有提供剧情梗概；只能从真实画面、真实台词与上传顺序判断，不能虚构剧情。';
+        const dialogueContext = initialRecipe.dialogue ? `用户提供的关键台词/文案：${initialRecipe.dialogue}` : '用户没有提供台词文案；先对每段调用 analyze_asset(kind=mimo-asr) 获取可检索的真实口语文本，不能把无时间戳 ASR 当作字幕。';
         changeCreativeMode('11111111-1240-4000-8000-000000000004');
         setChatCollapsed(false);
         setChatSeed({
           nonce: Date.now(),
-          references: [{ id: asset.id, name: asset.name, kind: asset.kind }],
+          references: assets.map((item) => ({ id: item.id, name: item.name, kind: item.kind })),
           autoSubmit: true,
           autoApply: true,
-          text: `制作一条短剧片段精修发布版。运行编号为${initialRecipe.workflowRunId ?? '未记录'}。只使用刚上传素材「${asset.name}」（assetId=${asset.id}），目标平台为${platform}，${durationConstraint} 输出竖屏 9:16。第一步必须调用 search_media(query="${asset.name}", modalities=["metadata"], limit=1)，只接受返回 assetId=${asset.id} 的 filename 命中；没有这个精确命中就停止并报告“未找到刚上传的素材”，不得分析、粗剪或改动其他素材。确认后才调用 analyze_asset(kind=video) 理解完整视频并取得真实源时间段，再用 view_asset_frames 核对画面。若视频有剧情，必须选择能看懂起因/钩子、冲突/升级、结果/收尾的 2-6 段连续源区间，优先去掉空镜、重复和无效停顿，不要把整段原片当成粗剪；若视频只是连续展示或没有叙事冲突，必须如实保留完整展示序列并将粗剪命名为“展示精修”，不要伪造剧情。然后调用 assemble_rough_cut 创建新的可编辑粗剪，不能用 edit_item 把素材直接放进当前时间线。粗剪创建后，先调用 edit_track(action=list) 查出新序列中承载该视频片段的真实视频轨别名；若视频有声音，只能对这个视频轨调用 transcribe_track(provider=mimo-qwen-asr)，不能猜测或使用不存在的 A1。MiMo 返回 no-audio/no-speech 时停止转写并标注“原声无可用字幕”，绝不切换其他 ASR。只有真实词级时间戳可用时才调用 edit_captions(action=enable) 开启字幕；不要按文案长度伪造时间。若项目已有可用 BGM 素材，可调用 place_rough_cut_bgm 放置低音量音乐床；不要自动生成付费音乐。保留原声，不要覆盖用户手工修改，最后调用 check_rough_cut_ready 并检查真实时长、片段数量和画面结构，只报告真实完成的步骤。`,
+          text: `制作一条短剧片段精修发布版。运行编号为${initialRecipe.workflowRunId ?? '未记录'}。本次素材按剧情发生顺序上传：${sourceManifest}。目标平台为${platform}，${durationConstraint} 输出竖屏 9:16。${storyContext} ${dialogueContext} 第一步对每个上传文件调用 search_media(query=该文件名, modalities=["metadata"], limit=1)，每次只接受对应 assetId 的精确 filename 命中；任一段没有精确命中就停止并报告“未找到刚上传的素材”，不得分析、粗剪或改动其他素材。随后必须逐段调用 analyze_asset(kind=video) 和 view_asset_frames；先读剧情、人物关系、冲突和情绪变化，再从每段真实来源选择必要区间。保留上传顺序作为默认剧情顺序，只有真实画面或台词明确证明时才可调整；不得因为片段时长短就删除剧情关键转折。用 assemble_rough_cut 创建一个新的可编辑粗剪，beats 必须引用多个实际 assetId，不得只用第一段，不得用 edit_item 把素材直接放进当前时间线。粗剪创建后，先用 edit_track(action=list) 找出承载视频的真实轨，再对有声视频轨调用 transcribe_track(provider=mimo-qwen-asr)。MiMo 返回 no-audio/no-speech 时停止转写并标注“原声无可用字幕”，绝不伪造字幕或切换供应商。只有真实词级时间戳可用时才开启字幕。保留原声，不生成付费音乐，不覆盖用户手工修改；最后调用 check_rough_cut_ready，检查素材来源、片段顺序、真实时长和画面结构，只报告真实完成的步骤。`,
         });
         onRecipeConsumed?.();
       } catch (error) {
@@ -830,23 +843,26 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
 
   const retryQuickRun = useCallback(() => {
     const recipe = quickRecipeRef.current;
-    const asset = quickAsset;
-    if (!recipe || !asset) return;
+    const assets = quickRun?.assets.length ? quickRun.assets : quickAsset ? [quickAsset] : [];
+    if (!recipe || !assets.length) return;
     const platform = recipe.platform === 'douyin' ? '抖音' : recipe.platform === 'kuaishou' ? '快手' : '视频号';
-    const sourceDurationSeconds = Math.max(1, Math.floor(asset.durationInFrames / stateRef.current.fps));
+    const sourceDurationSeconds = Math.max(1, Math.floor(assets.reduce((total, item) => total + item.durationInFrames, 0) / stateRef.current.fps));
     const targetDurationSeconds = Math.min(recipe.durationSeconds, sourceDurationSeconds);
+    const sourceManifest = assets.map((item, index) => `第${index + 1}段「${item.name}」（assetId=${item.id}）`).join('；');
+    const storyContext = recipe.storyOutline ? `用户提供的剧情梗概：${recipe.storyOutline}` : '没有剧情梗概；只能根据真实画面、真实台词和上传顺序判断，不能虚构剧情。';
+    const dialogueContext = recipe.dialogue ? `用户提供的关键台词/文案：${recipe.dialogue}` : '没有台词文案；逐段调用 analyze_asset(kind=mimo-asr) 获取真实口语文本，不能将其当作字幕。';
     quickAgentStartedRef.current = false;
     setQuickProgressStage('understanding');
     setQuickAgentState({ running: false, proposalPending: false });
     setQuickRun((current) => current ? { ...current, error: undefined, dismissed: false } : current);
     setChatSeed({
       nonce: Date.now(),
-      references: [{ id: asset.id, name: asset.name, kind: asset.kind }],
+      references: assets.map((item) => ({ id: item.id, name: item.name, kind: item.kind })),
       autoSubmit: true,
       autoApply: true,
-      text: `重新制作短剧片段精修发布版。只使用刚上传素材「${asset.name}」（assetId=${asset.id}），目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。第一步必须调用 search_media(query="${asset.name}", modalities=["metadata"], limit=1)，只接受返回 assetId=${asset.id} 的 filename 命中；没有这个精确命中就停止并报告“未找到刚上传的素材”，不得分析、粗剪或改动其他素材。确认后复用或更新整段视频理解，核对真实源画面：有剧情就选钩子/冲突/结果的多段连续区间，无剧情就命名为“展示精修”并保留完整展示序列。调用 assemble_rough_cut 创建新的可编辑粗剪；随后先用 edit_track(action=list) 查出承载该视频片段的真实视频轨，再对该轨调用 transcribe_track(provider=mimo-qwen-asr) 获取真实时间戳，不能猜测 A1；再按真实字幕状态开启字幕。已有 BGM 才放置，不生成付费音乐。不要伪造字幕或时长，不要覆盖用户手工修改。`,
+      text: `重新制作短剧片段精修发布版。本次素材按剧情发生顺序上传：${sourceManifest}。目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。${storyContext} ${dialogueContext} 每段先 search_media 精确按文件名确认 assetId，再逐段 analyze_asset(kind=video)、analyze_asset(kind=mimo-asr) 与 view_asset_frames，读清剧情和台词后再选段。上传顺序是默认剧情顺序，只有真实画面或台词明确证明时才调整。assemble_rough_cut 必须创建独立可编辑粗剪，并在 beats 中使用多个实际 assetId；不得只使用第一段，不得伪造剧情、字幕或时长。对实际视频轨转写，只有真实词级时间戳才开启字幕；保留原声、不生成付费音乐、不覆盖用户手工修改，最后 check_rough_cut_ready。`,
     });
-  }, [quickAsset]);
+  }, [quickAsset, quickRun]);
 
   const dropExternalFilesToTimeline = useCallback(async (
     files: File[],

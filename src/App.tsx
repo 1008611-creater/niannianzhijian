@@ -269,7 +269,7 @@ export default function App() {
           const platformLabel = input.platform === 'douyin' ? '抖音' : input.platform === 'kuaishou' ? '快手' : '视频号';
           const workflowRunId = crypto.randomUUID();
           const m = await createProject('短剧片段精修', emptyDoc(), {
-            description: `recipeId=short-drama-refine; recipeVersion=1; styleId=complete-conflict; workflowRunId=${workflowRunId}; platform=${platformLabel}; requestedDurationSeconds=${input.durationSeconds}; status=importing`,
+            description: `recipeId=short-drama-refine; recipeVersion=2; styleId=complete-conflict; workflowRunId=${workflowRunId}; platform=${platformLabel}; requestedDurationSeconds=${input.durationSeconds}; sourceClipCount=${input.files.length}; status=importing`,
           });
           setPendingRecipe({ ...input, workflowRunId });
           // Enter the real project as soon as its document is committed.  A

@@ -11,7 +11,9 @@ interface QuickHomeProps {
 
 export interface QuickRecipeInput {
   recipeId: 'short-drama-refine';
-  file: File;
+  files: File[];
+  storyOutline: string;
+  dialogue: string;
   platform: 'douyin' | 'kuaishou' | 'video-account';
   durationSeconds: 45 | 60 | 90;
   workflowRunId?: string;
@@ -23,12 +25,12 @@ const recipes = [
     alt: '短剧片段精修封面',
     duration: '01:28',
     title: '短剧片段精修',
-    desc: '上传短剧素材，自动识别精彩片段，配上字幕、转场和节奏感音乐，生成短视频发布版。',
+    desc: '按剧情顺序上传生成片段，补充剧情或台词。念念智剪会读懂每段内容，组合成可继续精修的冲突片段。',
     specs: [
       { k: '适合场景', v: '短剧二创、精彩片段再发布' },
-      { k: '所需素材', v: '短剧原片段（建议 1~5 分钟）' },
+      { k: '所需素材', v: '按剧情顺序的短剧生成片段（最多 12 段）' },
       { k: '预期时长/平台', v: '15~90 秒 / 抖音、快手、视频号' },
-      { k: '预计效果', v: '去重增强、节奏紧凑、画面清晰' },
+      { k: '预计效果', v: '保留原声，生成可编辑的剧情冲突粗剪' },
     ],
   },
   {
@@ -155,7 +157,9 @@ export function QuickHome({ projects, onOpen, onNew, onStartRecipe }: QuickHomeP
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [projectThumbs, setProjectThumbs] = useState<Record<string, string>>({});
   const [recipeOpen, setRecipeOpen] = useState(false);
-  const [recipeFile, setRecipeFile] = useState<File | null>(null);
+  const [recipeFiles, setRecipeFiles] = useState<File[]>([]);
+  const [storyOutline, setStoryOutline] = useState('');
+  const [dialogue, setDialogue] = useState('');
   const [recipePlatform, setRecipePlatform] = useState<QuickRecipeInput['platform']>('douyin');
   const [recipeDuration, setRecipeDuration] = useState<QuickRecipeInput['durationSeconds']>(60);
   const [recipeBusy, setRecipeBusy] = useState(false);
@@ -192,11 +196,11 @@ export function QuickHome({ projects, onOpen, onNew, onStartRecipe }: QuickHomeP
   };
 
   const submitRecipe = async () => {
-    if (!recipeFile || recipeBusy) return;
+    if (!recipeFiles.length || recipeBusy) return;
     setRecipeBusy(true);
     setRecipeError(null);
     try {
-      await onStartRecipe({ recipeId: 'short-drama-refine', file: recipeFile, platform: recipePlatform, durationSeconds: recipeDuration });
+      await onStartRecipe({ recipeId: 'short-drama-refine', files: recipeFiles, storyOutline: storyOutline.trim(), dialogue: dialogue.trim(), platform: recipePlatform, durationSeconds: recipeDuration });
     } catch (error) {
       setRecipeError(error instanceof Error ? error.message : '启动失败，请重试');
       setRecipeBusy(false);
@@ -335,22 +339,26 @@ export function QuickHome({ projects, onOpen, onNew, onStartRecipe }: QuickHomeP
         <div className="qk-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !recipeBusy) setRecipeOpen(false); }}>
           <section className="qk-modal" role="dialog" aria-modal="true" aria-labelledby="qk-recipe-title">
             <div className="qk-modal-head">
-              <div><span className="qk-eyebrow">快速成片 · 01</span><h2 id="qk-recipe-title">短剧片段精修</h2><p>上传一段短剧素材，念念智剪会先找出完整冲突，再生成可继续编辑的发布版。</p></div>
+              <div><span className="qk-eyebrow">快速成片 · 01</span><h2 id="qk-recipe-title">短剧片段精修</h2><p>上传按剧情顺序生成的片段。念念智剪会读剧情和台词，再挑出能看懂的冲突段落。</p></div>
               <button className="qk-modal-close" type="button" aria-label="关闭" disabled={recipeBusy} onClick={() => setRecipeOpen(false)}>×</button>
             </div>
-            <label className={`qk-upload-drop${recipeFile ? ' has-file' : ''}`}>
-              <input type="file" accept="video/*" onChange={(event) => { setRecipeFile(event.target.files?.[0] ?? null); setRecipeError(null); }} />
+            <label className={`qk-upload-drop${recipeFiles.length ? ' has-file' : ''}`}>
+              <input type="file" accept="video/*" multiple onChange={(event) => { setRecipeFiles(Array.from(event.target.files ?? []).slice(0, 12)); setRecipeError(null); }} />
               <span className="qk-upload-icon">↑</span>
-              <strong>{recipeFile ? recipeFile.name : '选择短剧视频'}</strong>
-              <small>{recipeFile ? `${(recipeFile.size / 1024 / 1024).toFixed(1)} MB · 已准备导入` : '支持 MP4、MOV、WebM，建议 1~5 分钟'}</small>
+              <strong>{recipeFiles.length ? `已选择 ${recipeFiles.length} 段素材` : '选择短剧片段'}</strong>
+              <small>{recipeFiles.length ? recipeFiles.map((file) => file.name).join(' · ') : '支持 MP4、MOV、WebM；按剧情发生顺序选择，最多 12 段'}</small>
             </label>
+            <div className="qk-script-fields">
+              <label><span>剧情梗概</span><textarea value={storyOutline} onChange={(event) => setStoryOutline(event.target.value)} placeholder="例如：女主发现男主隐瞒真相，争执后男主坦白原因。" rows={2} /></label>
+              <label><span>关键台词</span><textarea value={dialogue} onChange={(event) => setDialogue(event.target.value)} placeholder="可粘贴台词、分镜文案或角色对白；没有也可留空。" rows={3} /></label>
+            </div>
             <div className="qk-form-row">
               <label><span>发布平台</span><select value={recipePlatform} onChange={(event) => setRecipePlatform(event.target.value as QuickRecipeInput['platform'])}><option value="douyin">抖音</option><option value="kuaishou">快手</option><option value="video-account">视频号</option></select></label>
               <label><span>目标时长</span><select value={recipeDuration} onChange={(event) => setRecipeDuration(Number(event.target.value) as QuickRecipeInput['durationSeconds'])}><option value={45}>约 45 秒</option><option value={60}>约 60 秒</option><option value={90}>约 90 秒</option></select></label>
             </div>
-            <div className="qk-modal-note"><span>成片会保留原声</span><span>字幕仅使用真实时间戳</span><span>完成后进入专业编辑</span></div>
+            <div className="qk-modal-note"><span>先读剧情与台词再选片</span><span>字幕仅使用真实时间戳</span><span>完成后进入专业编辑</span></div>
             {recipeError && <div className="qk-form-error" role="alert">{recipeError}</div>}
-            <button className="qk-modal-submit" type="button" disabled={!recipeFile || recipeBusy} onClick={() => void submitRecipe()}>{recipeBusy ? '正在打开工程…' : '开始制作短剧发布版'}</button>
+            <button className="qk-modal-submit" type="button" disabled={!recipeFiles.length || recipeBusy} onClick={() => void submitRecipe()}>{recipeBusy ? '正在打开工程…' : '开始制作短剧发布版'}</button>
           </section>
         </div>
       )}
