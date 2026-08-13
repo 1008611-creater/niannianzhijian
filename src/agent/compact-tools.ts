@@ -10,6 +10,12 @@ import type { AgentToolSchema } from './tool-schema';
  */
 export const SMALL_CONTEXT_WINDOW_TOKENS = 32_768;
 
+// TokenRhythm's GLM-5.1 advertises a 200K context, but its compatible
+// endpoint rejects the full editor catalog (about 200KB of JSON) with HTTP
+// 503. Keep the short-drama workflow on the compact catalog for this model;
+// this is a request-size compatibility guard, not a claim about its context.
+const COMPACT_TOOL_CATALOG_MODELS = new Set(['tokenrhythm:glm-5.1']);
+
 const SMALL_CONTEXT_TOOL_NAMES = new Set([
   'read_timeline',
   'view_asset_frames',
@@ -27,7 +33,8 @@ const SMALL_CONTEXT_TOOL_NAMES = new Set([
 
 export function usesSmallContextMode(choice: AgentModelChoice): boolean {
   return choice.backend === 'api'
-    && choice.capabilities.contextWindowTokens.value < SMALL_CONTEXT_WINDOW_TOKENS;
+    && (choice.capabilities.contextWindowTokens.value < SMALL_CONTEXT_WINDOW_TOKENS
+      || COMPACT_TOOL_CATALOG_MODELS.has(`${choice.provider}:${choice.model}`));
 }
 
 export function toolSchemasForChoice(choice: AgentModelChoice): readonly AgentToolSchema[] {
