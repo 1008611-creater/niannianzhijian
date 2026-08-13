@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { chooseTesseractLanguages, parseTesseractLanguages, runLocalOcr, runVideoUnderstanding, runVisionAnalysis, parseVideoUnderstanding, parseVisionAnalysis } from './asset-intelligence.ts';
+import { chooseTesseractLanguages, parseTesseractLanguages, runLocalOcr, runVideoUnderstanding, runVisionAnalysis, parseVideoUnderstanding, parseVisionAnalysis, sampledVideoEndpoint } from './asset-intelligence.ts';
 
 const tesseractPath = process.env.TESSERACT_PATH
   || (process.platform === 'win32' ? 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe' : 'tesseract');
@@ -98,4 +98,7 @@ try {
 
 assert.equal(sampledOptions.videoBaseUrl, 'https://api3.wlai.vip');
 assert.equal(sampledOptions.videoModel, 'gemini-3.5-flash-lite');
+assert.equal(sampledVideoEndpoint('https://api3.wlai.vip'), 'https://api3.wlai.vip/v1/chat/completions');
+assert.equal(sampledVideoEndpoint('https://api3.wlai.vip/v1/'), 'https://api3.wlai.vip/v1/chat/completions');
+assert.equal(sampledVideoEndpoint('https://relay.example/v1beta'), 'https://relay.example/v1/chat/completions');
 console.log('asset-intelligence.verify: ok');

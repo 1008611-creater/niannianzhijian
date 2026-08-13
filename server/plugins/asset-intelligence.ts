@@ -284,8 +284,7 @@ async function runSampledVideoUnderstanding(
   options: AssetIntelligenceOptions,
   prompt?: string,
 ): Promise<VideoUnderstandingResult> {
-  const baseUrl = options.videoBaseUrl.trim().replace(/\/+$/, '');
-  const endpoint = `${baseUrl.replace(/\/v1beta$/i, '/v1')}/chat/completions`;
+  const endpoint = sampledVideoEndpoint(options.videoBaseUrl);
   const durationMs = await probeVideoDurationMs(input);
   const frameCount = Math.min(MAX_SAMPLED_VIDEO_FRAMES, Math.max(2, Math.ceil(durationMs / 10_000)));
   const times = Array.from({ length: frameCount }, (_, index) => Math.min(durationMs - 1, Math.round(index * durationMs / frameCount)));
@@ -313,6 +312,14 @@ async function runSampledVideoUnderstanding(
   } finally {
     await rm(temp, { recursive: true, force: true });
   }
+}
+
+export function sampledVideoEndpoint(rawBaseUrl: string): string {
+  const baseUrl = rawBaseUrl.trim().replace(/\/+$/, '');
+  const apiBaseUrl = /\/v1$/i.test(baseUrl)
+    ? baseUrl
+    : baseUrl.replace(/\/v1beta$/i, '').concat('/v1');
+  return `${apiBaseUrl}/chat/completions`;
 }
 
 async function prepareInlineVideo(input: string, directory: string): Promise<string> {
