@@ -7056,7 +7056,12 @@ async function handleCanvasAssetsApi(request, response, pathname, user) {
   if (!owned) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
   if (!assetId && !action && request.method === 'GET') {
     const assets = await canvasAssetService.listOwned(user.id, projectId, owned.projectKind);
-    return json(response, 200, {projectId,projectKind:owned.projectKind,assets:assets.map(publicCanvasAsset)});
+    const publicAssets = assets.map(publicCanvasAsset);
+    const source = owned.project && owned.project.source;
+    if (source && String(source.mimeType || '').startsWith('video/')) {
+      publicAssets.unshift({id:canvasS1Chain.legacySourceAssetId(projectId),projectId,projectKind:owned.projectKind,kind:'reference_video',originalName:source.originalName || '原片视频',mimeType:source.mimeType,format:path.extname(source.originalName || '').slice(1).toLowerCase() || 'mp4',bytes:Number(source.bytes || 0),status:'ready',source:'project_source',downloadUrl:'/api/projects/' + encodeURIComponent(projectId) + '/source'});
+    }
+    return json(response, 200, {projectId,projectKind:owned.projectKind,assets:publicAssets});
   }
   if (!assetId && !action && request.method === 'POST') {
     await fsp.mkdir(canvasAssetsRoot, {recursive:true});
@@ -7187,6 +7192,10 @@ async function handleCanvasS1ChainApi(request, response, pathname, user) {
     const body = await readBodyJson(request);
     const sourceAssetIds = canvasS1Chain.uniqueIds(body.sourceAssetIds);
     for (const assetId of sourceAssetIds) {
+      if (canvasS1Chain.isLegacySourceAssetId(assetId, projectId)) {
+        if (!project.source || !String(project.source.mimeType || '').startsWith('video/')) throw Object.assign(new Error('项目没有可用的原片视频'), {code:'CANVAS_S1_SOURCE_ASSET_INVALID',httpStatus:422});
+        continue;
+      }
       const asset = await canvasAssetService.getOwned(user.id, projectId, assetId);
       if (!asset || asset.projectKind !== projectKind || asset.kind !== 'reference_video') throw Object.assign(new Error('原片素材不存在或不是当前项目的视频素材'), {code:'CANVAS_S1_SOURCE_ASSET_INVALID',httpStatus:422});
     }

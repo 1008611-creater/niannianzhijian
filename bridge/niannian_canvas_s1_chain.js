@@ -7,6 +7,7 @@ const SOURCE_NODE_ID = 's1-source-input';
 const STEP01_NODE_ID = 's1-step01-analysis';
 const STEP02_NODE_ID = 's1-step02-timeline';
 const CHAIN_NODE_IDS = Object.freeze([SOURCE_NODE_ID, STEP01_NODE_ID, STEP02_NODE_ID]);
+const LEGACY_SOURCE_ASSET_PREFIX = 'legacy-source:';
 
 function text(value, limit = 200) {
   return String(value == null ? '' : value).replace(/[\u0000-\u001f]/g, '').trim().slice(0, limit);
@@ -15,6 +16,9 @@ function text(value, limit = 200) {
 function uniqueIds(values) {
   return [...new Set((Array.isArray(values) ? values : []).map(value => text(value, 120)).filter(value => /^[A-Za-z0-9_.:-]{2,120}$/.test(value)))].slice(0, 8);
 }
+
+function legacySourceAssetId(projectId) { return LEGACY_SOURCE_ASSET_PREFIX + text(projectId, 120); }
+function isLegacySourceAssetId(assetId, projectId) { return text(assetId, 160) === legacySourceAssetId(projectId); }
 
 function edge(id, source, target) { return {id, source, target, kind:'depends_on'}; }
 
@@ -77,4 +81,4 @@ function mergeChain(document, chain) {
   };
 }
 
-module.exports = {CHAIN_NODE_IDS,SOURCE_NODE_ID,STEP01_NODE_ID,STEP02_NODE_ID,createChain,mergeChain,uniqueIds};
+module.exports = {CHAIN_NODE_IDS,SOURCE_NODE_ID,STEP01_NODE_ID,STEP02_NODE_ID,LEGACY_SOURCE_ASSET_PREFIX,createChain,mergeChain,uniqueIds,legacySourceAssetId,isLegacySourceAssetId};

@@ -59,21 +59,30 @@
     panel.id = 's1-chain-panel';
     panel.setAttribute('aria-label', 'S1 原片到时间线');
     panel.hidden = true;
-    panel.innerHTML = '<div class="s1-eyebrow">S1 CANVAS CHAIN</div><h2>原片到 Step02 时间线</h2><p>选择当前项目的视频素材，完成权利与媒体预检后创建三个可恢复节点。</p><div class="s1-assets" data-s1-assets><span>正在读取项目素材...</span></div><label class="s1-row"><input type="checkbox" data-s1-rights> 我确认拥有该原片的使用权</label><div class="s1-row"><span>媒体预检</span><select data-s1-preflight><option value="pending">未完成</option><option value="passed">已通过</option></select></div><div class="s1-row"><button type="button" data-s1-refresh class="s1-secondary">刷新素材</button><button type="button" data-s1-create disabled>创建 S1 节点链</button></div><div class="s1-status" data-s1-status>等待选择视频素材。</div><div class="s1-nodes" data-s1-nodes hidden></div>';
+    panel.innerHTML = '<div class="s1-eyebrow">S1 CANVAS CHAIN</div><h2>原片到 Step02 时间线</h2><p>选择当前项目的视频素材，完成权利与媒体预检后创建三个可恢复节点。</p><div class="s1-assets" data-s1-assets><span>正在读取项目素材...</span></div><label class="s1-row"><input type="checkbox" data-s1-rights> 我确认拥有该原片的使用权</label><div class="s1-row"><span>媒体预检</span><select data-s1-preflight><option value="pending">未完成</option><option value="passed">已通过</option></select></div><div class="s1-row"><button type="button" data-s1-refresh class="s1-secondary">刷新素材</button><button type="button" data-s1-create disabled>创建 S1 节点链</button></div><div class="s1-row"><button type="button" data-s1-start disabled>开始 Step01 分析</button></div><div class="s1-status" data-s1-status>等待选择视频素材。</div><div class="s1-nodes" data-s1-nodes hidden></div>';
     document.body.appendChild(panel);
     installStyles();
     var assetsEl = panel.querySelector('[data-s1-assets]');
     var statusEl = panel.querySelector('[data-s1-status]');
     var nodesEl = panel.querySelector('[data-s1-nodes]');
     var createBtn = panel.querySelector('[data-s1-create]');
+    var startBtn = panel.querySelector('[data-s1-start]');
     var rightsEl = panel.querySelector('[data-s1-rights]');
     var preflightEl = panel.querySelector('[data-s1-preflight]');
     var revision = 0;
     var assets = [];
+    var chainReady = false;
 
     function setStatus(message, error) { statusEl.textContent = message; statusEl.classList.toggle('error', Boolean(error)); }
     function selectedIds() { return Array.prototype.slice.call(panel.querySelectorAll('input[data-s1-asset]:checked')).map(function (input) { return input.value; }); }
-    function syncButton() { createBtn.disabled = selectedIds().length === 0 || !rightsEl.checked || preflightEl.value !== 'passed'; }
+    function syncButton() { createBtn.disabled = selectedIds().length === 0 || !rightsEl.checked || preflightEl.value !== 'passed'; startBtn.disabled = !chainReady || selectedIds().length === 0 || !rightsEl.checked || preflightEl.value !== 'passed'; }
+    function renderNodes(nodes) {
+      var chainNodes = (Array.isArray(nodes) ? nodes : []).filter(function (node) { return /^s1-/.test(node.id); });
+      chainReady = chainNodes.some(function (node) { return node.id === 's1-source-input' && node.status === 'ready'; });
+      nodesEl.hidden = chainNodes.length === 0;
+      nodesEl.innerHTML = chainNodes.map(function (node) { return '<div class="s1-node"><span>' + escapeHtml(node.data && node.data.title || node.id) + '</span><small>' + escapeHtml(node.status) + '</small></div>'; }).join('');
+      syncButton();
+    }
     function renderAssets() {
       var videos = assets.filter(function (asset) { return String(asset.mimeType || '').startsWith('video/'); });
       assetsEl.innerHTML = videos.length ? videos.map(function (asset) { return '<label class="s1-asset"><input type="checkbox" data-s1-asset value="' + escapeHtml(asset.id) + '"><span class="s1-asset-name">' + escapeHtml(asset.originalName || asset.id) + '</span></label>'; }).join('') : '<span>当前项目暂无视频素材，请先在素材库上传原片。</span>';
@@ -90,7 +99,9 @@
         var listed = await api('/api/projects/' + encodeURIComponent(id) + '/assets', {headers: {'x-niannian-project-kind': projectKind()}});
         assets = Array.isArray(listed.body.assets) ? listed.body.assets : [];
         renderAssets();
-        setStatus(doc.body.document && doc.body.document.nodes && doc.body.document.nodes.some(function (node) { return node.id === 's1-source-input'; }) ? 'S1 节点链已存在，可继续在画布中编辑。' : '等待选择视频素材。');
+        var existingNodes = doc.body.document && doc.body.document.nodes || [];
+        renderNodes(existingNodes);
+        setStatus(existingNodes.some(function (node) { return node.id === 's1-source-input'; }) ? 'S1 节点链已存在，可继续在画布中编辑。' : '等待选择视频素材。');
       } catch (error) { setStatus(error.message || '读取项目状态失败', true); }
     }
     async function create() {
@@ -101,12 +112,20 @@
         var result = await api('/api/canvas/documents/' + encodeURIComponent(projectKind()) + '/' + encodeURIComponent(id) + '/s1-chain', {method: 'POST', headers: {'content-type': 'application/json', 'if-match': '"canvas-rev-' + revision + '"'}, body: JSON.stringify({sourceAssetIds: selectedIds(), rightsConfirmed: rightsEl.checked, preflightStatus: preflightEl.value})});
         revision = Number(result.body.revision || revision);
         var nodes = result.body.document && result.body.document.nodes || [];
-        nodesEl.hidden = false;
-        nodesEl.innerHTML = nodes.filter(function (node) { return /^s1-/.test(node.id); }).map(function (node) { return '<div class="s1-node"><span>' + escapeHtml(node.data && node.data.title || node.id) + '</span><small>' + escapeHtml(node.status) + '</small></div>'; }).join('');
+        renderNodes(nodes);
         setStatus('已创建 3 个节点和 2 条依赖边。Step01 当前保持真实阻塞，不会提交 Provider。');
       } catch (error) { setStatus((error.code ? error.code + ': ' : '') + (error.message || '创建失败'), true); syncButton(); }
     }
+    async function startStep01() {
+      startBtn.disabled = true;
+      setStatus('正在提交 Step01 原片分析...');
+      try {
+        var result = await api('/api/projects/' + encodeURIComponent(projectId()) + '/step01-analysis', {method: 'POST', headers: {'content-type': 'application/json'}, body: '{}'});
+        setStatus(result.body.code === 'STEP01_ANALYSIS_QUEUED' ? 'Step01 已进入服务器队列，正在准备原片证据。' : (result.body.code || 'Step01 状态已更新'));
+      } catch (error) { setStatus((error.code ? error.code + ': ' : '') + (error.message || 'Step01 启动失败'), true); syncButton(); }
+    }
     panel.querySelector('[data-s1-refresh]').addEventListener('click', load);
+    startBtn.addEventListener('click', startStep01);
     rightsEl.addEventListener('change', syncButton); preflightEl.addEventListener('change', syncButton); createBtn.addEventListener('click', create);
     load();
     window.addEventListener('hashchange', load);

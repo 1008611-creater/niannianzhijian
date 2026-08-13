@@ -15,8 +15,9 @@ assert.match(source, /if-match/);
 assert.match(source, /x-niannian-project-kind/);
 assert.match(source, /rightsConfirmed/);
 assert.match(source, /preflightStatus/);
-assert.match(source, /Step01 当前保持真实阻塞/);
+assert.match(source, /step01-analysis/);
+assert.match(source, /开始 Step01 分析/);
 assert.doesNotMatch(source, /confirmProviderSpend/);
 assert.doesNotMatch(source, /\/canvas\/jobs/);
 
-console.log(JSON.stringify({ok:true,verified:['Studio loads the S1 control surface','current project assets are selected through the API','revision protection is sent on creation','the UI cannot submit a provider job']}));
+console.log(JSON.stringify({ok:true,verified:['Studio loads the S1 control surface','legacy and canvas video assets are selected through the API','revision protection is sent on creation','Step01 uses the source-only server route','the UI cannot submit a paid canvas provider job']}));
