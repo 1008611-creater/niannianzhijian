@@ -52,7 +52,8 @@ function createCanvasH3Runtime(options = {}) {
     if (!job) throw runtimeError('CANVAS_JOB_NOT_FOUND', '任务不存在', 404);
     if (job.nodeType !== 'video') throw runtimeError('CANVAS_H3_NODE_INVALID', '当前任务不是视频任务', 422);
     if (job.providerTaskId) return job;
-    if (job.status !== 'awaiting_authorization') throw runtimeError('CANVAS_JOB_STATE_INVALID', '当前任务不能重复提交', 409);
+    const retryableFailure = job.status === 'failed' && !job.providerTaskId && job.providerSubmitState === 'failed';
+    if (job.status !== 'awaiting_authorization' && !retryableFailure) throw runtimeError('CANVAS_JOB_STATE_INVALID', '当前任务不能重复提交', 409);
     const references = await ownedReferences(job);
     await jobs.updateOwned(ownerId, projectId, jobId, {status:'queued',providerSubmitState:'submitting',publicError:null});
     try {
