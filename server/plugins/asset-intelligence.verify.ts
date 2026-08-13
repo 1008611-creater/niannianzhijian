@@ -9,6 +9,12 @@ const intelligenceOptions = {
   videoBaseUrl: 'https://video.example/v1beta', videoApiKey: 'never-echo-video-key', videoModel: 'gemini-3.5-flash-lite',
 };
 
+const sampledOptions = {
+  ...intelligenceOptions,
+  videoBaseUrl: 'https://api3.wlai.vip',
+  videoApiKey: 'never-echo-sampled-video-key',
+};
+
 assert.deepEqual(parseTesseractLanguages('List of available languages (2):\neng\nosd\n'), ['eng', 'osd']);
 assert.deepEqual(chooseTesseractLanguages('eng+chi_sim', ['eng', 'osd']), {
   used: 'eng', warning: '本机未安装语言包：chi_sim',
@@ -89,4 +95,7 @@ try {
 } finally {
   globalThis.fetch = originalFetch;
 }
+
+assert.equal(sampledOptions.videoBaseUrl, 'https://api3.wlai.vip');
+assert.equal(sampledOptions.videoModel, 'gemini-3.5-flash-lite');
 console.log('asset-intelligence.verify: ok');
