@@ -55,6 +55,8 @@ export interface SettingsGroup {
   readonly hint: string;
   /** Generate the "Default Vendor" routing field (PREFERRED_*) with four capabilities and render it at the top of the middle column; not rendered by default */
   readonly route?: SettingsField;
+  /** Optional non-secret fallback routing rule displayed below the primary route. */
+  readonly fallbackRoute?: SettingsField;
   readonly vendors: readonly SettingsVendorPage[];
 }
 
@@ -93,6 +95,15 @@ const routeSelect = (name: string, options: readonly SelectOption[]): SettingsFi
   name, label: '默认厂商', kind: 'select',
   note: '选中未配置的厂商时，Agent 会回退为先询问。',
   options: [{ value: '', label: '每次询问（默认）' }, ...options],
+});
+
+const agentFallbackOrder = (): SettingsField => ({
+  name: 'LLM_AGENT_FALLBACK_ORDER',
+  label: '备用线路顺序',
+  kind: 'text',
+  defaultLabel: '',
+  placeholder: '例如 anthropic,gemini,mcgrox',
+  note: '用逗号填写已配置的厂商 ID。从左到右尝试；留空时按已配置线路的默认顺序。仅在本次请求尚未输出内容或执行剪辑操作时自动切换。',
 });
 
 const llmPage = (preset: (typeof LLM_PROVIDER_PRESETS)[number]): SettingsVendorPage => {
@@ -208,6 +219,7 @@ export const SETTINGS_CATEGORIES: readonly SettingsCategory[] = [
           value: preset.id,
           label: preset.label,
         }))),
+        fallbackRoute: agentFallbackOrder(),
         vendors: AGENT_VENDOR_PAGES_WITH_VISION },
     ],
   },
@@ -553,6 +565,7 @@ export function selectOptionLabel(
 export function fieldPlaceholder(field: SettingsField, configured: boolean, stagedClear: boolean): string {
   if (isModelField(field)) {
     if (stagedClear) return t('恢复默认 · 保存后生效');
+    if (field.defaultLabel === '' && field.placeholder) return t(field.placeholder);
     return field.defaultLabel ? t('默认 {name}', { name: t(field.defaultLabel) }) : t('默认');
   }
   if (stagedClear) return t('将清除 · 保存后生效');

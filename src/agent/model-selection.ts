@@ -40,6 +40,8 @@ export interface AgentModelSnapshot {
   readonly loaded: boolean;
 }
 
+const MAX_AUTOMATIC_AGENT_MODELS = 3;
+
 let snapshot: AgentModelSnapshot = { choices: [], activeId: '', loaded: false };
 let apiModelChoices: readonly AgentModelChoice[] = [];
 let codexModelChoices: readonly AgentModelChoice[] = [];
@@ -48,6 +50,7 @@ let codexStatus: CodexAgentStatus | null = null;
 let codexSavedModel = '';
 let codexSavedReasoningEffort = '';
 let codexDiscoveredModels: readonly CodexAgentModel[] = [];
+let fallbackProviderOrder: readonly LlmProvider[] = [];
 const listeners = new Set<() => void>();
 
 function emit(): void {
@@ -113,6 +116,20 @@ function chooseInitialApiId(
   return choices.find((choice) => choice.provider === preferred)?.id ?? choices[0]?.id ?? '';
 }
 
+function configuredFallbackProviders(raw: unknown): readonly LlmProvider[] {
+  if (typeof raw !== 'string') return [];
+  const available = new Set<string>(LLM_PROVIDER_PRESETS.map((preset) => preset.id));
+  const seen = new Set<LlmProvider>();
+  return raw.split(',').flatMap((part): LlmProvider[] => {
+    const candidate = part.trim().toLowerCase();
+    if (!available.has(candidate)) return [];
+    const provider = candidate as LlmProvider;
+    if (seen.has(provider)) return [];
+    seen.add(provider);
+    return [provider];
+  });
+}
+
 function allChoices(): readonly AgentModelChoice[] {
   return [...apiModelChoices, ...codexModelChoices];
 }
@@ -148,6 +165,7 @@ export function applyAgentModelStatus(
   selectDefaultProvider = false,
 ): void {
   capabilityOverrides = safeOverrides(models[MODEL_CAPABILITY_OVERRIDES_KEY]);
+  fallbackProviderOrder = configuredFallbackProviders(models.LLM_AGENT_FALLBACK_ORDER);
   apiModelChoices = apiChoices(keys, models);
   codexSavedModel = models.CODEX_MODEL?.trim() ?? codexSavedModel;
   codexSavedReasoningEffort = models.CODEX_REASONING_EFFORT?.trim() ?? codexSavedReasoningEffort;
@@ -207,6 +225,17 @@ export function isAgentModelReady(state: AgentModelSnapshot = snapshot): boolean
 
 export function getActiveAgentModelChoice(): AgentModelChoice | undefined {
   return snapshot.choices.find((choice) => choice.id === snapshot.activeId);
+}
+
+/** Retry only pre-output API failures; Codex has a separate account-backed runtime. */
+export function getAutomaticAgentFallbackChoices(): readonly AgentModelChoice[] {
+  const active = getActiveAgentModelChoice();
+  if (!active || active.backend !== 'api') return active ? [active] : [];
+  const configured = apiModelChoices.filter((choice) => choice.id !== active.id);
+  const ordered = fallbackProviderOrder.length
+    ? fallbackProviderOrder.flatMap((provider) => configured.filter((choice) => choice.provider === provider))
+    : configured;
+  return [active, ...ordered].slice(0, MAX_AUTOMATIC_AGENT_MODELS);
 }
 
 export function selectAgentModel(id: string): void {

@@ -10,6 +10,7 @@ import {
 import {
   captureSynchronousStart,
   errorMessage,
+  shouldFallbackAgentModel,
   shouldRetryCompatibleMediaRequest,
   shouldRetryTransientAgentRequest,
   streamPartStartsCompatibleMediaOutput,
@@ -17,6 +18,7 @@ import {
 export {
   isCompatibleMediaFallbackError,
   shouldRetryCompatibleMediaRequest,
+  shouldFallbackAgentModel,
   shouldRetryTransientAgentRequest,
   streamPartStartsCompatibleMediaOutput,
 } from './api-retry';
@@ -101,6 +103,7 @@ function createAgentTools(
   settings: AgentSettings,
   onSkillGuard?: (info: RuntimeGuardRequest) => Promise<GuardDecision>,
   onFollowup?: () => void,
+  onToolExecution?: () => void,
   schemas: readonly AgentToolSchema[] = TOOL_SCHEMAS,
 ): ToolSet {
   return Object.fromEntries(schemas.map((schema) => [
@@ -111,6 +114,7 @@ function createAgentTools(
         schema.input_schema as Parameters<typeof jsonSchema<Record<string, unknown>>>[0],
       ),
       execute: async (input) => {
+        onToolExecution?.();
         const execution = await executeOpenChatCutTool(schema, input ?? {}, {
           ctx,
           onEvent,
@@ -156,6 +160,17 @@ export interface ApiRuntimeDependencies {
   readonly model?: LanguageModel;
 }
 
+/** A provider failed before output or tool execution, so the caller may safely retry another configured provider. */
+export class AgentPreOutputFailure extends Error {
+  readonly originalError: unknown;
+
+  constructor(error: unknown) {
+    super(errorMessage(error).trim());
+    this.name = 'AgentPreOutputFailure';
+    this.originalError = error;
+  }
+}
+
 export async function runApiAgent(
   messages: LLMMessage[],
   ctx: AgentContext,
@@ -174,6 +189,8 @@ export async function runApiAgent(
 
   let toolTurns = 0;
   let compatibleMediaFallbackRequired = false;
+  let outputObserved = false;
+  let toolExecutionObserved = false;
 
   for (;;) {
     const extract = createInlineThinkingExtractor();
@@ -213,6 +230,7 @@ export async function runApiAgent(
           settings,
           opts?.onSkillGuard,
           () => { askedFollowup = true; },
+          () => { toolExecutionObserved = true; },
           opts?.askOnly ? ASK_MODE_TOOL_SCHEMAS : toolSchemas,
         );
 
@@ -310,7 +328,10 @@ export async function runApiAgent(
 
         try {
           for await (const part of result.stream) {
-            if (streamPartStartsCompatibleMediaOutput(part.type)) outputStarted = true;
+            if (streamPartStartsCompatibleMediaOutput(part.type)) {
+              outputStarted = true;
+              outputObserved = true;
+            }
             if (part.type === 'text-delta') {
               const extracted = extract.push(part.text);
               if (extracted.thinking) onEvent({ type: 'thinking-delta', delta: extracted.thinking });
@@ -451,6 +472,14 @@ export async function runApiAgent(
       if (opts?.signal?.aborted) {
         toolFailures.clear();
         return conv;
+      }
+      if (shouldFallbackAgentModel({
+        outputStarted: outputObserved,
+        toolExecutionStarted: toolExecutionObserved,
+        aborted: false,
+        error,
+      })) {
+        throw new AgentPreOutputFailure(error);
       }
       const failureMessage = toolFailures.hasUnresolved ? emitFailureCompletion() : null;
       if (!failureMessage) flushBufferedText();

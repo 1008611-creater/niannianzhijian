@@ -48,6 +48,13 @@ export interface TransientAgentRetryContext {
   error: unknown;
 }
 
+export interface AgentModelFallbackContext {
+  outputStarted: boolean;
+  toolExecutionStarted: boolean;
+  aborted: boolean;
+  error: unknown;
+}
+
 function isTransientAgentRequestError(error: unknown): boolean {
   if (error == null || (typeof error !== 'object' && typeof error !== 'function')) return false;
   const shaped = error as {
@@ -84,6 +91,30 @@ function isTransientAgentRequestError(error: unknown): boolean {
     candidate?.name === 'TypeError'
     && browserNetworkFailure.test(String(candidate.message ?? '').trim())
   ));
+}
+
+function fallbackStatus(error: unknown): number | undefined {
+  if (error == null || (typeof error !== 'object' && typeof error !== 'function')) return undefined;
+  const shaped = error as { statusCode?: unknown; status?: unknown; cause?: unknown };
+  const cause = shaped.cause && typeof shaped.cause === 'object'
+    ? shaped.cause as { statusCode?: unknown; status?: unknown }
+    : undefined;
+  const status = shaped.statusCode ?? shaped.status ?? cause?.statusCode ?? cause?.status;
+  return typeof status === 'number' ? status : undefined;
+}
+
+/** Only retry another provider before the user has seen output or a tool can mutate the project. */
+export function shouldFallbackAgentModel({
+  outputStarted,
+  toolExecutionStarted,
+  aborted,
+  error,
+}: AgentModelFallbackContext): boolean {
+  if (outputStarted || toolExecutionStarted || aborted) return false;
+  const status = fallbackStatus(error);
+  if (status === 401 || status === 403 || status === 408 || status === 409 || status === 429) return true;
+  if (status != null && status >= 500 && status <= 599) return true;
+  return isTransientAgentRequestError(error);
 }
 
 export function shouldRetryTransientAgentRequest({

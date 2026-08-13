@@ -148,6 +148,7 @@ export const KEY_NAMES = [
   "MEDIA_DIR",
   // ── model ids (non-secret config; raw values echoed via keyStatus().models) ──
   "LLM_PROVIDER",
+  "LLM_AGENT_FALLBACK_ORDER",
   "LLM_MODEL",
   "CODEX_MODEL",
   "CODEX_REASONING_EFFORT",
@@ -192,6 +193,7 @@ const SETTABLE = new Set<string>(KEY_NAMES);
 // KEY_NAMES: adding a key to the whitelist must never accidentally make it non-secret.
 export const NON_SECRET_NAMES: ReadonlySet<string> = new Set([
   "LLM_PROVIDER",
+  "LLM_AGENT_FALLBACK_ORDER",
   "LLM_MODEL",
   "CODEX_MODEL",
   "CODEX_REASONING_EFFORT",

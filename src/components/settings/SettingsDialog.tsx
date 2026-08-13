@@ -322,7 +322,10 @@ function VendorList({ group, activeVendor, onSelectVendor, ctx }: {
 }) {
   return (
     <div style={vendorCol}>
-      {group.route && <div style={routeBox}><FieldRow field={group.route} ctx={ctx} /></div>}
+      {(group.route || group.fallbackRoute) && <div style={routeBox}>
+        {group.route && <FieldRow field={group.route} ctx={ctx} />}
+        {group.fallbackRoute && <div style={{ marginTop: group.route ? 10 : 0 }}><FieldRow field={group.fallbackRoute} ctx={ctx} /></div>}
+      </div>}
       {group.vendors.map((p) => (
         <VendorRow key={p.key} page={p} on={vendorConfigured(ctx.status, p, ctx.codex.status)}
           active={p.key === activeVendor} onSelect={() => onSelectVendor(p.key)} />

@@ -13,6 +13,7 @@ import {
   applyAgentModelStatus,
   applyCodexAgentStatus,
   getAgentModelSnapshot,
+  getAutomaticAgentFallbackChoices,
   selectAgentModel,
 } from './model-selection.ts';
 import { MODEL_CAPABILITY_OVERRIDES_KEY } from '../../shared/model-capabilities.ts';
@@ -95,6 +96,19 @@ assert.equal(getAgentModelSnapshot().activeId, 'openai:gpt-5',
   'saving an administrator default immediately switches the active API model');
 assert.equal(PROVIDER, 'openai', 'the saved default updates the Agent request route');
 assert.equal(persistenceCalls, 0, 'conversation model switching must not rewrite server settings');
+applyAgentModelStatus({
+  LLM_OPENAI_API_KEY: { configured: true },
+  LLM_GEMINI_API_KEY: { configured: true },
+  LLM_MCGROX_API_KEY: { configured: true },
+}, {
+  LLM_PROVIDER: 'openai',
+  LLM_AGENT_FALLBACK_ORDER: 'mcgrox,gemini,unknown,gemini',
+}, true);
+assert.deepEqual(
+  getAutomaticAgentFallbackChoices().map((choice) => choice.provider),
+  ['openai', 'mcgrox', 'gemini'],
+  'fallback uses the administrator order, removes unknown/duplicate providers, and stops at three attempts',
+);
 
 const signedInCodex = {
   installed: true,
