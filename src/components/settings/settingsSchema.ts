@@ -99,11 +99,11 @@ const routeSelect = (name: string, options: readonly SelectOption[]): SettingsFi
 
 const agentFallbackOrder = (): SettingsField => ({
   name: 'LLM_AGENT_FALLBACK_ORDER',
-  label: '备用线路顺序',
+  label: '备用 GPT 线路顺序',
   kind: 'text',
   defaultLabel: '',
-  placeholder: '例如 anthropic,gemini,mcgrox',
-  note: '用逗号填写已配置的厂商 ID。从左到右尝试；留空时按已配置线路的默认顺序。仅在本次请求尚未输出内容或执行剪辑操作时自动切换。',
+  placeholder: '例如 mcgrox,openai,glm',
+  note: '只填写用于聊天与剪辑编排的 GPT 类上游 ID，从左到右尝试。Gemini 专门用于视频理解，不会参与聊天回退；仅在本次请求尚未输出内容或执行剪辑操作时自动切换。',
 });
 
 const llmPage = (preset: (typeof LLM_PROVIDER_PRESETS)[number]): SettingsVendorPage => {
@@ -111,8 +111,10 @@ const llmPage = (preset: (typeof LLM_PROVIDER_PRESETS)[number]): SettingsVendorP
   return {
     key: `llm/${preset.id}`,
     vendor: preset.id as VendorId,
-    title: preset.label,
-    note: preset.id === 'anthropic'
+    title: preset.id === 'gemini' ? 'Google Gemini（视频理解）' : preset.label,
+    note: preset.id === 'gemini'
+      ? '只用于读取上传视频的剧情、镜头、台词和真实时间段；不参与聊天 Agent、剪辑编排或故障回退。'
+      : preset.id === 'anthropic'
       ? '内置 Agent 需要 Anthropic API Key。Claude Code 订阅用户请通过「外部 Agent 接入 (MCP)」连接；OpenChatCut 不接收 Claude OAuth。'
       : '每个厂商独立保存地址、密钥与模型。先测试连接，成功后可从接口返回的模型中选择。',
     fields: [
@@ -171,9 +173,12 @@ const CODEX_PAGE: SettingsVendorPage = {
 };
 
 const AGENT_VENDOR_PAGES: readonly SettingsVendorPage[] = LLM_PROVIDER_PRESETS.flatMap((preset) => {
+  if (preset.id === 'gemini') return [];
   const page = llmPage(preset);
   return preset.id === 'openai' ? [page, CODEX_PAGE] : [page];
 });
+
+const GEMINI_VIDEO_PAGE = llmPage(LLM_PROVIDER_PRESETS.find((preset) => preset.id === 'gemini')!);
 
 // Vision bypass configuration: rendered by VisionModelPane (localStorage, not
 // a server key page). No fields — vendorConfigured stays false for it.
@@ -215,12 +220,15 @@ export const SETTINGS_CATEGORIES: readonly SettingsCategory[] = [
     groups: [
       { key: 'llm', title: 'Agent 大脑',
         hint: '对话与工具调用的核心，未配置无法对话。',
-        route: routeSelect('LLM_PROVIDER', LLM_PROVIDER_PRESETS.map((preset) => ({
+        route: routeSelect('LLM_PROVIDER', LLM_PROVIDER_PRESETS.filter((preset) => preset.id !== 'gemini').map((preset) => ({
           value: preset.id,
           label: preset.label,
         }))),
         fallbackRoute: agentFallbackOrder(),
         vendors: AGENT_VENDOR_PAGES_WITH_VISION },
+      { key: 'video-understanding', title: '视频理解',
+        hint: '读取上传视频的剧情与真实时间段；只在 Agent 调用视频分析时使用。',
+        vendors: [GEMINI_VIDEO_PAGE] },
     ],
   },
   {
