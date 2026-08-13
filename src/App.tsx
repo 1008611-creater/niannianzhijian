@@ -1,4 +1,4 @@
-import { Component, lazy, Suspense, useCallback, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
+import { Component, useCallback, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
 import { theme } from './theme';
 import { Dashboard } from './components/Dashboard';
 import { QuickHome, type QuickRecipeInput } from './components/QuickHome';
@@ -14,7 +14,7 @@ import { fetchCodexModels, fetchCodexStatus } from './agent/codex/client';
 import { applyAgentModelStatus, applyCodexAgentStatus } from './agent/model-selection';
 import { useT } from './i18n/locale';
 
-const Editor = lazy(() => import('./Editor'));
+import Editor from './Editor';
 
 // A brand-new project starts empty; the first-run "Sample Project" gets the seed clips.
 const emptyState = (): TimelineState => ({
@@ -87,6 +87,31 @@ function Splash({ text }: { text: string }) {
   );
 }
 
+const PROJECT_LIST_TIMEOUT_MS = 8_000;
+
+function withProjectListTimeout<T>(operation: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error('project list timed out')), PROJECT_LIST_TIMEOUT_MS);
+    operation.then(
+      (value) => { window.clearTimeout(timer); resolve(value); },
+      (error: unknown) => { window.clearTimeout(timer); reject(error); },
+    );
+  });
+}
+
+function StartupFailure({ onRetry }: { onRetry: () => void }) {
+  const t = useT();
+  return (
+    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24, background: theme.bg, color: theme.text, fontFamily: 'system-ui, sans-serif' }}>
+      <div style={{ display: 'grid', gap: 12, maxWidth: 420, textAlign: 'center' }}>
+        <strong>{t('工程列表暂时无法加载')}</strong>
+        <span style={{ color: theme.textDim, fontSize: 13 }}>{t('你的本地工程没有被删除，请重新加载后重试。')}</span>
+        <button type="button" onClick={onRetry}>{t('重新加载')}</button>
+      </div>
+    </div>
+  );
+}
+
 interface EditorLoadBoundaryProps {
   children: ReactNode;
   onHome: () => void;
@@ -143,7 +168,7 @@ function EditorLoader({ meta, onHome, onRename, recipe, onRecipeConsumed }: { me
       retryLabel={t('刷新重试')}
       homeLabel={t('返回工程列表')}
     >
-      <Suspense fallback={<Splash text={t('加载编辑器…')} />}><Editor initial={initial} project={meta} onHome={onHome} onRename={onRename} initialRecipe={recipe} onRecipeConsumed={onRecipeConsumed} /></Suspense>
+      <Editor initial={initial} project={meta} onHome={onHome} onRename={onRename} initialRecipe={recipe} onRecipeConsumed={onRecipeConsumed} />
     </EditorLoadBoundary>
   );
 }
@@ -152,6 +177,7 @@ export default function App() {
   const t = useT();
   const [accountReady, setAccountReady] = useState(false);
   const [projects, setProjects] = useState<ProjectMeta[] | null>(null);
+  const [projectLoadFailed, setProjectLoadFailed] = useState(false);
   const [route, setRoute] = useState<Route>(parseHash());
   const [pendingRecipe, setPendingRecipe] = useState<QuickRecipeInput | null>(null);
 
@@ -185,19 +211,34 @@ export default function App() {
     return () => { alive = false; };
   }, []);
 
-  const refresh = useCallback(async () => { setProjects(await listProjects()); }, []);
+  const refresh = useCallback(async () => {
+    setProjectLoadFailed(false);
+    try {
+      setProjects(await withProjectListTimeout(listProjects()));
+    } catch {
+      setProjectLoadFailed(true);
+    }
+  }, []);
 
-  useEffect(() => {
-    (async () => {
-      let list = await listProjects();
-      if (list.length === 0 && !(await hasProjectHistory())) {
+  const initializeProjects = useCallback(async () => {
+    setProjectLoadFailed(false);
+    try {
+      let list = await withProjectListTimeout(listProjects());
+      if (list.length === 0 && !(await withProjectListTimeout(hasProjectHistory()))) {
         list = [await createProject('示例工程', await seedDoc())];
       }
       setProjects(list);
-    })();
+    } catch (error) {
+      console.error('Project list initialization failed', error);
+      setProjectLoadFailed(true);
+    }
   }, []);
 
-  if (!accountReady || !projects) return <Splash text={t('加载中…')} />;
+  useEffect(() => { void initializeProjects(); }, [initializeProjects]);
+
+  if (!accountReady) return <Splash text={t('加载中…')} />;
+  if (projectLoadFailed) return <StartupFailure onRetry={() => { void initializeProjects(); }} />;
+  if (!projects) return <Splash text={t('加载中…')} />;
 
   if (route.name === 'editor') {
     const meta = projects.find((p) => p.id === route.id);

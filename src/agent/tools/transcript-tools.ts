@@ -21,6 +21,18 @@ function transcriptionProvider(value: unknown): 'assemblyai' | 'openai-asr' | 'm
 
 const QUICK_SHORT_DRAMA_MODE_ID = '11111111-1240-4000-8000-000000000004';
 
+export function recoverQuickTranscriptionTrack(
+  state: ReturnType<AgentContext['getState']>,
+  requestedTrack: TrackId | null,
+): TrackId | null {
+  if (requestedTrack && state.items.some((item) => item.track === requestedTrack && (item.kind === 'audio' || item.kind === 'video') && item.src)) {
+    return requestedTrack;
+  }
+  return state.items.find((item) => item.kind === 'video' && item.src)?.track
+    ?? requestedTrack
+    ?? defaultTrackId(state, 'video');
+}
+
 // normalize / findPhrase live in transcript-find.ts (shared with the find_transcript
 // executor and manage_markers' transcriptSegments anchoring).
 
@@ -266,7 +278,11 @@ export async function execTranscriptTool(name: string, args: Args, ctx: AgentCon
     return { error: '快速短剧精修只允许使用 MiMo + Qwen 强制对齐；不要切换到其他 ASR 供应商。' };
   }
   const state = ctx.getState();
-  const track = resolveTrackId(state, args.track ?? 'A1') ?? defaultTrackId(state, 'audio');
+  let track = resolveTrackId(state, args.track ?? 'A1') ?? defaultTrackId(state, 'audio');
+  // A quick rough cut contains its source video on a video lane and may not
+  // create a separate A1 lane.  Keep a mistaken/default A1 request from
+  // abandoning the run when the actual clip is available on V1.
+  if (name === 'transcribe_track' && quickMode) track = recoverQuickTranscriptionTrack(state, track);
   if (!track) return { error: 'no track available; create one with edit_track first' };
   const alias = trackAlias(state, track);
   switch (name) {
