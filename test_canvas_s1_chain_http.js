@@ -78,6 +78,13 @@ async function run() {
   assert.equal(image2.body.node.parameters.aspectRatio, '1:1');
   assert.equal(image2.body.node.parameters.providerSubmitRequested, false);
   assert.equal(image2.body.node.status, 'ready');
+  const nomi = await request('/api/studio/projects/' + project.id, {headers:headers({'x-niannian-project-kind':'redraw'})});
+  assert.equal(nomi.response.status, 200, JSON.stringify(nomi.body));
+  assert.deepEqual(nomi.body.document.generationCanvas.nodes.filter(node => node.meta?.niannianSkillNode).map(node => node.meta.sourceNodeId), ['s1-source-input','s1-step01-analysis','s1-step02-timeline','s2-image2-keyframe']);
+  assert.deepEqual(nomi.body.document.generationCanvas.edges.filter(edge => String(edge.id).startsWith('nn-skill-')).map(edge => [edge.source,edge.target]), [['nn-skill-s1-source-input','nn-skill-s1-step01-analysis'],['nn-skill-s1-step01-analysis','nn-skill-s1-step02-timeline']]);
+  assert.equal(nomi.body.document.generationCanvas.nodes.find(node => node.id === 'nn-skill-s1-step01-analysis').meta.locked, true);
+  const nomiReload = await request('/api/studio/projects/' + project.id, {headers:headers({'x-niannian-project-kind':'redraw'})});
+  assert.equal(nomiReload.body.document.generationCanvas.nodes.find(node => node.id === 'nn-skill-s2-image2-keyframe').meta.parameters.resolution, '1k');
   const image2Reload = await request('/api/canvas/documents/redraw/' + project.id, {headers:headers()});
   assert.equal(image2Reload.body.document.nodes.find(item => item.id === 's2-image2-keyframe').data.prompt, '角色站在街角，电影感关键帧');
   const reloaded = await request('/api/canvas/documents/redraw/' + project.id, {headers:headers()});

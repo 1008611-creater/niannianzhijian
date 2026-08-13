@@ -59,6 +59,7 @@ const canvasTextJobs = require('./bridge/niannian_canvas_text_jobs');
 const canvasSkillNodes = require('./bridge/niannian_canvas_skill_nodes');
 const canvasS1Chain = require('./bridge/niannian_canvas_s1_chain');
 const canvasImage2Node = require('./bridge/niannian_canvas_image2_node');
+const nomiSkillChain = require('./bridge/niannian_nomi_skill_chain');
 const nomiRunningHubH3 = require('./bridge/niannian_nomi_runninghub_h3');
 const h3MediaValidation = require('./bridge/niannian_h3_media_validation');
 const nomiWebTaskStoreModule = require('./bridge/niannian_nomi_web_task_store');
@@ -7212,6 +7213,7 @@ async function handleCanvasS1ChainApi(request, response, pathname, user) {
       const revision = currentRevision + 1;
       const record = {schemaVersion:'niannian.canvas-document.v1',projectId:project.id,projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
       documents[key] = record;
+      await syncSkillDocumentToNomiCanvas({documents,project,projectKind,skillDocument:document});
       await writeCanvasDocuments(documents);
       return {record,chain};
     });
@@ -7251,6 +7253,7 @@ async function handleCanvasImage2NodeApi(request, response, pathname, user) {
       const revision = currentRevision + 1;
       const record = {schemaVersion:'niannian.canvas-document.v1',projectId:project.id,projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
       documents[key] = record;
+      await syncSkillDocumentToNomiCanvas({documents,project,projectKind,skillDocument:document});
       await writeCanvasDocuments(documents);
       return record;
     });
@@ -7706,6 +7709,44 @@ function nomiDocumentKey(projectKind, projectId) {
   return 'nomi:' + projectKind + ':' + projectId;
 }
 
+async function syncSkillDocumentToNomiCanvas({documents, project, projectKind, skillDocument}) {
+  const key = nomiDocumentKey(projectKind, project.id);
+  const current = nomiRecordForProject(documents[key], project, projectKind);
+  const currentDocument = current?.document || {generationCanvas:{nodes:[],edges:[]}};
+  const document = normalizeNomiProjectDocument(nomiSkillChain.mergeIntoGenerationCanvas(currentDocument, skillDocument));
+  if (current && JSON.stringify(current.document) === JSON.stringify(document)) return current;
+  const record = {
+    schemaVersion:'niannian.nomi-project-document.v1',
+    projectId:project.id,
+    projectKind,
+    ownerId:project.ownerId,
+    revision:Number(current?.revision || 0) + 1,
+    document,
+    updatedAt:new Date().toISOString()
+  };
+  documents[key] = record;
+  return record;
+}
+
+function skillDocumentForProject(documents, project, projectKind) {
+  const record = documents[canvasDocumentKey(projectKind, project.id)];
+  return normalizeCanvasDocument(record?.document, project);
+}
+
+async function ensureNomiSkillProjection(project, projectKind) {
+  return withCanvasDocumentsWriteLock(async () => {
+    const documents = await readCanvasDocuments();
+    const skillDocument = skillDocumentForProject(documents, project, projectKind);
+    const current = nomiRecordForProject(documents[nomiDocumentKey(projectKind, project.id)], project, projectKind);
+    const hasSkillNodes = skillDocument.nodes.some(node => node.skillKey || node.data?.skillKey);
+    if (!current && !hasSkillNodes) return null;
+    const before = current ? JSON.stringify(current.document) : null;
+    const synced = await syncSkillDocumentToNomiCanvas({documents,project,projectKind,skillDocument});
+    if (!current || before !== JSON.stringify(synced.document)) await writeCanvasDocuments(documents);
+    return synced;
+  });
+}
+
 function nomiRecordForProject(record, project, projectKind) {
   if (!record || typeof record !== 'object') return null;
   if (record.ownerId !== project.ownerId || record.projectId !== project.id || record.projectKind !== projectKind) return null;
@@ -7763,7 +7804,7 @@ async function handleWorkbenchCanvasProjectApi(request, response, pathname, user
   if (!project) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'}), true;
   const key = nomiDocumentKey('redraw', project.id);
   if (request.method === 'GET') {
-    let record = nomiRecordForProject((await readCanvasDocuments())[key], project, 'redraw');
+    let record = await ensureNomiSkillProjection(project, 'redraw');
     if (!record) {
       record = await withCanvasDocumentsWriteLock(async () => {
         const documents = await readCanvasDocuments();
@@ -7840,7 +7881,7 @@ async function handleNomiProjectApi(request, response, pathname, user) {
   const key = nomiDocumentKey(owned.projectKind, owned.project.id);
   if (request.method === 'GET') {
     await ensureWorkspaceBinding(user, owned.project.id, {name:owned.project.name});
-    let record = nomiRecordForProject((await readCanvasDocuments())[key], owned.project, owned.projectKind);
+    let record = await ensureNomiSkillProjection(owned.project, owned.projectKind);
     // 首次从有效项目深链进入时立即建立 Nomi 绑定记录。前端随后会保存完整
     // Workbench payload；此处的空 generationCanvas 只用于让服务端拥有唯一、可校验的项目来源。
     if (!record) {
