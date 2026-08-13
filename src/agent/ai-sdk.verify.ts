@@ -29,11 +29,12 @@ import {
   apiToolExecutionOutput,
   isCompatibleMediaFallbackError,
   shouldRetryCompatibleMediaRequest,
+  shouldFallbackAgentModel,
   shouldRetryTransientAgentRequest,
   streamPartStartsCompatibleMediaOutput,
 } from './runtime';
 import type { AgentEvent } from './runtime';
-import { agentRequestDiagnosticHeaders, runApiAgent } from './api-runtime';
+import { AgentPreOutputFailure, agentRequestDiagnosticHeaders, runApiAgent } from './api-runtime';
 import { resolveModelCapabilities } from '../../shared/model-capabilities';
 import type { AgentContext } from './context';
 import { INITIAL } from '../editor/initial';
@@ -681,6 +682,25 @@ assert.equal(shouldRetryTransientAgentRequest({
   error: Object.assign(new Error('second gateway failure'), { statusCode: 503 }),
 }), false, 'a transient request retries at most once');
 
+assert.equal(shouldFallbackAgentModel({
+  outputStarted: false,
+  toolExecutionStarted: false,
+  aborted: false,
+  error: Object.assign(new Error('authentication rejected'), { statusCode: 403 }),
+}), true, 'a pre-output 403 may try the next configured provider');
+assert.equal(shouldFallbackAgentModel({
+  outputStarted: true,
+  toolExecutionStarted: false,
+  aborted: false,
+  error: Object.assign(new Error('late gateway failure'), { statusCode: 503 }),
+}), false, 'visible output prevents provider fallback');
+assert.equal(shouldFallbackAgentModel({
+  outputStarted: false,
+  toolExecutionStarted: true,
+  aborted: false,
+  error: Object.assign(new Error('rate limit'), { statusCode: 429 }),
+}), false, 'a tool execution prevents provider fallback');
+
 assert.equal(isFailedToolResult({ ok: false, error: 'unknown item' }), true);
 assert.equal(isFailedToolResult({ error: 'invalid edit_item input' }), true);
 assert.equal(isFailedToolResult({ ok: true, error: 'non-fatal diagnostic' }), false);
@@ -754,6 +774,26 @@ const apiChoice = {
     modelId: 'gpt-5',
   }),
 } as const;
+const preOutput403 = new MockLanguageModelV4({
+  doStream: async () => {
+    throw Object.assign(new Error('authentication rejected'), { statusCode: 403 });
+  },
+});
+await assert.rejects(
+  runApiAgent(
+    [{ role: 'user', content: 'Use the configured backup.' }],
+    apiContext,
+    () => undefined,
+    apiChoice,
+    'Test system prompt.',
+    false,
+    1_000,
+    undefined,
+    { model: preOutput403 },
+  ),
+  AgentPreOutputFailure,
+  'a pre-output 403 escapes the API runtime so the outer runtime can try the next provider',
+);
 const usage = {
   inputTokens: { total: 1, noCache: 1, cacheRead: undefined, cacheWrite: undefined },
   outputTokens: { total: 1, text: 1, reasoning: undefined },

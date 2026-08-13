@@ -12,12 +12,14 @@ import {
 } from './runtime-guard';
 import {
   getActiveAgentModelChoice,
+  getAutomaticAgentFallbackChoices,
+  selectAgentModel,
   type AgentModelChoice,
 } from './model-selection';
 import { executeOpenChatCutTool, runCodexAgent } from './codex/runtime';
 import { prepareAgentContext } from './context-management';
 import type { AgentContextUsage } from './context-compaction';
-import { runApiAgent } from './api-runtime';
+import { AgentPreOutputFailure, runApiAgent } from './api-runtime';
 import type { ToolFailureTracker } from './toolFailure';
 import { toolSchemasForChoice, usesSmallContextMode } from './compact-tools';
 import type { AgentToolSchema } from './tool-schema';
@@ -26,6 +28,7 @@ export {
   apiToolExecutionOutput,
   isCompatibleMediaFallbackError,
   shouldRetryCompatibleMediaRequest,
+  shouldFallbackAgentModel,
   shouldRetryTransientAgentRequest,
   streamPartStartsCompatibleMediaOutput,
 } from './api-runtime';
@@ -54,6 +57,7 @@ export type AgentEvent =
   | { type: 'tool'; name: string; args: unknown; result: unknown }
   | { type: 'max-turns'; turns: number }
   | { type: 'context-usage'; usage: AgentContextUsage }
+  | { type: 'model-fallback'; from: string; to: string }
   | { type: 'error'; message: string };
 
 export function initialMessages(): LLMMessage[] {
@@ -124,55 +128,65 @@ export async function runAgent(
     onEvent({ type: 'error', message: 'No Agent model is available.' });
     return conv;
   }
-  const compact = usesSmallContextMode(active);
-  const system = compact
-    ? buildCompactAgentSystemPrompt(ctx)
-    : buildAgentSystemPrompt(ctx);
-  const availableToolSchemas = !active.capabilities.supportsTools.value
-    ? []
-    : opts?.askOnly ? ASK_MODE_TOOL_SCHEMAS : toolSchemasForChoice(active);
-  try {
-    const prepared = await prepareAgentContext({
-      messages: conv,
-      system,
-      choice: active,
-      ctx,
-      tools: availableToolSchemas,
-      previousUsage: opts?.previousContextUsage,
-      signal: opts?.signal,
-    });
-    onEvent({ type: 'context-usage', usage: prepared.usage });
-    return active.backend === 'codex'
-      ? runCodexBackend(
-          prepared.messages,
-          ctx,
-          onEvent,
-          active,
-          system,
-          prepared.usage.compacted,
-          prepared.usage.contextWindowTokens,
-          prepared.usage.contextWindowEstimated,
-          prepared.maxOutputTokens,
-          opts,
-          availableToolSchemas,
-        )
-      : runApiAgent(
-          prepared.messages,
-          ctx,
-          onEvent,
-          active,
-          system,
-          prepared.usage.compacted,
-          prepared.maxOutputTokens,
-          opts,
-          undefined,
-          availableToolSchemas,
-        );
-  } catch (error) {
-    if (opts?.signal?.aborted) return conv;
-    const message = error instanceof Error ? error.message : String(error);
-    onEvent({ type: 'error', message: `Unable to prepare model context: ${message}` });
-    return conv;
+  const candidates = getAutomaticAgentFallbackChoices();
+  for (const [index, choice] of candidates.entries()) {
+    const compact = usesSmallContextMode(choice);
+    const system = compact
+      ? buildCompactAgentSystemPrompt(ctx)
+      : buildAgentSystemPrompt(ctx);
+    const availableToolSchemas = !choice.capabilities.supportsTools.value
+      ? []
+      : opts?.askOnly ? ASK_MODE_TOOL_SCHEMAS : toolSchemasForChoice(choice);
+    try {
+      const prepared = await prepareAgentContext({
+        messages: conv,
+        system,
+        choice,
+        ctx,
+        tools: availableToolSchemas,
+        previousUsage: opts?.previousContextUsage,
+        signal: opts?.signal,
+      });
+      onEvent({ type: 'context-usage', usage: prepared.usage });
+      return choice.backend === 'codex'
+        ? runCodexBackend(
+            prepared.messages,
+            ctx,
+            onEvent,
+            choice,
+            system,
+            prepared.usage.compacted,
+            prepared.usage.contextWindowTokens,
+            prepared.usage.contextWindowEstimated,
+            prepared.maxOutputTokens,
+            opts,
+            availableToolSchemas,
+          )
+        : runApiAgent(
+            prepared.messages,
+            ctx,
+            onEvent,
+            choice,
+            system,
+            prepared.usage.compacted,
+            prepared.maxOutputTokens,
+            opts,
+            undefined,
+            availableToolSchemas,
+          );
+    } catch (error) {
+      if (opts?.signal?.aborted) return conv;
+      const next = candidates[index + 1];
+      if (error instanceof AgentPreOutputFailure && next) {
+        selectAgentModel(next.id);
+        onEvent({ type: 'model-fallback', from: choice.providerLabel, to: next.providerLabel });
+        continue;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      onEvent({ type: 'error', message: `Unable to prepare model context: ${message}` });
+      return conv;
+    }
   }
+  return conv;
 }
 

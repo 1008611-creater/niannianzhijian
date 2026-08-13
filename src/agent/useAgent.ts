@@ -316,6 +316,11 @@ export function useAgent(ctx: AgentContext, projectId: string, yoloAutoApply = f
             setMessages((m) => [...m, { role: 'continue', text: String(ev.turns) }]);
           } else if (ev.type === 'context-usage') {
             replaceContextUsage(ev.usage);
+          } else if (ev.type === 'model-fallback') {
+            setMessages((m) => [...m, {
+              role: 'assistant',
+              text: `当前线路未能响应，已切换到备用线路 ${ev.to} 继续处理。`,
+            }]);
           } else {
             setMessages((m) => [...m, { role: 'error', text: ev.message }]);
           }
