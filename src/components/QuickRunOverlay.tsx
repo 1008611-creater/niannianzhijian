@@ -17,7 +17,9 @@ interface QuickRunOverlayProps {
   fps: number;
   error?: string;
   storyPreferences: QuickStoryPreferences;
+  storyPriorityOrder: string[];
   onStoryPreferenceChange: (key: string, preference?: 'priority' | 'exclude') => void;
+  onStoryPriorityMove: (key: string, direction: -1 | 1) => void;
   onRetry: () => void;
   onConfirmStory: () => void;
   onEnterProfessional: () => void;
@@ -66,7 +68,9 @@ export function QuickRunOverlay({
   fps,
   error,
   storyPreferences,
+  storyPriorityOrder,
   onStoryPreferenceChange,
+  onStoryPriorityMove,
   onRetry,
   onConfirmStory,
   onEnterProfessional,
@@ -168,11 +172,13 @@ export function QuickRunOverlay({
                     {card.scenes.map((scene) => {
                       const key = quickStorySceneKey(assets[card.index - 1]!.id, scene.id);
                       const preference = storyPreferences[key];
+                      const orderIndex = storyPriorityOrder.indexOf(key);
                       return <div className="qrun-story-choice" key={scene.id}>
                         <small>{timeLabel(scene.startMs)} - {timeLabel(scene.endMs)} {scene.label || '剧情片段'}</small>
                         <div role="group" aria-label={`${card.name} ${scene.label || '剧情片段'}选择`}>
                           <button type="button" className={preference === 'priority' ? 'selected' : ''} onClick={() => onStoryPreferenceChange(key, preference === 'priority' ? undefined : 'priority')}>重点保留</button>
                           <button type="button" className={preference === 'exclude' ? 'selected' : ''} onClick={() => onStoryPreferenceChange(key, preference === 'exclude' ? undefined : 'exclude')}>不要用</button>
+                          {preference === 'priority' && <><button type="button" aria-label="上移重点段" disabled={orderIndex <= 0} onClick={() => onStoryPriorityMove(key, -1)}>↑</button><button type="button" aria-label="下移重点段" disabled={orderIndex < 0 || orderIndex >= storyPriorityOrder.length - 1} onClick={() => onStoryPriorityMove(key, 1)}>↓</button></>}
                         </div>
                       </div>;
                     })}
