@@ -141,6 +141,10 @@ const maxUploadBytes = Math.max(1024 * 1024, Math.min(300 * 1024 * 1024, Number(
 const maxScriptDocumentBytes = Math.max(1024 * 1024, Math.min(100 * 1024 * 1024, Number(process.env.MAX_SCRIPT_DOCUMENT_BYTES || 25 * 1024 * 1024)));
 const scriptUploadChunkBytes = Math.max(256 * 1024, Math.min(4 * 1024 * 1024, Number(process.env.SCRIPT_UPLOAD_CHUNK_BYTES || 1024 * 1024)));
 const sessionTtlMs = 7 * 24 * 60 * 60 * 1000;
+// Exact previews use an isolated data root and must be directly usable for
+// browser acceptance without borrowing production cookies or credentials.
+const previewAutoLogin = String(process.env.NIANNIAN_PREVIEW || '') === '1';
+const previewUser = Object.freeze({id:'USR-PREVIEW', email:'preview@niannian.local'});
 const canvasGenerationJobService = canvasGenerationJobs.createCanvasGenerationJobService({filePath:canvasGenerationJobsPath});
 const canvasAssetService = canvasAssets.createCanvasAssetService({indexPath:canvasAssetsPath,storageRoot:canvasAssetsRoot,maxBytes:process.env.CANVAS_ASSET_MAX_BYTES});
 const canvasProviderStatus = canvasProviderConfig.readCanvasProviderConfig();
@@ -1254,13 +1258,13 @@ async function createSession(user, request, response) {
 
 async function currentUser(request) {
   const token = parseCookies(request).niannian_session;
-  if (!token) return null;
+  if (!token) return previewAutoLogin ? previewUser : null;
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
   const sessions = await readJson(sessionsPath);
   const session = sessions.find(item => item.tokenHash === tokenHash && new Date(item.expiresAt).getTime() > Date.now());
-  if (!session) return null;
+  if (!session) return previewAutoLogin ? previewUser : null;
   const user = (await readJson(usersPath)).find(item => item.id === session.userId && item.status === 'active');
-  return user ? { id:user.id, email:user.email } : null;
+  return user ? { id:user.id, email:user.email } : (previewAutoLogin ? previewUser : null);
 }
 
 async function handleRegister(request, response) {

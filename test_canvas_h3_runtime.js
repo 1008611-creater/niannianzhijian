@@ -23,11 +23,18 @@ async function run() {
     error => error?.code === 'RUNNINGHUB_TARGET_DIMENSION_UNSUPPORTED'
   );
   const h3Adapter = createRunningHubH3Adapter({baseUrl:'https://www.runninghub.cn'});
+  const genericOnlyAdapter = createRunningHubH3Adapter({baseUrl:'https://www.runninghub.cn',fetchImpl:async () => { throw new Error('must not reach provider'); }});
+  const previousConsumerKey = process.env.NOMI_RUNNINGHUB_H3_API_KEY;
+  const previousGenericKey = process.env.RUNNINGHUB_API_KEY;
+  delete process.env.NOMI_RUNNINGHUB_H3_API_KEY;
+  process.env.RUNNINGHUB_API_KEY = 'enterprise-key-must-not-be-used';
+  await assert.rejects(() => genericOnlyAdapter.query('provider-task-001'), error => error?.code === 'RUNNINGHUB_CREDENTIAL_NOT_CONFIGURED');
+  if (previousConsumerKey === undefined) delete process.env.NOMI_RUNNINGHUB_H3_API_KEY;
+  else process.env.NOMI_RUNNINGHUB_H3_API_KEY = previousConsumerKey;
+  if (previousGenericKey === undefined) delete process.env.RUNNINGHUB_API_KEY;
+  else process.env.RUNNINGHUB_API_KEY = previousGenericKey;
   const dryRun = h3Adapter.dryRun({prompt:'中文人物自然转身',aspectRatio:'9:16',durationSeconds:5}, 1);
-  assert.deepEqual(
-    dryRun.payload.nodeInfoList.find(item => item.fieldName === 'attention_backend'),
-    {nodeId:'2',fieldName:'attention_backend',fieldValue:'auto'}
-  );
+  assert.equal(dryRun.payload.nodeInfoList.some(item => item.fieldName === 'attention_backend'), false);
   assert.deepEqual(
     dryRun.payload.nodeInfoList.filter(item => ['aspect_ratio','width','height','duration_seconds'].includes(item.fieldName)),
     [
@@ -53,10 +60,7 @@ async function run() {
     const submittedProviderTask = await requestAdapter.submit({channel:'one-image',aspectRatio:'9:16',durationSeconds:5,prompt:'中文人物自然转身'}, [referencePath]);
     assert.equal(submittedProviderTask.taskId, 'provider-task-001');
     assert.equal(submittedBody.instanceType, 'ultra');
-    assert.deepEqual(
-      submittedBody.nodeInfoList.find(item => item.fieldName === 'attention_backend'),
-      {nodeId:'2',fieldName:'attention_backend',fieldValue:'auto'}
-    );
+    assert.equal(submittedBody.nodeInfoList.some(item => item.fieldName === 'attention_backend'), false);
     assert.equal(submittedBody.nodeInfoList.find(item => item.fieldName === 'width').fieldValue, 576);
     assert.equal(submittedBody.nodeInfoList.find(item => item.fieldName === 'height').fieldValue, 1024);
     const rejectedAdapter = createRunningHubH3Adapter({
@@ -105,6 +109,10 @@ async function run() {
     assert.equal(completed.outputAssetIds.length,1);
     const output = (await assetService.listOwned('USR-H3','NN-H3','redraw')).find(asset => asset.kind === 'generated_video');
     assert.equal(output.mimeType,'video/mp4');
+    const retryable = await jobService.create({ownerId:'USR-H3',projectId:'NN-H3',projectKind:'redraw',nodeId:'video-node-retry',nodeType:'video',prompt:'中文人物再次转身',inputAssetIds:[input.asset.id],aspectRatio:'16:9',durationSeconds:5,idempotencyKey:'runtime-h3-retry'});
+    await jobService.updateOwned('USR-H3','NN-H3',retryable.job.id,{status:'failed',providerSubmitState:'failed',providerTaskId:null});
+    const retried = await runtime.submit('USR-H3','NN-H3',retryable.job.id);
+    assert.equal(retried.providerTaskId,'fake-h3-task-3');
     console.log('CANVAS_H3_RUNTIME_CONTRACT_OK');
   } finally { await fsp.rm(root,{recursive:true,force:true}); }
 }

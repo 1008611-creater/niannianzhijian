@@ -50,10 +50,11 @@ function createRunningHubH3Adapter(options = {}) {
   const baseUrl = String(options.baseUrl || process.env.RUNNINGHUB_BASE_URL || 'https://www.runninghub.cn').replace(/\/+$/, '');
   const timeoutMs = Math.max(5000, Number(options.timeoutMs || process.env.RUNNINGHUB_REQUEST_TIMEOUT_MS || 120000));
   if (!/^https:\/\//.test(baseUrl)) throw adapterError('RUNNINGHUB_PROFILE_INVALID', 'RunningHub 地址必须使用 HTTPS', 503);
-  function key() { const value = String(options.apiKey || process.env.RUNNINGHUB_API_KEY || '').trim(); if (!value) throw adapterError('RUNNINGHUB_CREDENTIAL_NOT_CONFIGURED', 'RunningHub 服务器凭据未配置', 503); return value; }
+  function key() { const value = String(options.apiKey || process.env.NOMI_RUNNINGHUB_H3_API_KEY || '').trim(); if (!value) throw adapterError('RUNNINGHUB_CREDENTIAL_NOT_CONFIGURED', 'H3 消费级 RunningHub 凭据未配置', 503); return value; }
   async function jsonRequest(endpoint, payload) {
+    const authorizationKey = key();
     let response;
-    try { response = await fetchImpl(baseUrl + endpoint, {method:'POST',headers:{authorization:'Bearer ' + key(),'content-type':'application/json',accept:'application/json','user-agent':'niannian-canvas-h3/1.0'},body:JSON.stringify(payload),signal:AbortSignal.timeout(timeoutMs)}); }
+    try { response = await fetchImpl(baseUrl + endpoint, {method:'POST',headers:{authorization:'Bearer ' + authorizationKey,'content-type':'application/json',accept:'application/json','user-agent':'niannian-canvas-h3/1.0'},body:JSON.stringify(payload),signal:AbortSignal.timeout(timeoutMs)}); }
     catch (error) { throw adapterError('RUNNINGHUB_NETWORK_UNCERTAIN', 'RunningHub 网络状态不确定：' + redact(error.message)); }
     if (!response.ok) throw adapterError('RUNNINGHUB_HTTP_' + response.status, 'RunningHub 请求失败');
     const value = await response.json().catch(() => { throw adapterError('RUNNINGHUB_RESPONSE_INVALID', 'RunningHub 返回格式无效'); });
@@ -68,10 +69,11 @@ function createRunningHubH3Adapter(options = {}) {
   }
   async function upload(filePath) {
     const bytes = await fs.readFile(filePath);
+    const authorizationKey = key();
     const form = new FormData();
     form.append('file', new Blob([bytes]), path.basename(filePath));
     let response;
-    try { response = await fetchImpl(baseUrl + '/openapi/v2/media/upload/binary', {method:'POST',headers:{authorization:'Bearer ' + key(),accept:'application/json','user-agent':'niannian-canvas-h3/1.0'},body:form,signal:AbortSignal.timeout(timeoutMs)}); }
+    try { response = await fetchImpl(baseUrl + '/openapi/v2/media/upload/binary', {method:'POST',headers:{authorization:'Bearer ' + authorizationKey,accept:'application/json','user-agent':'niannian-canvas-h3/1.0'},body:form,signal:AbortSignal.timeout(timeoutMs)}); }
     catch (error) { throw adapterError('RUNNINGHUB_UPLOAD_NETWORK_FAILED', 'RunningHub 素材上传失败：' + redact(error.message)); }
     if (!response.ok) throw adapterError('RUNNINGHUB_UPLOAD_HTTP_' + response.status, 'RunningHub 素材上传失败');
     const value = await response.json().catch(() => null);
@@ -87,10 +89,6 @@ function createRunningHubH3Adapter(options = {}) {
     const aspectRatio = task.aspectRatio || '16:9';
     const dimensions = targetDimensions(aspectRatio, channel);
     const items = [];
-    // RunningHub's MiniMax H3 loader requires this explicit backend selector.
-    // `auto` is supported by the upstream implementation and lets the worker
-    // choose the best available attention backend on the provider runtime.
-    items.push({nodeId:'2',fieldName:'attention_backend',fieldValue:'auto'});
     if (spec.referenceNodes.length && Number(referenceCount) !== spec.referenceNodes.length) throw adapterError('CANVAS_H3_REFERENCE_COUNT_INVALID', 'H3 参考图数量与通道不匹配', 422);
     spec.referenceNodes.forEach((nodeId, index) => items.push({nodeId,fieldName:'image',fieldValue:`DRY_RUN_UPLOAD:reference-${index + 1}`}));
     items.push({nodeId:spec.controlNode,fieldName:'aspect_ratio',fieldValue:aspectRatio});
