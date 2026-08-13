@@ -92,6 +92,7 @@ import type { QuickRecipeInput } from './components/QuickHome';
 import { QuickRunOverlay, type QuickRunStage } from './components/QuickRunOverlay';
 import { isCompleteQuickRoughCut, roughCutSourceCount } from './quickRunEvidence';
 import { quickRunErrorMessage } from './quickRunError';
+import { quickAssetCoverageInstruction } from './quickAssetCoverage';
 import { priorityStoryOrder, selectedQuickStoryRanges, type QuickStoryPreferences } from './quickStoryPreferences';
 import { quickStoryDirections, type QuickStoryDirection } from './quickStoryDirections';
 import { requestAssetMimoAsr, requestAssetVideoUnderstanding, mimoAsrIntelligenceFor, videoIntelligenceFor } from './media/assetIntelligenceApi';
@@ -919,6 +920,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     const excluded = ranges.filter((range) => range.preference === 'exclude').map((range) => `${range.assetId} ${range.startMs}-${range.endMs}ms`).join('；') || '无';
     const storyContext = recipe.storyOutline ? `用户补充的剧情梗概：${recipe.storyOutline}。` : '用户没有补充剧情梗概；以已写入素材的真实视频理解为准，不能虚构剧情。';
     const dialogueContext = recipe.dialogue ? `用户补充的关键台词/文案：${recipe.dialogue}。` : '用户没有补充台词文案；只有现有真实转写可用时才能引用台词。';
+    const assetCoverage = quickAssetCoverageInstruction(assets);
     quickAgentStartedRef.current = false;
     setQuickProgressStage('selecting');
     setQuickAgentState({ running: false, proposalPending: false });
@@ -928,7 +930,7 @@ export default function Editor({ initial, project, onHome, onRename, initialReci
     quickStoryDirectionRef.current = direction;
     setChatSeed({
       nonce: Date.now(), references: assets.map((item) => ({ id: item.id, name: item.name, kind: item.kind })), autoSubmit: true, autoApply: true,
-      text: `用户已确认剧情理解，并选择「${direction.title}」：${direction.agentInstruction}。现在制作短剧片段精修发布版：${sourceManifest}。${storyContext}${dialogueContext}目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。用户标记必须重点保留的真实源时间范围：${priority}。用户标记绝不使用的真实源时间范围：${excluded}。根据已经写入的真实视频理解、真实时间范围和可用真实转写选片；上传顺序是默认剧情顺序，只有真实画面或台词明确证明时才调整。先 search_media 精确确认 assetId；仅当素材元数据缺少对应证据时才调用 analyze_asset 或 view_asset_frames。调用 assemble_rough_cut 创建独立可编辑粗剪，beats 必须引用多个实际 assetId，必须包含全部重点保留范围且不能与不要用范围重叠；不得只使用第一段，不得伪造剧情、字幕或时长。保留原声，不生成付费音乐，不覆盖用户手工修改，最后调用 check_rough_cut_ready 并报告真实结果。`,
+      text: `用户已确认剧情理解，并选择「${direction.title}」：${direction.agentInstruction}。现在制作短剧片段精修发布版：${sourceManifest}。${storyContext}${dialogueContext}目标平台${platform}，成片不超过${targetDurationSeconds}秒，竖屏 9:16。用户标记必须重点保留的真实源时间范围：${priority}。用户标记绝不使用的真实源时间范围：${excluded}。根据已经写入的真实视频理解、真实时间范围和可用真实转写选片；上传顺序是默认剧情顺序，只有真实画面或台词明确证明时才调整。先 search_media 精确确认 assetId；仅当素材元数据缺少对应证据时才调用 analyze_asset 或 view_asset_frames。调用 assemble_rough_cut 创建独立可编辑粗剪。${assetCoverage} beats 必须包含全部重点保留范围且不能与不要用范围重叠；不得伪造剧情、字幕或时长。保留原声，不生成付费音乐，不覆盖用户手工修改，最后调用 check_rough_cut_ready 并报告真实结果。`,
     });
   }, [quickRun, quickRunAssets]);
 
