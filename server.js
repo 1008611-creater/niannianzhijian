@@ -7241,9 +7241,8 @@ async function handleCanvasSkillNodeLayoutApi(request, response, pathname, user)
   try {
     const body = await readBodyJson(request);
     const requested = body.positions && typeof body.positions === 'object' && !Array.isArray(body.positions) ? body.positions : {};
-    const allowed = new Set([...canvasS1Chain.CHAIN_NODE_IDS, canvasImage2Node.IMAGE2_NODE_ID]);
-    const positions = Object.fromEntries(Object.entries(requested).flatMap(([id, value]) => {
-      if (!allowed.has(id) || !value || typeof value !== 'object' || Array.isArray(value)) return [];
+    const requestedPositions = Object.fromEntries(Object.entries(requested).flatMap(([id, value]) => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
       const x = Number(value.x); const y = Number(value.y);
       if (!Number.isFinite(x) || !Number.isFinite(y)) return [];
       return [[id, {x:Math.max(-20000,Math.min(20000,Math.round(x))),y:Math.max(-20000,Math.min(20000,Math.round(y)))}]];
@@ -7255,6 +7254,8 @@ async function handleCanvasSkillNodeLayoutApi(request, response, pathname, user)
       const currentRevision = Number(current?.revision || 0);
       if (request.headers['if-match'] !== canvasEtag(currentRevision)) throw Object.assign(new Error('画布已在其他页面更新，请先重新载入。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:412});
       const currentDocument = normalizeCanvasDocument(current?.document, project);
+      const allowed = new Set(currentDocument.nodes.map(node => node.id));
+      const positions = Object.fromEntries(Object.entries(requestedPositions).filter(([id]) => allowed.has(id)));
       const nodes = currentDocument.nodes.map(node => positions[node.id] ? {...node,position:positions[node.id]} : node);
       const document = normalizeCanvasDocument({...currentDocument,nodes}, project);
       const revision = currentRevision + 1;

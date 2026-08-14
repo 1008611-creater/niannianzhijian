@@ -78,7 +78,7 @@ async function main() {
     await panel.locator('[data-node="image2"]').getByText('Image2 关键帧生成').waitFor();
     const flow = panel.locator('.s1-chain-flow');
     for (const [index, label] of ['编剧 · Screenwriter', '资产方案 · Chaoge', '分镜 · Shotlist Builder', '镜头提示 · Hell Grind'].entries()) {
-      await flow.click({button:'right', position:{x:1180, y:420}});
+      await flow.click({button:'right', position:{x:260, y:370}});
       await panel.getByRole('button', {name:label}).click();
       await page.waitForTimeout(80);
       assert.equal(await panel.locator('[data-champion-node]').count(), index + 1, 'right-click menu must persist ' + label);
@@ -86,9 +86,26 @@ async function main() {
     assert.equal(await panel.locator('[data-champion-node]').count(), 4, 'right click must create all four persisted orchestration Skill nodes');
     await panel.getByRole('heading', {name:'剧本编排', exact:true}).waitFor();
     await panel.getByRole('heading', {name:'镜头提示编译', exact:true}).waitFor();
+    const screenplayOutput = panel.locator('[data-champion-node]').filter({hasText:'剧本编排'}).locator('[data-s1-output-port="screenplay"]');
+    const screenplayInput = panel.locator('[data-champion-node]').filter({hasText:'超哥资产方案'}).locator('[data-s1-input-port="screenplay"]');
+    await screenplayOutput.scrollIntoViewIfNeeded();
+    const screenplayOutputBox = await screenplayOutput.boundingBox();
+    const screenplayInputBox = await screenplayInput.boundingBox();
+    assert.ok(screenplayOutputBox && screenplayInputBox, 'typed ports must be visible for a drag connection');
+    await page.mouse.move(screenplayOutputBox.x + screenplayOutputBox.width / 2, screenplayOutputBox.y + screenplayOutputBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(screenplayInputBox.x + screenplayInputBox.width / 2, screenplayInputBox.y + screenplayInputBox.height / 2, {steps:6});
+    await page.mouse.up();
+    await page.waitForTimeout(180);
+    const connectedDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
+    assert.ok(connectedDocument.document.edges.some(edge => edge.sourcePort === 'screenplay' && edge.targetPort === 'screenplay'), 'dragging compatible ports must persist a typed edge: ' + await panel.locator('[data-s1-status]').textContent());
+    assert.ok(await panel.locator('.s1-typed-edge').count() >= 1, 'the typed edge must render on the canvas');
     const championTitle = panel.locator('[data-champion-node]').filter({hasText:'剧本编排'}).locator('h3');
     const beforeDrag = await championTitle.boundingBox();
     assert.ok(beforeDrag, 'champion node title must be visible for dragging');
+    const championNodeId = await championTitle.locator('xpath=..').getAttribute('data-node-id');
+    const beforeDragDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
+    const beforeDragPosition = beforeDragDocument.document.nodes.find(node => node.id === championNodeId).position;
     await page.mouse.move(beforeDrag.x + 20, beforeDrag.y + 10);
     await page.mouse.down();
     await page.mouse.move(beforeDrag.x + 150, beforeDrag.y + 80, {steps:4});
@@ -98,6 +115,9 @@ async function main() {
     await openGenerationCanvas(page);
     await page.locator('#s1-chain-canvas [data-champion-node]').first().waitFor({state:'visible'});
     assert.equal(await page.locator('#s1-chain-canvas [data-champion-node]').count(), 4, 'champion nodes must survive a reload after dragging');
+    const reloadedDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
+    const persistedChampion = reloadedDocument.document.nodes.find(node => node.id === championNodeId);
+    assert.ok(persistedChampion && persistedChampion.position.x >= beforeDragPosition.x + 100, 'champion node position must persist after a reload: ' + JSON.stringify(persistedChampion && persistedChampion.position));
     assert.equal(await panel.locator('[data-s2-dry]').isDisabled(), true, 'Image2 preparation stays disabled before the node is saved');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'desktop must not overflow');
     await page.setViewportSize({width:390,height:844});
@@ -108,7 +128,7 @@ async function main() {
     assert.deepEqual(consoleErrors, []);
     await context.close();
     await browser.close(); browser = null;
-    console.log(JSON.stringify({ok:true,verified:['desktop S1 panel selects a project video and creates persistent port bindings','right click creates four persisted orchestration Skill nodes','new nodes use the same draggable canvas card contract','creation is disabled until rights and preflight pass','mobile S1 panel stays within viewport','no provider task is sent']}));
+    console.log(JSON.stringify({ok:true,verified:['desktop S1 panel selects a project video and creates persistent port bindings','right click creates four persisted orchestration Skill nodes','new nodes use the same draggable canvas card contract','compatible ports create persisted visual edges','creation is disabled until rights and preflight pass','mobile S1 panel stays within viewport','no provider task is sent']}));
   } finally {
     if (browser) await browser.close();
     server.kill();

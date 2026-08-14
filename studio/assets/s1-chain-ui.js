@@ -50,9 +50,9 @@
     style.textContent = [
       '#s1-chain-canvas{position:absolute;inset:0;z-index:18;overflow:auto;padding:88px 28px 40px;color:#2a2118;font:13px/1.45 Inter,system-ui,sans-serif;pointer-events:none}',
       '#s1-chain-canvas[hidden]{display:none}#s1-chain-canvas .s1-chain-title{max-width:1360px;margin:0 auto 18px;padding:0 4px;color:#786958;pointer-events:none}#s1-chain-canvas .s1-eyebrow{font-size:10px;letter-spacing:.12em;color:#9a6a3c;font-weight:700}#s1-chain-canvas h2{margin:2px 0 0;color:#2a2118;font-size:18px;font-weight:750}',
-      '#s1-chain-canvas .s1-chain-flow{position:relative;min-width:1360px;min-height:610px;margin:0 auto;padding:0 24px 60px;pointer-events:none}#s1-chain-canvas .s1-edge{position:absolute;height:2px;background:rgba(154,106,60,.58);transform-origin:0 50%;pointer-events:none;z-index:0}#s1-chain-canvas .s1-edge.dashed{background:repeating-linear-gradient(90deg,rgba(154,106,60,.58) 0 8px,transparent 8px 14px)}',
+      '#s1-chain-canvas .s1-chain-flow{position:relative;min-width:1360px;min-height:610px;margin:0 auto;padding:0 24px 60px;pointer-events:none}#s1-chain-canvas .s1-edge{position:absolute;height:2px;background:rgba(154,106,60,.58);transform-origin:0 50%;pointer-events:none;z-index:0}#s1-chain-canvas .s1-edge.dashed{background:repeating-linear-gradient(90deg,rgba(154,106,60,.58) 0 8px,transparent 8px 14px)}#s1-chain-canvas .s1-typed-edge{height:2px;background:#426f83;z-index:1}',
       '#s1-chain-canvas .s1-node{position:absolute;width:276px;min-height:212px;padding:15px;border:1px solid rgba(90,64,42,.2);border-radius:6px;background:rgba(255,252,246,.97);box-shadow:0 16px 36px rgba(42,33,24,.13);pointer-events:auto;z-index:1;touch-action:none}#s1-chain-canvas .s1-node[data-node=source]{z-index:4}#s1-chain-canvas .s1-node[data-node=step01]{z-index:3}#s1-chain-canvas .s1-node[data-node=step02]{z-index:2}#s1-chain-canvas .s1-node[data-status=blocked]{border-color:rgba(154,106,60,.26)}#s1-chain-canvas .s1-node[data-status=ready]{border-color:#5b8d6b}#s1-chain-canvas .s1-node h3{margin:4px 0 5px;font-size:15px;cursor:grab}#s1-chain-canvas .s1-node.s1-dragging h3{cursor:grabbing}#s1-chain-canvas .s1-node p{margin:0 0 12px;color:#786958;font-size:12px}',
-      '#s1-chain-canvas .s1-meta{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px;color:#8b7764;font-size:11px}#s1-chain-canvas .s1-status{margin-top:10px;padding:8px;border-radius:6px;background:#f4eee6;color:#5d4d3d;white-space:pre-wrap}#s1-chain-canvas .s1-status.error{background:#fff0ee;color:#a33b2d}#s1-chain-canvas .s1-assets{display:grid;gap:5px;margin:8px 0 10px}#s1-chain-canvas label.s1-asset{display:flex;gap:7px;align-items:center;padding:7px;border:1px solid rgba(90,64,42,.12);border-radius:6px;background:#fffaf3;cursor:pointer}#s1-chain-canvas .s1-asset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#s1-chain-canvas .s1-row{display:flex;gap:7px;align-items:center;margin:7px 0}#s1-chain-canvas select{flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:6px;background:#fff}#s1-chain-canvas button{border:0;border-radius:6px;padding:7px 9px;background:#2a2118;color:#fff;cursor:pointer;font-weight:650;font-size:12px}#s1-chain-canvas button[disabled]{opacity:.45;cursor:default}#s1-chain-canvas .s1-secondary{background:#efe5d8;color:#4c3828}#s1-chain-canvas .s1-node small{color:#8b7764}#s1-chain-canvas .s1-contract{display:grid;gap:4px;margin:8px 0;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-contract span{display:block;padding:5px 7px;border-radius:6px;background:#faf5ef}#s1-chain-canvas .s1-port-state{margin:7px 0 0;padding:6px 7px;border-radius:6px;background:#f4eee6;color:#5d4d3d;font-size:11px;line-height:1.35}#s1-chain-canvas .s1-port-state[data-state=ready]{background:#edf6ee;color:#376745}#s1-chain-canvas .s1-port-state[data-state=blocked]{background:#f8efe5;color:#785330}#s1-chain-canvas .s1-context-menu{position:absolute;z-index:20;display:grid;gap:4px;min-width:206px;padding:7px;border:1px solid rgba(90,64,42,.22);border-radius:6px;background:#fffdf9;box-shadow:0 14px 34px rgba(42,33,24,.2);pointer-events:auto}#s1-chain-canvas .s1-context-menu[hidden]{display:none}#s1-chain-canvas .s1-context-menu strong{padding:5px 7px;color:#8b6040;font-size:10px;letter-spacing:.08em}#s1-chain-canvas .s1-context-menu button{width:100%;text-align:left;background:transparent;color:#2a2118;font-weight:600}#s1-chain-canvas .s1-context-menu button:hover{background:#f3e9dc}#s1-chain-canvas .s1-skill-node{border-top:3px solid #9a6a3c}#s1-chain-canvas .s1-port-list{display:grid;gap:4px;margin:8px 0}#s1-chain-canvas .s1-port-list span{display:block;padding:5px 7px;border-radius:5px;background:#faf5ef;color:#6d5c4a;font-size:11px}',
+      '#s1-chain-canvas .s1-meta{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px;color:#8b7764;font-size:11px}#s1-chain-canvas .s1-status{margin-top:10px;padding:8px;border-radius:6px;background:#f4eee6;color:#5d4d3d;white-space:pre-wrap}#s1-chain-canvas .s1-status.error{background:#fff0ee;color:#a33b2d}#s1-chain-canvas .s1-assets{display:grid;gap:5px;margin:8px 0 10px}#s1-chain-canvas label.s1-asset{display:flex;gap:7px;align-items:center;padding:7px;border:1px solid rgba(90,64,42,.12);border-radius:6px;background:#fffaf3;cursor:pointer}#s1-chain-canvas .s1-asset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#s1-chain-canvas .s1-row{display:flex;gap:7px;align-items:center;margin:7px 0}#s1-chain-canvas select{flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:6px;background:#fff}#s1-chain-canvas button{border:0;border-radius:6px;padding:7px 9px;background:#2a2118;color:#fff;cursor:pointer;font-weight:650;font-size:12px}#s1-chain-canvas button[disabled]{opacity:.45;cursor:default}#s1-chain-canvas .s1-secondary{background:#efe5d8;color:#4c3828}#s1-chain-canvas .s1-node small{color:#8b7764}#s1-chain-canvas .s1-contract{display:grid;gap:4px;margin:8px 0;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-contract span{display:block;padding:5px 7px;border-radius:6px;background:#faf5ef}#s1-chain-canvas .s1-port-state{margin:7px 0 0;padding:6px 7px;border-radius:6px;background:#f4eee6;color:#5d4d3d;font-size:11px;line-height:1.35}#s1-chain-canvas .s1-port-state[data-state=ready]{background:#edf6ee;color:#376745}#s1-chain-canvas .s1-port-state[data-state=blocked]{background:#f8efe5;color:#785330}#s1-chain-canvas .s1-context-menu{position:absolute;z-index:20;display:grid;gap:4px;min-width:206px;padding:7px;border:1px solid rgba(90,64,42,.22);border-radius:6px;background:#fffdf9;box-shadow:0 14px 34px rgba(42,33,24,.2);pointer-events:auto}#s1-chain-canvas .s1-context-menu[hidden]{display:none}#s1-chain-canvas .s1-context-menu strong{padding:5px 7px;color:#8b6040;font-size:10px;letter-spacing:.08em}#s1-chain-canvas .s1-context-menu button{width:100%;text-align:left;background:transparent;color:#2a2118;font-weight:600}#s1-chain-canvas .s1-context-menu button:hover{background:#f3e9dc}#s1-chain-canvas .s1-skill-node{border-top:3px solid #9a6a3c}#s1-chain-canvas .s1-port-list{display:grid;gap:4px;margin:8px 0}#s1-chain-canvas .s1-port-list span{display:block;padding:5px 7px;border-radius:5px;background:#faf5ef;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-ports{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}#s1-chain-canvas .s1-port-group{display:grid;gap:4px;color:#8b7764;font-size:10px}#s1-chain-canvas .s1-port-group.output{text-align:right}#s1-chain-canvas .s1-port-handle{display:block;width:100%;padding:5px 7px;border:1px solid #cdbca8;border-radius:5px;background:#fff8ef;color:#4b3829;text-align:left;cursor:crosshair}#s1-chain-canvas .s1-port-group.output .s1-port-handle{text-align:right}#s1-chain-canvas .s1-input-port{border-color:#89a8b5}#s1-chain-canvas .s1-output-port{border-color:#b68d63}#s1-chain-canvas .s1-port-handle.s1-connecting{background:#dcecf1;border-color:#426f83}',
       '[data-node-id^="nn-skill-"]{display:none!important}@media (max-width:900px){#s1-chain-canvas{padding:72px 14px 30px}#s1-chain-canvas .s1-chain-flow{min-width:1240px}}@media (max-width:600px){#s1-chain-canvas{padding-top:62px}#s1-chain-canvas .s1-chain-title{margin-bottom:12px}}'
     ].join('');
     document.head.appendChild(style);
@@ -116,6 +116,17 @@
       'hell-grind': {type:'shot', version:'1.0.0', title:'镜头提示编译', note:'把分镜、参考资产和连续性约束编译为图像/视频提示词。', inputs:['shotlist','reference_assets','continuity_state'], outputs:[{id:'image_prompt',type:'prompt'},{id:'video_prompt',type:'prompt'},'continuity_locks']}
     };
 
+    function installImage2PromptPort() {
+      var row = image2Prompt.closest('.s1-row');
+      if (!row || row.querySelector('[data-s1-input-node="s2-image2-keyframe"]')) return;
+      var port = document.createElement('button');
+      port.type = 'button'; port.className = 's1-port-handle s1-input-port';
+      port.dataset.s1InputNode = 's2-image2-keyframe'; port.dataset.s1InputPort = 'prompt';
+      port.setAttribute('aria-label', 'Image2 prompt 输入端口'); port.title = '拖入 prompt 输出'; port.textContent = 'prompt';
+      row.insertBefore(port, image2Prompt);
+    }
+    installImage2PromptPort();
+
     function setStatus(message, error) { statusEl.textContent = message; statusEl.classList.toggle('error', Boolean(error)); }
     function selectedIds() { return Array.prototype.slice.call(panel.querySelectorAll('input[data-s1-asset]:checked')).map(function (input) { return input.value; }); }
     function syncButton() { createBtn.disabled = selectedIds().length === 0 || !rightsEl.checked || preflightEl.value !== 'passed'; startBtn.disabled = !chainReady || selectedIds().length === 0 || !rightsEl.checked || preflightEl.value !== 'passed'; }
@@ -141,6 +152,7 @@
         var dx = b.x - a.x - 276, dy = b.y - a.y, width = Math.max(20, Math.sqrt(dx * dx + dy * dy));
         edge.style.left = String(a.x + 276) + 'px'; edge.style.top = String(a.y + 112) + 'px'; edge.style.width = String(width) + 'px'; edge.style.transform = 'rotate(' + Math.atan2(dy, dx) + 'rad)';
       });
+      window.requestAnimationFrame(renderTypedEdges);
     }
     async function saveLayout() {
       var positions = {};
@@ -153,10 +165,12 @@
       applyNodePositions();
     }
     function championSpecFor(node) { return championSpecs[node && node.skillKey] || championSpecs[node && node.data && node.data.skillKey] || null; }
+    function nodePortButtons(node, direction) {
+      var ports = node[direction + 'Ports'] || (node.data && node.data[direction + 'Ports']) || [];
+      return ports.map(function (port) { return '<button type="button" class="s1-port-handle s1-' + direction + '-port" data-s1-' + direction + '-node="' + escapeHtml(node.id) + '" data-s1-' + direction + '-port="' + escapeHtml(port.id) + '" title="' + (direction === 'output' ? '从此端口拖到兼容输入' : '接收兼容输出') + '">' + escapeHtml(port.id) + '</button>'; }).join('') || '<span>等待连接</span>';
+    }
     function championNodeMarkup(node, spec) {
-      var inputs = (node.inputPorts || (node.data && node.data.inputPorts) || []).map(function (port) { return escapeHtml(port.id); }).join(' · ');
-      var outputs = (node.outputPorts || (node.data && node.data.outputPorts) || []).map(function (port) { return escapeHtml(port.id); }).join(' · ');
-      return '<article class="s1-node s1-skill-node" data-champion-node data-node-id="' + escapeHtml(node.id) + '" data-status="' + escapeHtml(node.status || 'draft') + '"><div class="s1-meta"><span>编排 Skill · ' + escapeHtml(node.skillKey) + '</span><small data-node-status>' + escapeHtml(node.status || 'draft') + '</small></div><h3>' + escapeHtml((node.data && node.data.title) || spec.title) + '</h3><p>' + escapeHtml((node.data && node.data.note) || spec.note) + '</p><div class="s1-port-list"><span>输入：' + (inputs || '等待连接') + '</span><span>输出：' + (outputs || '等待编译') + '</span></div><div class="s1-status">编排节点只输出计划、提示词或资产引用；图像和视频仍通过后续生成节点的服务器任务链。</div></article>';
+      return '<article class="s1-node s1-skill-node" data-champion-node data-node-id="' + escapeHtml(node.id) + '" data-status="' + escapeHtml(node.status || 'draft') + '"><div class="s1-meta"><span>编排 Skill · ' + escapeHtml(node.skillKey) + '</span><small data-node-status>' + escapeHtml(node.status || 'draft') + '</small></div><h3>' + escapeHtml((node.data && node.data.title) || spec.title) + '</h3><p>' + escapeHtml((node.data && node.data.note) || spec.note) + '</p><div class="s1-ports"><div class="s1-port-group input"><small>输入</small>' + nodePortButtons(node, 'input') + '</div><div class="s1-port-group output"><small>输出</small>' + nodePortButtons(node, 'output') + '</div></div><div class="s1-status">编排节点只输出计划、提示词或资产引用；图像和视频仍通过后续生成节点的服务器任务链。</div></article>';
     }
     function renderChampionNodes(nodes) {
       panel.querySelectorAll('[data-champion-node]').forEach(function (card) { card.remove(); });
@@ -166,16 +180,72 @@
         nodesEl.insertAdjacentHTML('beforeend', championNodeMarkup(node, spec));
       });
     }
+    function portDefinitionFor(nodeId, direction, portId) {
+      var node = nodeById[nodeId];
+      var ports = node && (node[direction + 'Ports'] || (node.data && node.data[direction + 'Ports'])) || [];
+      return ports.find(function (port) { return port && port.id === portId; }) || null;
+    }
+    function portElement(direction, nodeId, portId) {
+      return Array.prototype.slice.call(panel.querySelectorAll('[data-s1-' + direction + '-port]')).find(function (element) {
+        return element.dataset['s1' + direction[0].toUpperCase() + direction.slice(1) + 'Node'] === nodeId && element.dataset['s1' + direction[0].toUpperCase() + direction.slice(1) + 'Port'] === portId;
+      }) || null;
+    }
+    function renderTypedEdges() {
+      nodesEl.querySelectorAll('.s1-typed-edge').forEach(function (edge) { edge.remove(); });
+      var bounds = nodesEl.getBoundingClientRect();
+      (canvasDocument.edges || []).filter(function (edge) { return edge && edge.sourcePort && edge.targetPort; }).forEach(function (edge) {
+        var source = portElement('output', edge.source, edge.sourcePort);
+        var target = portElement('input', edge.target, edge.targetPort);
+        if (!source || !target) return;
+        var a = source.getBoundingClientRect(); var b = target.getBoundingClientRect();
+        var startX = a.right - bounds.left; var startY = a.top + a.height / 2 - bounds.top;
+        var endX = b.left - bounds.left; var endY = b.top + b.height / 2 - bounds.top;
+        var dx = endX - startX; var dy = endY - startY;
+        var line = document.createElement('div');
+        line.className = 's1-edge s1-typed-edge'; line.dataset.edgeId = edge.id;
+        line.style.left = String(startX) + 'px'; line.style.top = String(startY) + 'px';
+        line.style.width = String(Math.max(12, Math.sqrt(dx * dx + dy * dy))) + 'px';
+        line.style.transform = 'rotate(' + Math.atan2(dy, dx) + 'rad)';
+        nodesEl.insertBefore(line, nodesEl.firstChild);
+      });
+    }
+    async function connectPorts(sourceNodeId, sourcePortId, targetNodeId, targetPortId) {
+      if (!sourceNodeId || !sourcePortId || !targetNodeId || !targetPortId || sourceNodeId === targetNodeId) return;
+      var output = portDefinitionFor(sourceNodeId, 'output', sourcePortId);
+      var input = portDefinitionFor(targetNodeId, 'input', targetPortId);
+      if (!output || !input) throw new Error('端口不存在或节点尚未保存');
+      if (output.type !== input.type) throw new Error('端口类型不兼容：' + output.type + ' 不能连接到 ' + input.type);
+      if ((canvasDocument.edges || []).some(function (edge) { return edge.source === sourceNodeId && edge.sourcePort === sourcePortId && edge.target === targetNodeId && edge.targetPort === targetPortId; })) return;
+      var previousEdges = canvasDocument.edges || [];
+      canvasDocument.edges = previousEdges.concat([{id:'edge-port-' + Date.now().toString(36),source:sourceNodeId,target:targetNodeId,sourcePort:sourcePortId,targetPort:targetPortId,kind:'depends_on'}]);
+      try {
+        await persistRuntimeProjection();
+        setStatus('已连接 ' + sourcePortId + ' → ' + targetPortId + '。');
+      } catch (error) {
+        canvasDocument.edges = previousEdges;
+        renderTypedEdges();
+        throw error;
+      }
+    }
     function nextChampionId(skillKey) { return 'skill-' + skillKey.replace(/[^A-Za-z0-9_-]/g, '-') + '-' + Date.now().toString(36); }
+    function freeChampionPosition(position) {
+      var occupied = Object.keys(nodeById).map(function (id) { return nodeById[id] && nodeById[id].position; }).filter(Boolean);
+      for (var index = 0; index < 32; index += 1) {
+        var candidate = {x:Math.max(0,Math.round(position.x + (index % 3) * 320)),y:Math.max(80,Math.round(position.y + Math.floor(index / 3) * 250))};
+        if (!occupied.some(function (item) { return Math.abs(item.x - candidate.x) < 280 && Math.abs(item.y - candidate.y) < 220; })) return candidate;
+      }
+      return {x:Math.max(0,Math.round(position.x + 960)),y:Math.max(80,Math.round(position.y + 750))};
+    }
     async function createChampionNode(skillKey, position) {
       var spec = championSpecs[skillKey];
       if (!spec) return;
       var id = nextChampionId(skillKey);
+      var nodePosition = freeChampionPosition(position);
       var portId = function (port) { return typeof port === 'string' ? port : port.id; };
       var portType = function (port) { return typeof port === 'string' ? port : port.type; };
       var ports = {inputPorts:spec.inputs.map(function (port, index) { return {id:portId(port),type:portType(port),required:index === 0}; }),outputPorts:spec.outputs.map(function (port) { return {id:portId(port),type:portType(port),required:false}; })};
       var parameters = {compiledOutputs:{}, providerSubmitRequested:false, gateState:'awaiting_inputs'};
-      var node = {id:id,type:spec.type,kind:spec.type,status:'draft',skillKey:skillKey,skillVersion:spec.version,description:spec.note,inputPorts:ports.inputPorts,outputPorts:ports.outputPorts,parameters:parameters,assetRefs:[],taskRef:null,preview:null,recovery:{actions:['repair_input','retry'],lastAction:null},executionMode:'orchestration',position:{x:Math.max(0,Math.round(position.x)),y:Math.max(80,Math.round(position.y))},data:{title:spec.title,note:spec.note,status:'draft',skillKey:skillKey,skillVersion:spec.version,description:spec.note,inputPorts:ports.inputPorts,outputPorts:ports.outputPorts,parameters:parameters,assetRefs:[],taskRef:null,preview:null,recovery:{actions:['repair_input','retry'],lastAction:null},executionMode:'orchestration'}};
+      var node = {id:id,type:spec.type,kind:spec.type,status:'draft',skillKey:skillKey,skillVersion:spec.version,description:spec.note,inputPorts:ports.inputPorts,outputPorts:ports.outputPorts,parameters:parameters,assetRefs:[],taskRef:null,preview:null,recovery:{actions:['repair_input','retry'],lastAction:null},executionMode:'orchestration',position:nodePosition,data:{title:spec.title,note:spec.note,status:'draft',skillKey:skillKey,skillVersion:spec.version,description:spec.note,inputPorts:ports.inputPorts,outputPorts:ports.outputPorts,parameters:parameters,assetRefs:[],taskRef:null,preview:null,recovery:{actions:['repair_input','retry'],lastAction:null},executionMode:'orchestration'}};
       canvasDocument.nodes = (canvasDocument.nodes || []).concat([node]);
       nodeById[id] = node;
       await persistRuntimeProjection();
@@ -193,6 +263,26 @@
         function move(next) { nodeById[id] = Object.assign({}, nodeById[id] || {}, {position:{x:Math.max(0,Math.round(start.x + next.clientX - baseX)),y:Math.max(80,Math.round(start.y + next.clientY - baseY))}}); applyNodePositions(); }
         function end() { card.classList.remove('s1-dragging'); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', end); saveLayout().catch(function (error) { setStatus(error.message || '节点位置保存失败', true); }); }
         window.addEventListener('pointermove', move); window.addEventListener('pointerup', end, {once:true});
+      });
+    }
+    function installPortConnections() {
+      panel.addEventListener('pointerdown', function (event) {
+        var source = event.target.closest('[data-s1-output-port]');
+        if (!source || !panel.contains(source)) return;
+        event.preventDefault(); event.stopPropagation();
+        source.classList.add('s1-connecting');
+        var sourceNodeId = source.dataset.s1OutputNode;
+        var sourcePortId = source.dataset.s1OutputPort;
+        function finish(next) {
+          source.classList.remove('s1-connecting');
+          var target = document.elementFromPoint(next.clientX, next.clientY);
+          var input = target && target.closest && target.closest('[data-s1-input-port]');
+          if (!input || !panel.contains(input)) return;
+          connectPorts(sourceNodeId, sourcePortId, input.dataset.s1InputNode, input.dataset.s1InputPort).catch(function (error) {
+            setStatus(error.message || '端口连接失败', true);
+          });
+        }
+        window.addEventListener('pointerup', finish, {once:true});
       });
     }
     function renderImage2Assets() {
@@ -438,6 +528,7 @@
     syncImage2Spec();
     rightsEl.addEventListener('change', syncButton); preflightEl.addEventListener('change', syncButton); createBtn.addEventListener('click', create);
     installDragging();
+    installPortConnections();
     load();
     window.addEventListener('hashchange', load);
     return true;

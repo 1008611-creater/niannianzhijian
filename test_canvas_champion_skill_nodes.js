@@ -103,6 +103,10 @@ async function run() {
   assert.equal(reload.response.status, 200);
   assert.equal(reload.body.document.nodes.find(item => item.skillKey === 'hell-grind').parameters.compiledOutputs.video_prompt, '雨夜霓虹街道，人物缓慢前行，镜头跟拍。');
   etag = reload.response.headers.get('etag');
+  const moved = await request('/api/canvas/documents/redraw/' + project.id + '/skill-node-layout', {method:'POST',headers:headers({'content-type':'application/json','if-match':etag}),body:JSON.stringify({positions:{'champion-hellgrind':{x:960,y:420}}})});
+  assert.equal(moved.response.status, 200, JSON.stringify(moved.body));
+  assert.deepEqual(moved.body.document.nodes.find(item => item.id === 'champion-hellgrind').position, {x:960,y:420});
+  etag = moved.response.headers.get('etag');
 
   const imageJob = await request('/api/projects/' + project.id + '/canvas/jobs', {method:'POST',headers:headers({'content-type':'application/json','idempotency-key':'champion-image-job-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'champion-image',model:'yunfei-gpt-image-2-1k',resolution:'1k',aspectRatio:'1:1'})});
   assert.equal(imageJob.response.status, 201, JSON.stringify(imageJob.body));
@@ -150,7 +154,7 @@ async function run() {
   invalid = await save(sensitive, etag);
   assert.equal(invalid.response.status, 422);
   assert.equal(invalid.body.code, 'CANVAS_SKILL_NODE_SENSITIVE_FIELD');
-  console.log(JSON.stringify({ok:true,verified:['four typed orchestration Skill nodes persist and reload','typed ports reject unknown/mismatched/cross-project/sensitive data','Hell Grind prompt reaches existing Image2/H3 server job preparation','compiler nodes cannot submit provider jobs','dry-run keeps provider submission and spend disabled']}));
+  console.log(JSON.stringify({ok:true,verified:['four typed orchestration Skill nodes persist and reload','all persisted Skill nodes use the existing layout-save path','typed ports reject unknown/mismatched/cross-project/sensitive data','Hell Grind prompt reaches existing Image2/H3 server job preparation','compiler nodes cannot submit provider jobs','dry-run keeps provider submission and spend disabled']}));
 }
 
 run().catch(error => { console.error(error.stack || error.message || String(error)); process.exitCode = 1; }).finally(async () => {
