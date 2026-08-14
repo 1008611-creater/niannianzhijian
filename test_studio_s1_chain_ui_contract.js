@@ -8,13 +8,17 @@ const root = __dirname;
 const html = fs.readFileSync(path.join(root, 'studio', 'index.html'), 'utf8');
 const source = fs.readFileSync(path.join(root, 'studio', 'assets', 's1-chain-ui.js'), 'utf8');
 
-assert.match(html, /assets\/s1-chain-ui\.js\?v=20260814-s1-chain-ui-r5/);
+assert.match(html, /assets\/s1-chain-ui\.js\?v=20260814-s1-chain-ui-r9/);
 assert.match(source, /\/api\/canvas\/documents\//);
 assert.match(source, /\/s1-chain/);
 assert.match(source, /if-match/);
 assert.match(source, /x-niannian-project-kind/);
 assert.match(source, /rightsConfirmed/);
 assert.match(source, /preflightStatus/);
+assert.match(source, /sourceAssetIds/);
+assert.match(source, /sourceParameters\.rightsConfirmed/);
+assert.match(source, /sourceParameters\.preflightStatus/);
+assert.match(source, /data-node=source/);
 assert.match(source, /step01-analysis/);
 assert.match(source, /开始 Step01 分析/);
 assert.match(source, /data-node="source"/);
