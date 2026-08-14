@@ -1,5 +1,7 @@
 import {
+  generateText,
   jsonSchema,
+  stepCountIs,
   streamText,
   tool,
   type LanguageModel,
@@ -59,6 +61,8 @@ import type {
 import type { AgentToolSchema } from './tool-schema';
 
 const MAX_TOOL_TURNS = 30;
+const COMPATIBLE_CHAT_FIRST_OUTPUT_MS = 45_000;
+const COMPATIBLE_CHAT_FALLBACK_TOTAL_MS = 90_000;
 type ToolResultOutput = ToolResultPart['output'];
 
 function toolModelOutput(output: unknown): ToolResultOutput {
@@ -275,6 +279,21 @@ export async function runApiAgent(
       requestAttempt:
       for (;;) {
         let outputStarted = false;
+        let compatibleStreamTimedOut = false;
+        const compatibleStreamAbort = new AbortController();
+        const compatibleStreamSignal = choice.openAiApiMode === 'chat'
+          ? opts?.signal
+            ? AbortSignal.any([opts.signal, compatibleStreamAbort.signal])
+            : compatibleStreamAbort.signal
+          : opts?.signal;
+        const compatibleStreamDeadline = choice.openAiApiMode === 'chat'
+          ? setTimeout(() => {
+              if (!outputStarted && !toolExecutionObserved) {
+                compatibleStreamTimedOut = true;
+                compatibleStreamAbort.abort(new Error('Compatible Chat stream produced no visible output.'));
+              }
+            }, COMPATIBLE_CHAT_FIRST_OUTPUT_MS)
+          : undefined;
         const started = captureSynchronousStart(() => streamText({
           model,
           system,
@@ -286,7 +305,7 @@ export async function runApiAgent(
             ...agentRequestDiagnosticHeaders(requestMessages, Object.keys(tools).length),
             ...(opts?.operationId ? { 'x-niannian-operation-id': opts.operationId } : {}),
           },
-          abortSignal: opts?.signal,
+          abortSignal: compatibleStreamSignal,
           // Guard against hanging model calls: first token within 30s, each
           // step capped at 2min, tool executions at 30s (all local store ops
           // finish in ms; media prep happens before the request).
@@ -294,6 +313,7 @@ export async function runApiAgent(
           ...(providerOptions ? { providerOptions } : {}),
         }));
         if (!started.ok) {
+          if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
           if (opts?.signal?.aborted) {
             aborted = true;
             break requestAttempt;
@@ -333,6 +353,7 @@ export async function runApiAgent(
               if (part.text) {
                 outputStarted = true;
                 outputObserved = true;
+                if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
               }
               const extracted = extract.push(part.text);
               if (extracted.thinking) onEvent({ type: 'thinking-delta', delta: extracted.thinking });
@@ -341,11 +362,18 @@ export async function runApiAgent(
               if (part.text) {
                 outputStarted = true;
                 outputObserved = true;
+                if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
                 onEvent({ type: 'thinking-delta', delta: part.text });
               }
             } else if (part.type === 'tool-input-start') {
+              outputStarted = true;
+              if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
               onEvent({ type: 'tool-input-start', name: part.toolName });
             } else if (part.type === 'tool-input-delta') {
+              if (part.delta) {
+                outputStarted = true;
+                if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
+              }
               if (part.delta) onEvent({ type: 'tool-input-delta', delta: part.delta });
             } else if (part.type === 'tool-result') {
               toolFailures.record(part.toolName, { success: true, result: part.output });
@@ -370,11 +398,63 @@ export async function runApiAgent(
                 });
               }
             } else if (part.type === 'abort') {
+              if (compatibleStreamTimedOut && !opts?.signal?.aborted) {
+                throw new Error('Compatible Chat stream produced no visible output.');
+              }
               aborted = true;
               break;
             }
           }
         } catch (error) {
+          if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
+          if (compatibleStreamTimedOut && !opts?.signal?.aborted) {
+            const fallbackResult = await generateText({
+              model,
+              system,
+              messages: requestMessages,
+              tools,
+              maxOutputTokens,
+              maxRetries: 0,
+              stopWhen: stepCountIs(MAX_TOOL_TURNS),
+              headers: {
+                ...agentRequestDiagnosticHeaders(requestMessages, Object.keys(tools).length),
+                'x-openchatcut-streaming-fallback': 'true',
+                ...(opts?.operationId ? { 'x-niannian-operation-id': opts.operationId } : {}),
+              },
+              abortSignal: opts?.signal,
+              timeout: { totalMs: COMPATIBLE_CHAT_FALLBACK_TOTAL_MS },
+              ...(providerOptions ? { providerOptions } : {}),
+            });
+            const fallbackThinking = fallbackResult.reasoningText;
+            if (fallbackThinking) onEvent({ type: 'thinking-delta', delta: fallbackThinking });
+            const fallbackText = fallbackResult.text;
+            if (fallbackText) {
+              outputObserved = true;
+              const extracted = extract.push(fallbackText);
+              if (extracted.thinking) onEvent({ type: 'thinking-delta', delta: extracted.thinking });
+              if (extracted.text) emitText(extracted.text);
+              const tail = extract.flush();
+              if (tail.thinking) onEvent({ type: 'thinking-delta', delta: tail.thinking });
+              if (tail.text) emitText(tail.text);
+            }
+            const inputTokens = fallbackResult.usage.inputTokens;
+            if (inputTokens !== undefined) {
+              onEvent({
+                type: 'context-usage',
+                usage: {
+                  inputTokens,
+                  contextWindowTokens: choice.capabilities.contextWindowTokens.value,
+                  contextWindowEstimated: choice.capabilities.contextWindowTokens.estimated,
+                  isEstimated: false,
+                  modelId: choice.id,
+                  compacted: contextWasCompacted,
+                  messageCount: requestMessages.length,
+                },
+              });
+            }
+            responseMessages = fallbackResult.responseMessages;
+            break requestAttempt;
+          }
           if (opts?.signal?.aborted) {
             aborted = true;
           } else if (shouldRetryCompatibleMediaRequest({
@@ -402,6 +482,8 @@ export async function runApiAgent(
             throw error;
           }
         }
+
+        if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
 
         const tail = extract.flush();
         if (tail.thinking) onEvent({ type: 'thinking-delta', delta: tail.thinking });

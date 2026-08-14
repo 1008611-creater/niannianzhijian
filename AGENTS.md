@@ -13,6 +13,7 @@
 - 本地联调使用独立 SSO 密钥和 `0` 积分价格；不读取线上 `.env`、服务器媒体、生产数据库或生产 Tunnel token。
 - Qwen3 ForcedAligner 在已验证的 NVIDIA 560 驱动环境中使用 `torch 2.7.1+cu126`，模型和虚拟环境默认放在 WSL 原生缓存 `$HOME/.cache/niannianzhijian/qwen-forced-aligner`，避免回退到多分钟 CPU 推理或从 `/mnt` 读取大模型。
 - 本地页面必须通过 `bash local-wsl-dev/verify-local.sh`，并在真实浏览器路径确认首屏后，才允许制作发行包。
+- 用户明确要求“只做线上版本、不做本地验证”时，仅限于既有线上供应商配置的诊断与真实浏览器验证：不得读取或输出密钥，不得在服务器工作目录改源码；这不豁免任何代码候选包的本地构建和验证要求。
 
 ## 必须保留的能力
 
