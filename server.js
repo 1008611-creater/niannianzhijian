@@ -6884,6 +6884,7 @@ function normalizeCanvasDocument(value, project) {
       taskRef:skillNode?.taskRef || null,
       preview:skillNode?.preview || null,
       recovery:skillNode?.recovery || {actions:['retry'],lastAction:null},
+      executionMode:skillNode?.executionMode || null,
       position:{x:canvasNumber(node.position?.x, 120 + index * 36, -20000, 20000),y:canvasNumber(node.position?.y, 120 + index * 28, -20000, 20000)},
       data:{
         projectId:project.id,
@@ -6910,7 +6911,8 @@ function normalizeCanvasDocument(value, project) {
         assetRefs:skillNode?.assetRefs || [],
         taskRef:skillNode?.taskRef || null,
         preview:skillNode?.preview || null,
-        recovery:skillNode?.recovery || {actions:['retry'],lastAction:null}
+        recovery:skillNode?.recovery || {actions:['retry'],lastAction:null},
+        executionMode:skillNode?.executionMode || null
       }
     }];
   }) : [];
@@ -6926,8 +6928,12 @@ function normalizeCanvasDocument(value, project) {
     const kind = canvasText(edge.kind || 'depends_on', 40);
     if (!/^[A-Za-z0-9_-]{4,80}$/.test(id) || edgeIds.has(id) || source === target || !nodeIds.has(source) || !nodeIds.has(target) || !allowedKinds.has(kind)) return [];
     edgeIds.add(id);
-    return [{id,source,target,kind}];
+    const sourcePort = canvasText(edge.sourcePort || edge.source_port, 64) || null;
+    const targetPort = canvasText(edge.targetPort || edge.target_port, 64) || null;
+    if ((sourcePort && !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(sourcePort)) || (targetPort && !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(targetPort))) return [];
+    return [{id,source,target,kind,...(sourcePort ? {sourcePort} : {}),...(targetPort ? {targetPort} : {})}];
   }) : [];
+  canvasSkillNodes.validateSkillConnections(nodes, edges);
   return {version:1,nodes,edges,viewport:{x:canvasNumber(raw.viewport?.x, 0, -20000, 20000),y:canvasNumber(raw.viewport?.y, 0, -20000, 20000),zoom:canvasNumber(raw.viewport?.zoom, 1, 0.35, 2.4)}};
 }
 
@@ -7511,17 +7517,28 @@ async function ownedCanvasProjectById(user, projectId, preferredKind) {
   return null;
 }
 
-async function canvasGenerationNode(project, projectKind, nodeId) {
+async function canvasGenerationContext(project, projectKind, nodeId) {
   const record = (await readCanvasDocuments())[canvasDocumentKey(projectKind, project.id)];
   const document = normalizeCanvasDocument(record?.document, project);
-  return document.nodes.find(node => node.id === nodeId) || null;
+  const node = document.nodes.find(node => node.id === nodeId) || null;
+  return node ? {node, document} : null;
+}
+
+async function canvasGenerationNode(project, projectKind, nodeId) {
+  return (await canvasGenerationContext(project, projectKind, nodeId))?.node || null;
+}
+
+async function generationNodeContextForProject(project, projectKind, nodeId) {
+  // Web Studio persists the Nomi document; the fallback keeps legacy redraw
+  // projects readable during the migration window. Only the canonical canvas
+  // document carries typed Skill-port connections.
+  const nomiNode = await nomiGenerationNode(project, projectKind, nodeId);
+  if (nomiNode) return {node:nomiNode, document:null};
+  return canvasGenerationContext(project, projectKind, nodeId);
 }
 
 async function generationNodeForProject(project, projectKind, nodeId) {
-  // Web Studio persists the Nomi document; the fallback keeps legacy redraw
-  // projects readable during the migration window.
-  return await nomiGenerationNode(project, projectKind, nodeId)
-    || await canvasGenerationNode(project, projectKind, nodeId);
+  return (await generationNodeContextForProject(project, projectKind, nodeId))?.node || null;
 }
 
 function canvasGenerationSubmitEnabled(jobOrNodeType) {
@@ -7648,10 +7665,12 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
     }
     if (!jobId && !action && request.method === 'POST') {
       const nodeId = canvasText(body.nodeId, 80);
-      const node = await generationNodeForProject(owned.project, owned.projectKind, nodeId);
+      const generationContext = await generationNodeContextForProject(owned.project, owned.projectKind, nodeId);
+      const node = generationContext?.node || null;
       if (!node) return json(response, 404, {code:'CANVAS_NODE_NOT_FOUND',error:'画布节点不存在或尚未保存'});
       const nodeType = canvasText(node.type || node.kind, 40);
       if (!['image','video'].includes(nodeType)) return json(response, 422, {code:'CANVAS_NODE_NOT_GENERATABLE',error:'该节点不能创建生成任务'});
+      const compiledPrompt = generationContext?.document ? canvasSkillNodes.resolveCompiledPrompt(generationContext.document, nodeId) : null;
       const requestedModel = canvasText(body.model, 80);
       if (nodeType === 'video' && requestedModel && !canvasVideoChannels.resolveVideoChannel(requestedModel)) return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'模型与当前节点类型不匹配'});
       if (nodeType === 'image' && requestedModel && !canvasImage2Channels.resolveImage2Channel(requestedModel)) {
@@ -7670,7 +7689,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         nodeId,
         nodeType,
         model:requestedModel || (nodeType === 'image' ? 'runninghub-gpt-image-2' : 'h3'),
-        prompt:canvasText(body.prompt || node.data?.prompt, 4000),
+        prompt:canvasText(compiledPrompt?.prompt || body.prompt || node.data?.prompt, 4000),
         inputAssetIds,
         resolution:canvasText(body.resolution || node.data?.resolution || '2k', 8),
         aspectRatio:canvasText(
