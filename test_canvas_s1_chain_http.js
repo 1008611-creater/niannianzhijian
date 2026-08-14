@@ -12,7 +12,7 @@ const port = 20500 + Math.floor(Math.random() * 400);
 const dataRoot = path.join(os.tmpdir(), `niannian-canvas-s1-${process.pid}-${Date.now()}`);
 const token = 'canvas-s1-token';
 const user = {id:'USR-CANVAS-S1',email:'canvas-s1@example.test',status:'active'};
-const project = {id:'NN-S1-CANVAS-01',ownerId:user.id,name:'S1 chain test',projectKind:'redraw',canvasOnly:true,status:'ready',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),runtime:{}};
+const project = {id:'NN-S1-CANVAS-01',ownerId:user.id,name:'S1 chain test',projectKind:'redraw',canvasOnly:true,status:'ready',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),runtime:{},source:{originalName:'source.mp4',mimeType:'video/mp4',bytes:123,sha256:'source-sha'}};
 let child;
 let output = '';
 
@@ -35,7 +35,13 @@ async function run() {
     fsp.writeFile(path.join(dataRoot,'sessions.json'), JSON.stringify([{tokenHash:tokenHash(token),userId:user.id,expiresAt:new Date(Date.now()+3600000).toISOString()}])),
     fsp.writeFile(path.join(dataRoot,'projects.json'), '[]'),
     fsp.writeFile(path.join(dataRoot,'canvas-projects.json'), JSON.stringify([project])),
-    fsp.writeFile(path.join(dataRoot,'canvas-documents.json'), '{}'),
+    fsp.writeFile(path.join(dataRoot,'canvas-documents.json'), JSON.stringify({
+      ['redraw:' + project.id]: {revision:4,document:{version:1,nodes:[
+        {id:'s1-source-input',type:'source_input',status:'ready',data:{assetIds:['ASSET-LEGACY-VIDEO'],parameters:{rightsConfirmed:true,preflightStatus:'passed'}}},
+        {id:'s1-step01-analysis',type:'analysis',status:'failed',data:{parameters:{profile:'hq_full'}}},
+        {id:'s1-step02-timeline',type:'timeline',status:'blocked',data:{parameters:{}}}
+      ],edges:[]}}
+    })),
     fsp.writeFile(path.join(dataRoot,'canvas-assets.json'), '[]'),
     fsp.writeFile(path.join(dataRoot,'canvas-generation-jobs.json'), '[]'),
     fsp.writeFile(path.join(dataRoot,'workspace-bindings.json'), '[]'),
@@ -47,21 +53,62 @@ async function run() {
   await waitForServer();
   const initial = await request('/api/canvas/documents/redraw/' + project.id, {headers:headers()});
   assert.equal(initial.response.status, 200);
-  const built = await request('/api/canvas/documents/redraw/' + project.id + '/s1-chain', {method:'POST',headers:headers({'content-type':'application/json','if-match':initial.response.headers.get('etag')||'"canvas-rev-0"'}),body:JSON.stringify({rightsConfirmed:true,preflightStatus:'passed'})});
+  const legacySource = initial.body.document.nodes.find(item => item.id === 's1-source-input');
+  const legacyStep01 = initial.body.document.nodes.find(item => item.id === 's1-step01-analysis');
+  assert.deepEqual(legacySource.parameters.outputBindings.find(item => item.portId === 'source_asset'), {portId:'source_asset',state:'ready',assetIds:['ASSET-LEGACY-VIDEO']});
+  assert.deepEqual(legacyStep01.parameters.inputBindings.find(item => item.portId === 'source_video'), {portId:'source_video',sourceNodeId:'s1-source-input',sourcePortId:'source_asset',state:'ready',assetIds:['ASSET-LEGACY-VIDEO']});
+  const migrated = await request('/api/canvas/documents/redraw/' + project.id, {method:'PUT',headers:headers({'content-type':'application/json','if-match':initial.response.headers.get('etag')}),body:JSON.stringify({document:initial.body.document})});
+  assert.equal(migrated.response.status, 200, JSON.stringify(migrated.body));
+  assert.equal(migrated.body.document.nodes.find(item => item.id === 's1-source-input').parameters.outputBindings.find(item => item.portId === 'source_asset').state, 'ready');
+  const assets = await request('/api/projects/' + project.id + '/assets', {headers:headers({'x-niannian-project-kind':'redraw'})});
+  assert.equal(assets.response.status, 200);
+  assert.equal(assets.body.assets[0].id, 'legacy-source:' + project.id);
+  const built = await request('/api/canvas/documents/redraw/' + project.id + '/s1-chain', {method:'POST',headers:headers({'content-type':'application/json','if-match':migrated.response.headers.get('etag')||'"canvas-rev-0"'}),body:JSON.stringify({sourceAssetIds:['legacy-source:' + project.id],rightsConfirmed:true,preflightStatus:'passed'})});
   assert.equal(built.response.status, 201, JSON.stringify(built.body));
   assert.deepEqual(built.body.chain.nodeIds, ['s1-source-input','s1-step01-analysis','s1-step02-timeline']);
-  assert.equal(built.body.chain.sourceReady, false);
+  assert.equal(built.body.chain.sourceReady, true);
   assert.equal(built.body.document.nodes.length, 3);
   assert.deepEqual(built.body.document.edges.map(item => [item.source,item.target]), [['s1-source-input','s1-step01-analysis'],['s1-step01-analysis','s1-step02-timeline']]);
   const step01 = built.body.document.nodes.find(item => item.id === 's1-step01-analysis');
   assert.equal(step01.status, 'blocked');
   assert.equal(step01.data.status, 'blocked');
-  assert.equal(step01.data.parameters.blocker, 'SOURCE_INPUT_INCOMPLETE');
+  assert.equal(step01.data.parameters.blocker, 'STEP01_FULL_SOURCE_AUTHORITY_PENDING');
+  assert.deepEqual(step01.data.inputPorts.map(item => item.id), ['source_video']);
+  assert.deepEqual(step01.data.outputPorts.map(item => item.id), ['evidence_manifest','shot_frames']);
+  assert.deepEqual(step01.data.parameters.inputBindings, [{portId:'source_video',sourceNodeId:'s1-source-input',sourcePortId:'source_asset',state:'ready',assetIds:['legacy-source:' + project.id]}]);
+  assert.equal(step01.data.parameters.outputBindings.find(item => item.portId === 'evidence_manifest').state, 'blocked');
+  const sourceNode = built.body.document.nodes.find(item => item.id === 's1-source-input');
+  assert.equal(sourceNode.skillKey, 'mx-shortdrama-00-router');
+  assert.equal(sourceNode.data.parameters.preflightStatus, 'passed');
+  assert.deepEqual(sourceNode.data.outputPorts.map(item => item.id), ['source_asset','preflight_report']);
+  assert.deepEqual(sourceNode.data.parameters.outputBindings.find(item => item.portId === 'source_asset'), {portId:'source_asset',state:'ready',assetIds:['legacy-source:' + project.id]});
+  const step02 = built.body.document.nodes.find(item => item.id === 's1-step02-timeline');
+  assert.equal(step02.skillKey, 'mx-shortdrama-02-source-timeline');
+  assert.deepEqual(step02.data.inputPorts.map(item => item.id), ['evidence_manifest']);
+  assert.deepEqual(step02.data.parameters.inputBindings, [{portId:'evidence_manifest',sourceNodeId:'s1-step01-analysis',sourcePortId:'evidence_manifest',state:'blocked',assetIds:[]}]);
+  const image2 = await request('/api/canvas/documents/redraw/' + project.id + '/s2-image2', {method:'POST',headers:headers({'content-type':'application/json','if-match':built.response.headers.get('etag')}),body:JSON.stringify({prompt:'角色站在街角，电影感关键帧',imageChannel:'yunfei-gpt-image-2-1k',resolution:'1k',aspectRatio:'1:1',referenceAssetIds:[]})});
+  assert.equal(image2.response.status, 201, JSON.stringify(image2.body));
+  assert.equal(image2.body.node.skillKey, 'image2-storyboard-video');
+  assert.deepEqual(image2.body.node.inputPorts.map(item => item.id), ['prompt','reference_asset']);
+  assert.deepEqual(image2.body.node.outputPorts.map(item => item.id), ['image_asset']);
+  assert.equal(image2.body.node.parameters.resolution, '1k');
+  assert.equal(image2.body.node.parameters.aspectRatio, '1:1');
+  assert.equal(image2.body.node.parameters.providerSubmitRequested, false);
+  assert.equal(image2.body.node.status, 'ready');
+  const nomi = await request('/api/studio/projects/' + project.id, {headers:headers({'x-niannian-project-kind':'redraw'})});
+  assert.equal(nomi.response.status, 200, JSON.stringify(nomi.body));
+  assert.deepEqual(nomi.body.document.generationCanvas.nodes.filter(node => node.meta?.niannianSkillNode).map(node => node.meta.sourceNodeId), ['s1-source-input','s1-step01-analysis','s1-step02-timeline','s2-image2-keyframe']);
+  assert.deepEqual(nomi.body.document.generationCanvas.edges.filter(edge => String(edge.id).startsWith('nn-skill-')).map(edge => [edge.source,edge.target]), [['nn-skill-s1-source-input','nn-skill-s1-step01-analysis'],['nn-skill-s1-step01-analysis','nn-skill-s1-step02-timeline']]);
+  assert.equal(nomi.body.document.generationCanvas.nodes.find(node => node.id === 'nn-skill-s1-step01-analysis').meta.locked, true);
+  const nomiReload = await request('/api/studio/projects/' + project.id, {headers:headers({'x-niannian-project-kind':'redraw'})});
+  assert.equal(nomiReload.body.document.generationCanvas.nodes.find(node => node.id === 'nn-skill-s2-image2-keyframe').meta.parameters.resolution, '1k');
+  const image2Reload = await request('/api/canvas/documents/redraw/' + project.id, {headers:headers()});
+  assert.equal(image2Reload.body.document.nodes.find(item => item.id === 's2-image2-keyframe').data.prompt, '角色站在街角，电影感关键帧');
   const reloaded = await request('/api/canvas/documents/redraw/' + project.id, {headers:headers()});
   assert.equal(reloaded.body.document.nodes.find(item => item.id === 's1-step02-timeline').status, 'blocked');
   const stale = await request('/api/canvas/documents/redraw/' + project.id + '/s1-chain', {method:'POST',headers:headers({'content-type':'application/json','if-match':'"canvas-rev-0"'}),body:'{}'});
   assert.equal(stale.response.status, 412);
-  console.log(JSON.stringify({ok:true,verified:['idempotent S1 source/Step01/Step02 chain','explicit blocked recovery state','revision conflict protection','no provider submission']}));
+  console.log(JSON.stringify({ok:true,verified:['legacy project source is exposed as a read-only canvas asset','S1 source/Step01/Step02 chain persists explicit port bindings','explicit Step01 authority block','revision conflict protection','no provider submission']}));
 }
 
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { if (child && !child.killed) child.kill(); await fsp.rm(dataRoot,{recursive:true,force:true}); });

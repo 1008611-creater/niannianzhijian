@@ -20,7 +20,11 @@ const SKILLS = Object.freeze({
   'minimaxh3skill': {version: '1.0.0', kinds: ['video', 'skill'], inputs: ['image_asset', 'prompt'], outputs: ['video_asset']},
   'runninghub-animate-motion-transfer': {version: '1.0.0', kinds: ['video', 'skill'], inputs: ['image_asset', 'motion_video'], outputs: ['video_asset']},
   'mx-shortdrama-production-harness': {version: '1.0.0', kinds: ['director', 'delivery', 'smart_cut', 'skill'], inputs: ['project_assets'], outputs: ['editor_session', 'delivery_asset']},
-  'niannian-text-generation': {version: '1.0.0', kinds: ['text', 'note', 'skill'], inputs: ['prompt'], outputs: ['text_result']}
+  'niannian-text-generation': {version: '1.0.0', kinds: ['text', 'note', 'skill'], inputs: ['prompt'], outputs: ['text_result']},
+  'screenwriter': {version: '1.0.0', kinds: ['text', 'skill'], executionMode: 'orchestration', inputs: [{id:'story', type:'story', required:true}, {id:'source_material', type:'source_material'}], outputs: ['screenplay', 'treatment', 'story_bible']},
+  'chaoge-assets-trial': {version: '1.3.0', kinds: ['character', 'reference', 'skill'], executionMode: 'orchestration', inputs: [{id:'screenplay', type:'screenplay', required:true}, {id:'asset_requirements', type:'asset_requirements'}], outputs: ['character_assets', 'prop_assets', 'asset_manifest']},
+  'shotlist-builder': {version: '1.0.0', kinds: ['shot', 'skill'], executionMode: 'orchestration', inputs: [{id:'screenplay', type:'screenplay', required:true}, {id:'asset_manifest', type:'asset_manifest'}, {id:'style_reference', type:'style_reference'}], outputs: ['shotlist', {id:'video_prompt', type:'prompt'}, 'spatial_blocking']},
+  'hell-grind': {version: '1.0.0', kinds: ['shot', 'skill'], executionMode: 'orchestration', inputs: [{id:'shotlist', type:'shotlist', required:true}, {id:'reference_assets', type:'reference_assets'}, {id:'continuity_state', type:'continuity_state'}], outputs: [{id:'image_prompt', type:'prompt'}, {id:'video_prompt', type:'prompt'}, 'continuity_locks']}
 });
 
 const SAFE_KEY_RE = /(?:api.?key|token|secret|password|cookie|authorization|signed.?url|signature|provider.?task|raw.?response|data.?url|private.?key)/i;
@@ -48,23 +52,33 @@ function assertSafe(value, path = 'node', seen = new Set()) {
   }
 }
 
+function portDefinition(value, required) {
+  const raw = typeof value === 'string' ? {id:value, type:value} : value;
+  return {id:raw.id, type:raw.type || raw.id, required:raw.required === true || required === true, multiple:raw.multiple === true};
+}
+
 function defaultPorts(skillKey) {
   const spec = SKILLS[skillKey];
   return {
-    inputPorts: spec.inputs.map((id, index) => ({id, type: id, required: index === 0})),
-    outputPorts: spec.outputs.map(id => ({id, type: id, required: false}))
+    inputPorts: spec.inputs.map((item, index) => portDefinition(item, index === 0)),
+    outputPorts: spec.outputs.map(item => portDefinition(item, false))
   };
 }
 
 function normalizePorts(value, direction, fallback) {
   if (value == null) return fallback;
   if (!Array.isArray(value)) throw contractError('CANVAS_SKILL_NODE_PORTS_INVALID', `${direction} 必须是数组`);
+  const allowed = new Map(fallback.map(port => [port.id, port]));
+  const seen = new Set();
   return value.slice(0, 32).map((port, index) => {
     if (!port || typeof port !== 'object' || Array.isArray(port)) throw contractError('CANVAS_SKILL_NODE_PORTS_INVALID', `${direction}[${index}] 不是对象`);
     const id = text(port.id || port.name, 64);
     const type = text(port.type || port.valueType, 80);
     if (!PORT_ID_RE.test(id) || !type) throw contractError('CANVAS_SKILL_NODE_PORTS_INVALID', `${direction}[${index}] 的 id/type 无效`);
-    return {id, type, required: port.required === true, multiple: port.multiple === true};
+    const declared = allowed.get(id);
+    if (!declared || seen.has(id) || declared.type !== type) throw contractError('CANVAS_SKILL_NODE_PORTS_INVALID', `${direction}[${index}] 不符合 Skill 端口合同`);
+    seen.add(id);
+    return {...declared};
   });
 }
 
@@ -103,6 +117,19 @@ function normalizeRecovery(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw contractError('CANVAS_SKILL_NODE_RECOVERY_INVALID', 'recovery 必须是对象');
   const actions = Array.isArray(value.actions) ? [...new Set(value.actions.map(item => text(item, 40)).filter(item => ['retry', 'repair_input', 'reselect_asset', 'reconcile_task', 'rollback'].includes(item)))] : [];
   return {actions, lastAction: text(value.lastAction, 40) || null};
+}
+
+function normalizeCompiledOutputs(value, outputPorts) {
+  if (value == null) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw contractError('CANVAS_SKILL_NODE_COMPILED_OUTPUTS_INVALID', 'compiledOutputs 必须是对象');
+  const allowed = new Map(outputPorts.map(port => [port.id, port]));
+  const result = {};
+  for (const [key, item] of Object.entries(value)) {
+    const portId = text(key, 64);
+    if (!allowed.has(portId) || typeof item !== 'string') throw contractError('CANVAS_SKILL_NODE_COMPILED_OUTPUTS_INVALID', 'compiledOutputs 只能包含声明的文本输出端口');
+    result[portId] = text(item, 4000);
+  }
+  return result;
 }
 
 function inferSkillKey(node, data) {
@@ -145,6 +172,9 @@ function normalizeSkillNode(node, {projectId, index = 0} = {}) {
   const parameters = node.parameters || data.parameters || data.params || {};
   if (!parameters || typeof parameters !== 'object' || Array.isArray(parameters)) throw contractError('CANVAS_SKILL_NODE_PARAMETERS_INVALID', 'parameters 必须是对象');
   assertSafe(parameters, `nodes[${index}].parameters`);
+  const normalizedParameters = {...parameters};
+  const compiledOutputs = normalizeCompiledOutputs(parameters.compiledOutputs, ports.outputPorts);
+  if (compiledOutputs !== null) normalizedParameters.compiledOutputs = compiledOutputs;
   return {
     nodeId,
     kind,
@@ -153,12 +183,13 @@ function normalizeSkillNode(node, {projectId, index = 0} = {}) {
     description: text(node.description || data.description || data.note || data.title || kind, 1600),
     inputPorts: normalizePorts(node.inputPorts || data.inputPorts, 'inputPorts', ports.inputPorts),
     outputPorts: normalizePorts(node.outputPorts || data.outputPorts, 'outputPorts', ports.outputPorts),
-    parameters,
+    parameters: normalizedParameters,
     assetRefs: normalizeAssetRefs(node.assetRefs || data.assetRefs, projectId, [...new Set([...(Array.isArray(data.assetIds) ? data.assetIds : []), ...(Array.isArray(data.inputAssetIds) ? data.inputAssetIds : [])].map(value => text(value, 120)).filter(Boolean))]),
     taskRef: normalizeTaskRef(node.taskRef || data.taskRef),
     status,
     preview: normalizePreview(node.preview || data.preview),
     recovery: normalizeRecovery(node.recovery || data.recovery),
+    executionMode: SKILLS[skillKey].executionMode || 'generation',
     legacyAdapted: !explicit
   };
 }
@@ -168,4 +199,89 @@ function validateDocumentSkillNodes(document, projectId) {
   return nodes.map((node, index) => normalizeSkillNode(node, {projectId, index})).filter(Boolean);
 }
 
-module.exports = {SKILLS, STATUS, normalizeSkillNode, validateDocumentSkillNodes, contractError};
+function validateSkillConnections(nodes, edges) {
+  const byId = new Map((Array.isArray(nodes) ? nodes : []).filter(Boolean).map(node => [node.nodeId || node.id, node]));
+  const inbound = new Map();
+  for (const edge of Array.isArray(edges) ? edges : []) {
+    const hasSourcePort = Boolean(edge?.sourcePort);
+    const hasTargetPort = Boolean(edge?.targetPort);
+    if (!hasSourcePort && !hasTargetPort) continue;
+    if (!hasSourcePort || !hasTargetPort) throw contractError('CANVAS_SKILL_CONNECTION_PORTS_REQUIRED', 'Skill 连线必须同时指定 sourcePort 与 targetPort');
+    const source = byId.get(edge.source);
+    const target = byId.get(edge.target);
+    const output = source?.outputPorts?.find(port => port.id === edge.sourcePort);
+    const input = target?.inputPorts?.find(port => port.id === edge.targetPort);
+    if (!output || !input) throw contractError('CANVAS_SKILL_CONNECTION_PORT_UNKNOWN', 'Skill 连线引用了不存在的端口');
+    if (output.type !== input.type) throw contractError('CANVAS_SKILL_CONNECTION_TYPE_MISMATCH', `端口类型不匹配：${output.type} -> ${input.type}`);
+    const key = edge.target + ':' + edge.targetPort;
+    const existing = inbound.get(key) || 0;
+    if (!input.multiple && existing >= 1) throw contractError('CANVAS_SKILL_CONNECTION_MULTIPLE_INPUTS', '非多输入端口只能连接一个上游输出');
+    inbound.set(key, existing + 1);
+  }
+  return true;
+}
+
+function resolveCompiledPrompt(document, targetNodeId) {
+  const nodes = Array.isArray(document?.nodes) ? document.nodes : [];
+  const edges = Array.isArray(document?.edges) ? document.edges : [];
+  const byId = new Map(nodes.filter(Boolean).map(node => [node.nodeId || node.id, node]));
+  const promptEdges = edges.filter(edge => edge && edge.target === targetNodeId && edge.targetPort === 'prompt');
+  if (!promptEdges.length) return null;
+  const edge = promptEdges[0];
+  const source = byId.get(edge.source);
+  const output = source?.outputPorts?.find(port => port.id === edge.sourcePort && port.type === 'prompt');
+  const value = source?.parameters?.compiledOutputs?.[edge.sourcePort];
+  if (!output || !text(value, 4000)) throw contractError('CANVAS_SKILL_COMPILED_PROMPT_REQUIRED', '生成节点连接的提示词尚未由上游 Skill 编译');
+  return {prompt:text(value, 4000), sourceNodeId:source.nodeId || source.id, sourcePort:edge.sourcePort};
+}
+
+function orchestrationReadiness(document, targetNodeId) {
+  const nodes = Array.isArray(document?.nodes) ? document.nodes : [];
+  const edges = Array.isArray(document?.edges) ? document.edges : [];
+  const target = nodes.find(node => (node?.nodeId || node?.id) === targetNodeId) || null;
+  if (!target) throw contractError('CANVAS_SKILL_NODE_NOT_FOUND', '编排节点不存在');
+  if (target.executionMode !== 'orchestration') throw contractError('CANVAS_SKILL_NODE_NOT_ORCHESTRATION', '当前节点不是编排 Skill');
+  const inputs = target.parameters?.inputs && typeof target.parameters.inputs === 'object' && !Array.isArray(target.parameters.inputs)
+    ? target.parameters.inputs
+    : {};
+  const byId = new Map(nodes.filter(Boolean).map(node => [node.nodeId || node.id, node]));
+  const blockers = [];
+  for (const port of target.inputPorts || []) {
+    if (!port.required) continue;
+    const manual = text(inputs[port.id], 4000);
+    const inbound = edges.find(edge => edge?.target === targetNodeId && edge?.targetPort === port.id) || null;
+    const upstream = inbound ? byId.get(inbound.source) : null;
+    const upstreamValue = upstream?.parameters?.compiledOutputs?.[inbound?.sourcePort];
+    const upstreamReady = upstream?.executionMode !== 'orchestration' || Boolean(text(upstreamValue, 4000));
+    if (!manual && (!inbound || !upstreamReady)) {
+      blockers.push({portId:port.id, type:port.type, reason:inbound && upstream ? 'upstream_output_missing' : 'input_required'});
+    }
+  }
+  return {nodeId:target.nodeId || target.id, skillKey:target.skillKey, ready:blockers.length === 0, blockers};
+}
+
+function resolveOrchestrationInputs(document, targetNodeId) {
+  const nodes = Array.isArray(document?.nodes) ? document.nodes : [];
+  const edges = Array.isArray(document?.edges) ? document.edges : [];
+  const target = nodes.find(node => (node?.nodeId || node?.id) === targetNodeId) || null;
+  if (!target) throw contractError('CANVAS_SKILL_NODE_NOT_FOUND', '编排节点不存在');
+  if (target.executionMode !== 'orchestration') throw contractError('CANVAS_SKILL_NODE_NOT_ORCHESTRATION', '当前节点不是编排 Skill');
+  const readiness = orchestrationReadiness(document, targetNodeId);
+  if (!readiness.ready) throw contractError('CANVAS_SKILL_NODE_INPUT_REQUIRED', '编排节点输入未完成', {blockers:readiness.blockers});
+  const manual = target.parameters?.inputs && typeof target.parameters.inputs === 'object' && !Array.isArray(target.parameters.inputs)
+    ? target.parameters.inputs
+    : {};
+  const byId = new Map(nodes.filter(Boolean).map(node => [node.nodeId || node.id, node]));
+  const inputs = {};
+  for (const port of target.inputPorts || []) {
+    const direct = text(manual[port.id], 8000);
+    if (direct) { inputs[port.id] = direct; continue; }
+    const edge = edges.find(item => item?.target === targetNodeId && item?.targetPort === port.id) || null;
+    const source = edge ? byId.get(edge.source) : null;
+    const value = text(source?.parameters?.compiledOutputs?.[edge?.sourcePort], 8000);
+    if (value) inputs[port.id] = value;
+  }
+  return {node:target, inputs, readiness};
+}
+
+module.exports = {SKILLS, STATUS, normalizeSkillNode, validateDocumentSkillNodes, validateSkillConnections, resolveCompiledPrompt, orchestrationReadiness, resolveOrchestrationInputs, contractError};

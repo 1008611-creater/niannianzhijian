@@ -57,7 +57,11 @@ const canvasProviderConfig = require('./bridge/niannian_canvas_provider_config')
 const canvasTextRuntimeModule = require('./bridge/niannian_canvas_text_runtime');
 const canvasTextJobs = require('./bridge/niannian_canvas_text_jobs');
 const canvasSkillNodes = require('./bridge/niannian_canvas_skill_nodes');
+const canvasMcgroxCompilerModule = require('./bridge/niannian_canvas_mcgrox_compiler');
 const canvasS1Chain = require('./bridge/niannian_canvas_s1_chain');
+const canvasImage2Node = require('./bridge/niannian_canvas_image2_node');
+const canvasH3Node = require('./bridge/niannian_canvas_h3_node');
+const nomiSkillChain = require('./bridge/niannian_nomi_skill_chain');
 const nomiRunningHubH3 = require('./bridge/niannian_nomi_runninghub_h3');
 const h3MediaValidation = require('./bridge/niannian_h3_media_validation');
 const nomiWebTaskStoreModule = require('./bridge/niannian_nomi_web_task_store');
@@ -169,6 +173,7 @@ const canvasAnimateRuntime = canvasAnimateRuntimeModule.createCanvasAnimateRunti
 });
 const canvasTextRuntime = canvasTextRuntimeModule.createCanvasTextRuntime();
 const canvasTextJobService = canvasTextJobs.createCanvasTextJobService({filePath:canvasTextJobsPath});
+const canvasMcgroxCompiler = canvasMcgroxCompilerModule.createCanvasMcgroxCompiler();
 const activeCanvasTextJobs = new Set();
 const nomiWebH3 = nomiRunningHubH3.createNomiRunningHubH3();
 const nomiWebTaskStore = nomiWebTaskStoreModule.createNomiWebTaskStore({filePath:nomiWebTasksPath});
@@ -6855,7 +6860,7 @@ function normalizeCanvasDocument(value, project) {
   const allowedTypes = new Set(['intent','source_input','analysis','timeline','adaptation','character','scene','shot','reference','image','video','smart_cut','director','delivery','note','text','skill']);
   const allowedStatuses = new Set(['draft','blocked','ready','awaiting_authorization','queued','running','succeeded','failed','needs_review','review']);
   const ids = new Set();
-  const nodes = Array.isArray(raw.nodes) ? raw.nodes.slice(0, 300).flatMap((node, index) => {
+  const normalizedNodes = Array.isArray(raw.nodes) ? raw.nodes.slice(0, 300).flatMap((node, index) => {
     if (!node || typeof node !== 'object' || Array.isArray(node)) return [];
     const id = canvasText(node.id || node.nodeId, 80);
     const type = canvasText(node.type || node.kind, 40);
@@ -6882,6 +6887,7 @@ function normalizeCanvasDocument(value, project) {
       taskRef:skillNode?.taskRef || null,
       preview:skillNode?.preview || null,
       recovery:skillNode?.recovery || {actions:['retry'],lastAction:null},
+      executionMode:skillNode?.executionMode || null,
       position:{x:canvasNumber(node.position?.x, 120 + index * 36, -20000, 20000),y:canvasNumber(node.position?.y, 120 + index * 28, -20000, 20000)},
       data:{
         projectId:project.id,
@@ -6908,10 +6914,12 @@ function normalizeCanvasDocument(value, project) {
         assetRefs:skillNode?.assetRefs || [],
         taskRef:skillNode?.taskRef || null,
         preview:skillNode?.preview || null,
-        recovery:skillNode?.recovery || {actions:['retry'],lastAction:null}
+        recovery:skillNode?.recovery || {actions:['retry'],lastAction:null},
+        executionMode:skillNode?.executionMode || null
       }
     }];
   }) : [];
+  const nodes = canvasS1Chain.reconcileChainNodes(normalizedNodes, project.id);
   const nodeIds = new Set(nodes.map(node => node.id));
   const edgeIds = new Set();
   const allowedKinds = new Set(['depends_on','derived_from','reference','approved_to','variant_of']);
@@ -6923,8 +6931,12 @@ function normalizeCanvasDocument(value, project) {
     const kind = canvasText(edge.kind || 'depends_on', 40);
     if (!/^[A-Za-z0-9_-]{4,80}$/.test(id) || edgeIds.has(id) || source === target || !nodeIds.has(source) || !nodeIds.has(target) || !allowedKinds.has(kind)) return [];
     edgeIds.add(id);
-    return [{id,source,target,kind}];
+    const sourcePort = canvasText(edge.sourcePort || edge.source_port, 64) || null;
+    const targetPort = canvasText(edge.targetPort || edge.target_port, 64) || null;
+    if ((sourcePort && !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(sourcePort)) || (targetPort && !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(targetPort))) return [];
+    return [{id,source,target,kind,...(sourcePort ? {sourcePort} : {}),...(targetPort ? {targetPort} : {})}];
   }) : [];
+  canvasSkillNodes.validateSkillConnections(nodes, edges);
   return {version:1,nodes,edges,viewport:{x:canvasNumber(raw.viewport?.x, 0, -20000, 20000),y:canvasNumber(raw.viewport?.y, 0, -20000, 20000),zoom:canvasNumber(raw.viewport?.zoom, 1, 0.35, 2.4)}};
 }
 
@@ -7056,7 +7068,12 @@ async function handleCanvasAssetsApi(request, response, pathname, user) {
   if (!owned) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
   if (!assetId && !action && request.method === 'GET') {
     const assets = await canvasAssetService.listOwned(user.id, projectId, owned.projectKind);
-    return json(response, 200, {projectId,projectKind:owned.projectKind,assets:assets.map(publicCanvasAsset)});
+    const publicAssets = assets.map(publicCanvasAsset);
+    const source = owned.project && owned.project.source;
+    if (source && String(source.mimeType || '').startsWith('video/')) {
+      publicAssets.unshift({id:canvasS1Chain.legacySourceAssetId(projectId),projectId,projectKind:owned.projectKind,kind:'reference_video',originalName:source.originalName || '原片视频',mimeType:source.mimeType,format:path.extname(source.originalName || '').slice(1).toLowerCase() || 'mp4',bytes:Number(source.bytes || 0),status:'ready',source:'project_source',downloadUrl:'/api/projects/' + encodeURIComponent(projectId) + '/source'});
+    }
+    return json(response, 200, {projectId,projectKind:owned.projectKind,assets:publicAssets});
   }
   if (!assetId && !action && request.method === 'POST') {
     await fsp.mkdir(canvasAssetsRoot, {recursive:true});
@@ -7187,6 +7204,10 @@ async function handleCanvasS1ChainApi(request, response, pathname, user) {
     const body = await readBodyJson(request);
     const sourceAssetIds = canvasS1Chain.uniqueIds(body.sourceAssetIds);
     for (const assetId of sourceAssetIds) {
+      if (canvasS1Chain.isLegacySourceAssetId(assetId, projectId)) {
+        if (!project.source || !String(project.source.mimeType || '').startsWith('video/')) throw Object.assign(new Error('项目没有可用的原片视频'), {code:'CANVAS_S1_SOURCE_ASSET_INVALID',httpStatus:422});
+        continue;
+      }
       const asset = await canvasAssetService.getOwned(user.id, projectId, assetId);
       if (!asset || asset.projectKind !== projectKind || asset.kind !== 'reference_video') throw Object.assign(new Error('原片素材不存在或不是当前项目的视频素材'), {code:'CANVAS_S1_SOURCE_ASSET_INVALID',httpStatus:422});
     }
@@ -7202,12 +7223,247 @@ async function handleCanvasS1ChainApi(request, response, pathname, user) {
       const revision = currentRevision + 1;
       const record = {schemaVersion:'niannian.canvas-document.v1',projectId:project.id,projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
       documents[key] = record;
+      await syncSkillDocumentToNomiCanvas({documents,project,projectKind,skillDocument:document});
       await writeCanvasDocuments(documents);
       return {record,chain};
     });
     return json(response, 201, {code:'CANVAS_S1_CHAIN_READY',revision:saved.record.revision,document:saved.record.document,chain:{nodeIds:canvasS1Chain.CHAIN_NODE_IDS,sourceReady:saved.chain.sourceReady},updatedAt:saved.record.updatedAt}, {ETag:canvasEtag(saved.record.revision),'Cache-Control':'no-store'});
   } catch (error) {
     return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_S1_CHAIN_FAILED',error:error.message || 'S1 节点链创建失败'});
+  }
+}
+
+async function handleCanvasSkillNodeLayoutApi(request, response, pathname, user) {
+  const match = pathname.match(/^\/api\/canvas\/documents\/(redraw|script)\/([^/]+)\/skill-node-layout$/);
+  if (!match) return false;
+  const projectKind = match[1];
+  const projectId = decodeURIComponent(match[2]);
+  const project = await canvasOwnedProject(user, projectKind, projectId);
+  if (!project) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
+  if (request.method !== 'POST') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
+  try {
+    const body = await readBodyJson(request);
+    const requested = body.positions && typeof body.positions === 'object' && !Array.isArray(body.positions) ? body.positions : {};
+    const requestedPositions = Object.fromEntries(Object.entries(requested).flatMap(([id, value]) => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+      const x = Number(value.x); const y = Number(value.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return [];
+      return [[id, {x:Math.max(-20000,Math.min(20000,Math.round(x))),y:Math.max(-20000,Math.min(20000,Math.round(y)))}]];
+    }));
+    const key = canvasDocumentKey(projectKind, projectId);
+    const saved = await withCanvasDocumentsWriteLock(async () => {
+      const documents = await readCanvasDocuments();
+      const current = documents[key] || null;
+      const currentRevision = Number(current?.revision || 0);
+      if (request.headers['if-match'] !== canvasEtag(currentRevision)) throw Object.assign(new Error('画布已在其他页面更新，请先重新载入。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:412});
+      const currentDocument = normalizeCanvasDocument(current?.document, project);
+      const allowed = new Set(currentDocument.nodes.map(node => node.id));
+      const positions = Object.fromEntries(Object.entries(requestedPositions).filter(([id]) => allowed.has(id)));
+      const nodes = currentDocument.nodes.map(node => positions[node.id] ? {...node,position:positions[node.id]} : node);
+      const document = normalizeCanvasDocument({...currentDocument,nodes}, project);
+      const revision = currentRevision + 1;
+      const record = {schemaVersion:'niannian.canvas-document.v1',projectId:project.id,projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
+      documents[key] = record;
+      await syncSkillDocumentToNomiCanvas({documents,project,projectKind,skillDocument:document});
+      await writeCanvasDocuments(documents);
+      return record;
+    });
+    return json(response, 200, {code:'CANVAS_SKILL_NODE_LAYOUT_SAVED',revision:saved.revision,document:saved.document,updatedAt:saved.updatedAt}, {ETag:canvasEtag(saved.revision),'Cache-Control':'no-store'});
+  } catch (error) {
+    return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_SKILL_NODE_LAYOUT_FAILED',error:error.message || '节点位置保存失败'});
+  }
+}
+
+async function handleCanvasImage2NodeApi(request, response, pathname, user) {
+  const match = pathname.match(/^\/api\/canvas\/documents\/(redraw|script)\/([^/]+)\/s2-image2$/);
+  if (!match) return false;
+  const projectKind = match[1];
+  const projectId = decodeURIComponent(match[2]);
+  const project = await canvasOwnedProject(user, projectKind, projectId);
+  if (!project) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
+  if (request.method !== 'POST') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
+  try {
+    const body = await readBodyJson(request);
+    const referenceAssetIds = canvasImage2Node.ids(body.referenceAssetIds || body.inputAssetIds);
+    for (const assetId of referenceAssetIds) {
+      const asset = await canvasAssetService.getOwned(user.id, projectId, assetId);
+      if (!asset || asset.projectKind !== projectKind || asset.kind !== 'reference_image') {
+        throw Object.assign(new Error('参考素材不存在或不是当前项目的图片资产'), {code:'CANVAS_S2_REFERENCE_ASSET_INVALID',httpStatus:422});
+      }
+    }
+    const key = canvasDocumentKey(projectKind, projectId);
+    const saved = await withCanvasDocumentsWriteLock(async () => {
+      const documents = await readCanvasDocuments();
+      const current = documents[key] || null;
+      const currentRevision = Number(current?.revision || 0);
+      if (request.headers['if-match'] !== canvasEtag(currentRevision)) throw Object.assign(new Error('画布已在其他页面更新，请先重新载入。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:412});
+      const currentDocument = normalizeCanvasDocument(current?.document, project);
+      const prior = currentDocument.nodes.find(node => node.id === canvasImage2Node.IMAGE2_NODE_ID) || null;
+      const node = canvasImage2Node.createImage2Node({projectId, referenceAssetIds, existingNode:{...prior, data:{...(prior?.data || {}), prompt:body.prompt, imageChannel:body.imageChannel, resolution:body.resolution, aspectRatio:body.aspectRatio, outputSize:body.outputSize}}});
+      const document = normalizeCanvasDocument({...currentDocument, nodes:[...currentDocument.nodes.filter(item => item.id !== node.id), node]}, project);
+      const revision = currentRevision + 1;
+      const record = {schemaVersion:'niannian.canvas-document.v1',projectId:project.id,projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
+      documents[key] = record;
+      await syncSkillDocumentToNomiCanvas({documents,project,projectKind,skillDocument:document});
+      await writeCanvasDocuments(documents);
+      return record;
+    });
+    return json(response, 201, {code:'CANVAS_S2_IMAGE2_NODE_READY',revision:saved.revision,node:saved.document.nodes.find(item => item.id === canvasImage2Node.IMAGE2_NODE_ID),imageChannels:canvasProviderConfig.publicCanvasProviderStatus().imageChannels,updatedAt:saved.updatedAt}, {ETag:canvasEtag(saved.revision),'Cache-Control':'no-store'});
+  } catch (error) {
+    return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_S2_IMAGE2_NODE_FAILED',error:error.message || 'Image2 节点创建失败'});
+  }
+}
+
+async function handleCanvasH3NodeApi(request, response, pathname, user) {
+  const match = pathname.match(/^\/api\/canvas\/documents\/(redraw|script)\/([^/]+)\/s3-h3$/);
+  if (!match) return false;
+  const projectKind = match[1];
+  const projectId = decodeURIComponent(match[2]);
+  const project = await canvasOwnedProject(user, projectKind, projectId);
+  if (!project) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
+  if (request.method !== 'POST') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
+  try {
+    const body = await readBodyJson(request);
+    const referenceAssetIds = canvasH3Node.ids(body.referenceAssetIds || body.inputAssetIds);
+    for (const assetId of referenceAssetIds) {
+      const asset = await canvasAssetService.getOwned(user.id, projectId, assetId);
+      if (!asset || asset.projectKind !== projectKind || !['reference_image','generated_image'].includes(asset.kind)) {
+        throw Object.assign(new Error('H3 参考素材不存在或不是当前项目的图片资产'), {code:'CANVAS_S3_REFERENCE_ASSET_INVALID',httpStatus:422});
+      }
+    }
+    const key = canvasDocumentKey(projectKind, projectId);
+    const saved = await withCanvasDocumentsWriteLock(async () => {
+      const documents = await readCanvasDocuments();
+      const current = documents[key] || null;
+      const currentRevision = Number(current?.revision || 0);
+      if (request.headers['if-match'] !== canvasEtag(currentRevision)) throw Object.assign(new Error('画布已在其他页面更新，请先重新载入。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:412});
+      const currentDocument = normalizeCanvasDocument(current?.document, project);
+      const prior = currentDocument.nodes.find(node => node.id === canvasH3Node.H3_NODE_ID) || null;
+      const node = canvasH3Node.createH3Node({projectId, referenceAssetIds, existingNode:{...prior, data:{...(prior?.data || {}), prompt:body.prompt, aspectRatio:body.aspectRatio, durationSeconds:body.durationSeconds}}});
+      const document = normalizeCanvasDocument({...currentDocument,nodes:[...currentDocument.nodes.filter(item => item.id !== node.id),node]}, project);
+      const revision = currentRevision + 1;
+      const record = {schemaVersion:'niannian.canvas-document.v1',projectId:project.id,projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
+      documents[key] = record;
+      await syncSkillDocumentToNomiCanvas({documents,project,projectKind,skillDocument:document});
+      await writeCanvasDocuments(documents);
+      return record;
+    });
+    return json(response, 201, {code:'CANVAS_S3_H3_NODE_READY',revision:saved.revision,node:saved.document.nodes.find(item => item.id === canvasH3Node.H3_NODE_ID),updatedAt:saved.updatedAt}, {ETag:canvasEtag(saved.revision),'Cache-Control':'no-store'});
+  } catch (error) {
+    return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_S3_H3_NODE_FAILED',error:error.message || 'H3 节点创建失败'});
+  }
+}
+
+async function handleCanvasSkillReadinessApi(request, response, pathname, user) {
+  const match = pathname.match(/^\/api\/projects\/([^/]+)\/canvas\/skill-nodes\/([^/]+)\/readiness$/);
+  if (!match) return false;
+  const projectId = decodeURIComponent(match[1]);
+  const nodeId = decodeURIComponent(match[2]);
+  if (request.method !== 'GET') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
+  try {
+    const projectKind = canvasText(new URL(request.url, 'http://127.0.0.1').searchParams.get('projectKind'), 20) || null;
+    const owned = await ownedCanvasProjectById(user, projectId, projectKind);
+    if (!owned) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
+    const record = (await readCanvasDocuments())[canvasDocumentKey(owned.projectKind, projectId)];
+    const document = normalizeCanvasDocument(record?.document, owned.project);
+    const readiness = canvasSkillNodes.orchestrationReadiness(document, nodeId);
+    return json(response, 200, {code:'CANVAS_SKILL_NODE_READINESS',projectId,projectKind:owned.projectKind,readiness,providerSubmitEnabled:false,spendRequested:false}, {'Cache-Control':'no-store'});
+  } catch (error) {
+    return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_SKILL_NODE_READINESS_FAILED',error:error.message || '编排输入检查失败'});
+  }
+}
+
+async function updateCanvasCompilerNode({user, owned, nodeId, expectedTaskId = null, mutate}) {
+  const key = canvasDocumentKey(owned.projectKind, owned.project.id);
+  return withCanvasDocumentsWriteLock(async () => {
+    const documents = await readCanvasDocuments();
+    const current = documents[key] || null;
+    const currentDocument = normalizeCanvasDocument(current?.document, owned.project);
+    const node = currentDocument.nodes.find(item => item.id === nodeId) || null;
+    if (!node || node.executionMode !== 'orchestration') throw Object.assign(new Error('编排节点不存在或尚未保存'), {code:'CANVAS_SKILL_NODE_NOT_FOUND',httpStatus:404});
+    if (expectedTaskId && node.taskRef?.id !== expectedTaskId) return null;
+    mutate(node, currentDocument);
+    node.data = Object.assign({}, node.data || {}, {
+      status:node.status,
+      parameters:node.parameters,
+      taskRef:node.taskRef,
+      recovery:node.recovery
+    });
+    const document = normalizeCanvasDocument(currentDocument, owned.project);
+    const revision = Number(current?.revision || 0) + 1;
+    const record = {schemaVersion:'niannian.canvas-document.v1',projectId:owned.project.id,projectKind:owned.projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
+    documents[key] = record;
+    await syncSkillDocumentToNomiCanvas({documents,project:owned.project,projectKind:owned.projectKind,skillDocument:document});
+    await writeCanvasDocuments(documents);
+    return record;
+  });
+}
+
+async function handleCanvasSkillCompileApi(request, response, pathname, user) {
+  const match = pathname.match(/^\/api\/projects\/([^/]+)\/canvas\/skill-nodes\/([^/]+)\/compile$/);
+  if (!match) return false;
+  if (request.method !== 'POST') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
+  const projectId = decodeURIComponent(match[1]);
+  const nodeId = decodeURIComponent(match[2]);
+  try {
+    const body = await readBodyJson(request);
+    const requestedKind = canvasText(body.projectKind || request.headers['x-niannian-project-kind'] || '', 20) || null;
+    const owned = await ownedCanvasProjectById(user, projectId, requestedKind);
+    if (!owned) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
+    const record = (await readCanvasDocuments())[canvasDocumentKey(owned.projectKind, projectId)];
+    const document = normalizeCanvasDocument(record?.document, owned.project);
+    const resolved = canvasSkillNodes.resolveOrchestrationInputs(document, nodeId);
+    const providerStatus = canvasMcgroxCompilerModule.configuredStatus();
+    if (body.confirmProviderCall !== true) {
+      return json(response, 200, {
+        code:'CANVAS_COMPILER_DRY_RUN_READY',
+        projectId,
+        projectKind:owned.projectKind,
+        nodeId,
+        skillKey:resolved.node.skillKey,
+        inputPorts:Object.keys(resolved.inputs),
+        providerStatus,
+        providerSubmitEnabled:providerStatus.submitEnabled,
+        spendRequested:false,
+        nextAction:'确认后才会调用服务器端 MCGrox 编排模型。'
+      }, {'Cache-Control':'no-store'});
+    }
+    if (!providerStatus.submitEnabled) return json(response, 409, {code:'CANVAS_COMPILER_NOT_READY',error:'MCGrox 服务端文本执行器尚未配置完成',providerStatus,spendRequested:false});
+    if (request.headers['if-match'] !== canvasEtag(Number(record?.revision || 0))) throw Object.assign(new Error('画布已更新，请重新读取后再运行编排。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:412});
+    const taskId = 'CPL-' + crypto.randomBytes(12).toString('hex');
+    const idempotencyKey = canvasText(request.headers['idempotency-key'], 160) || null;
+    const started = await updateCanvasCompilerNode({user,owned,nodeId,mutate(node) {
+      node.status = 'running';
+      node.taskRef = {id:taskId,idempotencyKey,status:'running'};
+      node.recovery = {actions:['retry','repair_input'],lastAction:'compile'};
+    }});
+    try {
+      const result = await canvasMcgroxCompiler.compile({
+        skillKey:resolved.node.skillKey,
+        skillVersion:resolved.node.skillVersion,
+        description:resolved.node.description,
+        inputs:resolved.inputs,
+        outputPorts:resolved.node.outputPorts
+      });
+      const completed = await updateCanvasCompilerNode({user,owned,nodeId,expectedTaskId:taskId,mutate(node) {
+        node.status = 'succeeded';
+        node.parameters = Object.assign({}, node.parameters || {}, {compiledOutputs:result.outputs, compiler:{provider:'mcgrox',model:result.model,completedAt:new Date().toISOString()}});
+        node.taskRef = {id:taskId,idempotencyKey,status:'succeeded'};
+        node.recovery = {actions:['retry','repair_input'],lastAction:'compile_succeeded'};
+      }});
+      if (!completed) throw Object.assign(new Error('编排运行期间节点已被修改，请重新检查输入。'), {code:'CANVAS_COMPILER_STALE_TASK',httpStatus:409});
+      const compiled = completed.document.nodes.find(item => item.id === nodeId);
+      return json(response, 200, {code:'CANVAS_COMPILER_SUCCEEDED',revision:completed.revision,node:compiled,providerStatus,providerSubmitEnabled:true,spendRequested:true}, {ETag:canvasEtag(completed.revision),'Cache-Control':'no-store'});
+    } catch (error) {
+      await updateCanvasCompilerNode({user,owned,nodeId,expectedTaskId:taskId,mutate(node) {
+        node.status = 'failed';
+        node.taskRef = {id:taskId,idempotencyKey,status:'failed'};
+        node.recovery = {actions:['retry','repair_input'],lastAction:'compile_failed'};
+      }}).catch(() => {});
+      throw error;
+    }
+  } catch (error) {
+    return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_COMPILER_FAILED',error:error.message || '编排任务失败'});
   }
 }
 
@@ -7418,17 +7674,28 @@ async function ownedCanvasProjectById(user, projectId, preferredKind) {
   return null;
 }
 
-async function canvasGenerationNode(project, projectKind, nodeId) {
+async function canvasGenerationContext(project, projectKind, nodeId) {
   const record = (await readCanvasDocuments())[canvasDocumentKey(projectKind, project.id)];
   const document = normalizeCanvasDocument(record?.document, project);
-  return document.nodes.find(node => node.id === nodeId) || null;
+  const node = document.nodes.find(node => node.id === nodeId) || null;
+  return node ? {node, document} : null;
+}
+
+async function canvasGenerationNode(project, projectKind, nodeId) {
+  return (await canvasGenerationContext(project, projectKind, nodeId))?.node || null;
+}
+
+async function generationNodeContextForProject(project, projectKind, nodeId) {
+  // Web Studio persists the Nomi document; the fallback keeps legacy redraw
+  // projects readable during the migration window. Only the canonical canvas
+  // document carries typed Skill-port connections.
+  const nomiNode = await nomiGenerationNode(project, projectKind, nodeId);
+  if (nomiNode) return {node:nomiNode, document:null};
+  return canvasGenerationContext(project, projectKind, nodeId);
 }
 
 async function generationNodeForProject(project, projectKind, nodeId) {
-  // Web Studio persists the Nomi document; the fallback keeps legacy redraw
-  // projects readable during the migration window.
-  return await nomiGenerationNode(project, projectKind, nodeId)
-    || await canvasGenerationNode(project, projectKind, nodeId);
+  return (await generationNodeContextForProject(project, projectKind, nodeId))?.node || null;
 }
 
 function canvasGenerationSubmitEnabled(jobOrNodeType) {
@@ -7555,10 +7822,12 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
     }
     if (!jobId && !action && request.method === 'POST') {
       const nodeId = canvasText(body.nodeId, 80);
-      const node = await generationNodeForProject(owned.project, owned.projectKind, nodeId);
+      const generationContext = await generationNodeContextForProject(owned.project, owned.projectKind, nodeId);
+      const node = generationContext?.node || null;
       if (!node) return json(response, 404, {code:'CANVAS_NODE_NOT_FOUND',error:'画布节点不存在或尚未保存'});
       const nodeType = canvasText(node.type || node.kind, 40);
       if (!['image','video'].includes(nodeType)) return json(response, 422, {code:'CANVAS_NODE_NOT_GENERATABLE',error:'该节点不能创建生成任务'});
+      const compiledPrompt = generationContext?.document ? canvasSkillNodes.resolveCompiledPrompt(generationContext.document, nodeId) : null;
       const requestedModel = canvasText(body.model, 80);
       if (nodeType === 'video' && requestedModel && !canvasVideoChannels.resolveVideoChannel(requestedModel)) return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'模型与当前节点类型不匹配'});
       if (nodeType === 'image' && requestedModel && !canvasImage2Channels.resolveImage2Channel(requestedModel)) {
@@ -7577,7 +7846,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         nodeId,
         nodeType,
         model:requestedModel || (nodeType === 'image' ? 'runninghub-gpt-image-2' : 'h3'),
-        prompt:canvasText(body.prompt || node.data?.prompt, 4000),
+        prompt:canvasText(compiledPrompt?.prompt || body.prompt || node.data?.prompt, 4000),
         inputAssetIds,
         resolution:canvasText(body.resolution || node.data?.resolution || '2k', 8),
         aspectRatio:canvasText(
@@ -7657,6 +7926,44 @@ function nomiDocumentKey(projectKind, projectId) {
   return 'nomi:' + projectKind + ':' + projectId;
 }
 
+async function syncSkillDocumentToNomiCanvas({documents, project, projectKind, skillDocument}) {
+  const key = nomiDocumentKey(projectKind, project.id);
+  const current = nomiRecordForProject(documents[key], project, projectKind);
+  const currentDocument = current?.document || {generationCanvas:{nodes:[],edges:[]}};
+  const document = normalizeNomiProjectDocument(nomiSkillChain.mergeIntoGenerationCanvas(currentDocument, skillDocument));
+  if (current && JSON.stringify(current.document) === JSON.stringify(document)) return current;
+  const record = {
+    schemaVersion:'niannian.nomi-project-document.v1',
+    projectId:project.id,
+    projectKind,
+    ownerId:project.ownerId,
+    revision:Number(current?.revision || 0) + 1,
+    document,
+    updatedAt:new Date().toISOString()
+  };
+  documents[key] = record;
+  return record;
+}
+
+function skillDocumentForProject(documents, project, projectKind) {
+  const record = documents[canvasDocumentKey(projectKind, project.id)];
+  return normalizeCanvasDocument(record?.document, project);
+}
+
+async function ensureNomiSkillProjection(project, projectKind) {
+  return withCanvasDocumentsWriteLock(async () => {
+    const documents = await readCanvasDocuments();
+    const skillDocument = skillDocumentForProject(documents, project, projectKind);
+    const current = nomiRecordForProject(documents[nomiDocumentKey(projectKind, project.id)], project, projectKind);
+    const hasSkillNodes = skillDocument.nodes.some(node => node.skillKey || node.data?.skillKey);
+    if (!current && !hasSkillNodes) return null;
+    const before = current ? JSON.stringify(current.document) : null;
+    const synced = await syncSkillDocumentToNomiCanvas({documents,project,projectKind,skillDocument});
+    if (!current || before !== JSON.stringify(synced.document)) await writeCanvasDocuments(documents);
+    return synced;
+  });
+}
+
 function nomiRecordForProject(record, project, projectKind) {
   if (!record || typeof record !== 'object') return null;
   if (record.ownerId !== project.ownerId || record.projectId !== project.id || record.projectKind !== projectKind) return null;
@@ -7714,7 +8021,7 @@ async function handleWorkbenchCanvasProjectApi(request, response, pathname, user
   if (!project) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'}), true;
   const key = nomiDocumentKey('redraw', project.id);
   if (request.method === 'GET') {
-    let record = nomiRecordForProject((await readCanvasDocuments())[key], project, 'redraw');
+    let record = await ensureNomiSkillProjection(project, 'redraw');
     if (!record) {
       record = await withCanvasDocumentsWriteLock(async () => {
         const documents = await readCanvasDocuments();
@@ -7791,7 +8098,7 @@ async function handleNomiProjectApi(request, response, pathname, user) {
   const key = nomiDocumentKey(owned.projectKind, owned.project.id);
   if (request.method === 'GET') {
     await ensureWorkspaceBinding(user, owned.project.id, {name:owned.project.name});
-    let record = nomiRecordForProject((await readCanvasDocuments())[key], owned.project, owned.projectKind);
+    let record = await ensureNomiSkillProjection(owned.project, owned.projectKind);
     // 首次从有效项目深链进入时立即建立 Nomi 绑定记录。前端随后会保存完整
     // Workbench payload；此处的空 generationCanvas 只用于让服务端拥有唯一、可校验的项目来源。
     if (!record) {
@@ -8424,12 +8731,32 @@ async function handleApi(request, response, pathname) {
     const handled = await handleDirectorDeskApi(request, response, pathname, user);
     if (handled) return;
   }
+  if (pathname.match(/^\/api\/canvas\/documents\/(redraw|script)\/[^/]+\/s2-image2$/)) {
+    const handled = await handleCanvasImage2NodeApi(request, response, pathname, user);
+    if (handled) return;
+  }
+  if (pathname.match(/^\/api\/canvas\/documents\/(redraw|script)\/[^/]+\/s3-h3$/)) {
+    const handled = await handleCanvasH3NodeApi(request, response, pathname, user);
+    if (handled) return;
+  }
+  if (pathname.match(/^\/api\/canvas\/documents\/(redraw|script)\/[^/]+\/skill-node-layout$/)) {
+    const handled = await handleCanvasSkillNodeLayoutApi(request, response, pathname, user);
+    if (handled) return;
+  }
   if (pathname.match(/^\/api\/projects\/[^/]+\/canvas\/director-import$/)) {
     const handled = await handleDirectorDeskImportApi(request, response, pathname, user);
     if (handled) return;
   }
   if (pathname.match(/^\/api\/projects\/[^/]+\/canvas\/jobs/)) {
     const handled = await handleCanvasGenerationApi(request, response, pathname, user);
+    if (handled) return;
+  }
+  if (pathname.match(/^\/api\/projects\/[^/]+\/canvas\/skill-nodes\/[^/]+\/compile$/)) {
+    const handled = await handleCanvasSkillCompileApi(request, response, pathname, user);
+    if (handled) return;
+  }
+  if (pathname.match(/^\/api\/projects\/[^/]+\/canvas\/skill-nodes\/[^/]+\/readiness$/)) {
+    const handled = await handleCanvasSkillReadinessApi(request, response, pathname, user);
     if (handled) return;
   }
   if (pathname.match(/^\/api\/projects\/[^/]+\/text\/jobs/)) {
