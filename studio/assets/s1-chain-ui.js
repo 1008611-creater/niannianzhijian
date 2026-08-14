@@ -102,6 +102,8 @@
     var assets = [];
     var chainReady = false;
     var nodeById = Object.create(null);
+    var canvasDocument = {nodes:[], edges:[], viewport:{x:0,y:0,zoom:1}};
+    var step01PollTimer = null;
     var nodeIds = {source:'s1-source-input',step01:'s1-step01-analysis',step02:'s1-step02-timeline',image2:'s2-image2-keyframe'};
 
     function setStatus(message, error) { statusEl.textContent = message; statusEl.classList.toggle('error', Boolean(error)); }
@@ -181,8 +183,93 @@
       var timelineState = step02Input && step02Input.state || 'blocked';
       setPortState('step02-input', timelineState, timelineState === 'ready' ? '输入 evidence_manifest：已连接 Step01 输出。' : '输入 evidence_manifest：等待 Step01.evidence_manifest。');
     }
+    function step01Projection(project) {
+      var analysis = project && project.analysis;
+      var runtimeStatus = String(analysis && analysis.status || '').toLowerCase();
+      if (!runtimeStatus) return null;
+      var queued = ['queued','capability_preflight','codex_dispatched','return_received','reducer_verifying','prepared'];
+      var running = ['codex_running','running','running_step01'];
+      var failed = ['infra_failed','blocked_contract','blocked_resource','blocked_quality','blocked_authorization','blocked_transport','failed'];
+      if (runtimeStatus === 'evidence_ready' || runtimeStatus === 'step01_verified') return {status:'succeeded',note:'Step01 证据包已由服务器验证，可传给 Step02。',gateState:'step01_evidence_ready',blocker:null,outputState:'ready',timelineState:'ready'};
+      if (running.includes(runtimeStatus)) return {status:'running',note:'Step01 正在服务器执行 hq_full 原片分析。',gateState:'step01_full_source_authority_running',blocker:null,outputState:'blocked',timelineState:'blocked'};
+      if (queued.includes(runtimeStatus)) return {status:'queued',note:'Step01 已进入服务器队列，等待 hq_full 原片证据。',gateState:'step01_full_source_authority_queued',blocker:null,outputState:'blocked',timelineState:'blocked'};
+      if (failed.includes(runtimeStatus)) return {status:'failed',note:'Step01 服务端未完成（状态：' + runtimeStatus + '），请按错误状态恢复。',gateState:'step01_full_source_authority_blocked',blocker:runtimeStatus,outputState:'blocked',timelineState:'blocked'};
+      return {status:'blocked',note:'Step01 尚未开始真实服务器分析。',gateState:'step01_full_source_authority_blocked',blocker:runtimeStatus,outputState:'blocked',timelineState:'blocked'};
+    }
+    function setNodeRuntime(node, projection) {
+      if (!node || !projection) return false;
+      var params = parametersOf(node);
+      var outputBindings = Array.isArray(params.outputBindings) ? params.outputBindings.map(function (binding) { return Object.assign({}, binding); }) : [];
+      var evidence = outputBindings.find(function (binding) { return binding.portId === 'evidence_manifest'; });
+      if (evidence) evidence.state = projection.outputState;
+      var nextParams = Object.assign({}, params, {gateState:projection.gateState, blocker:projection.blocker, outputBindings:outputBindings});
+      var nextData = Object.assign({}, node.data || {}, {status:projection.status, note:projection.note, parameters:nextParams});
+      var changed = node.status !== projection.status || JSON.stringify(parametersOf(node)) !== JSON.stringify(nextParams) || (node.data && node.data.note) !== projection.note;
+      node.status = projection.status;
+      node.parameters = nextParams;
+      node.data = nextData;
+      return changed;
+    }
+    function setStep02EvidenceBinding(node, state) {
+      if (!node) return false;
+      var params = parametersOf(node);
+      var bindings = Array.isArray(params.inputBindings) ? params.inputBindings.map(function (binding) { return Object.assign({}, binding); }) : [];
+      var evidence = bindings.find(function (binding) { return binding.portId === 'evidence_manifest'; });
+      if (!evidence || evidence.state === state) return false;
+      evidence.state = state;
+      var nextParams = Object.assign({}, params, {inputBindings:bindings, gateState:state === 'ready' ? 'step01_evidence_ready' : 'step01_evidence_required', blocker:state === 'ready' ? null : 'STEP01_EVIDENCE_REQUIRED'});
+      var nextStatus = state === 'ready' ? 'ready' : 'blocked';
+      node.parameters = nextParams;
+      node.status = nextStatus;
+      node.data = Object.assign({}, node.data || {}, {status:nextStatus, parameters:nextParams, note:state === 'ready' ? 'Step01 证据已验证，可确认源片时间线。' : '等待 Step01 证据完成。'});
+      return true;
+    }
+    function updateRuntimeCards() {
+      [['step01','s1-step01-analysis'],['step02','s1-step02-timeline']].forEach(function (item) {
+        var card = panel.querySelector('[data-node="' + item[0] + '"]');
+        var node = nodeById[item[1]];
+        if (!card || !node) return;
+        card.dataset.status = node.status;
+        var status = card.querySelector('[data-node-status]');
+        if (status) status.textContent = node.status;
+        var detail = card.querySelector('[data-s1-status]');
+        if (detail && item[0] === 'step01') detail.textContent = node.data && node.data.note || '等待服务器状态。';
+        if (detail && item[0] === 'step02' && node.status === 'ready') detail.textContent = 'Step01 证据已连接，可继续生成时间线。';
+      });
+      renderPortStates();
+    }
+    async function persistRuntimeProjection() {
+      canvasDocument.nodes = canvasDocument.nodes.map(function (node) { return nodeById[node.id] || node; });
+      var result = await api('/api/canvas/documents/' + encodeURIComponent(projectKind()) + '/' + encodeURIComponent(projectId()), {method:'PUT', headers:{'content-type':'application/json','if-match':'"canvas-rev-' + revision + '"'}, body:JSON.stringify({document:canvasDocument})});
+      revision = Number(result.body.revision || revision);
+      canvasDocument = result.body.document || canvasDocument;
+      renderNodes(canvasDocument.nodes);
+    }
+    async function syncStep01Runtime(project, persist) {
+      var projection = step01Projection(project);
+      if (!projection || !nodeById['s1-step01-analysis']) return;
+      var changed = setNodeRuntime(nodeById['s1-step01-analysis'], projection);
+      if (projection.status === 'succeeded') changed = setStep02EvidenceBinding(nodeById['s1-step02-timeline'], projection.timelineState) || changed;
+      updateRuntimeCards();
+      if (persist && changed) {
+        try { await persistRuntimeProjection(); } catch (error) { setStatus(error.message || '服务器状态同步失败', true); }
+      }
+      scheduleStep01Poll(String(project && project.analysis && project.analysis.status || ''));
+    }
+    function scheduleStep01Poll(status) {
+      clearTimeout(step01PollTimer);
+      var active = ['queued','capability_preflight','codex_dispatched','codex_running','return_received','reducer_verifying','running','running_step01','prepared'].includes(String(status || '').toLowerCase());
+      if (!active || !projectId()) return;
+      step01PollTimer = setTimeout(async function () {
+        try {
+          var result = await api('/api/projects/' + encodeURIComponent(projectId()));
+          await syncStep01Runtime(result.body.project, true);
+        } catch (error) { setStatus(error.message || '读取 Step01 状态失败', true); }
+      }, 3000);
+    }
     function renderNodes(nodes) {
-      nodeById = Object.fromEntries((Array.isArray(nodes) ? nodes : []).map(function (node) { return [node.id,node]; }));
+      canvasDocument.nodes = Array.isArray(nodes) ? nodes : [];
+      nodeById = Object.fromEntries(canvasDocument.nodes.map(function (node) { return [node.id,node]; }));
       var chainNodes = (Array.isArray(nodes) ? nodes : []).filter(function (node) { return /^s1-/.test(node.id); });
       chainReady = chainNodes.some(function (node) { return node.id === 's1-source-input' && node.status === 'ready'; });
       chainNodes.forEach(function (node) { var key = node.id === 's1-source-input' ? 'source' : node.id === 's1-step01-analysis' ? 'step01' : 'step02'; var card = panel.querySelector('[data-node="' + key + '"]'); if (!card) return; card.dataset.status = node.status; var status = card.querySelector('[data-node-status]'); if (status) status.textContent = node.status; });
@@ -212,14 +299,22 @@
       if (!id) { panel.hidden = true; return; }
       panel.hidden = false;
       try {
-        var doc = await api('/api/canvas/documents/' + encodeURIComponent(projectKind()) + '/' + encodeURIComponent(id));
+        var responses = await Promise.all([
+          api('/api/canvas/documents/' + encodeURIComponent(projectKind()) + '/' + encodeURIComponent(id)),
+          api('/api/projects/' + encodeURIComponent(id)),
+          api('/api/projects/' + encodeURIComponent(id) + '/assets', {headers: {'x-niannian-project-kind': projectKind()}})
+        ]);
+        var doc = responses[0];
+        var projectState = responses[1];
         revision = Number(doc.body.revision || 0);
-        var listed = await api('/api/projects/' + encodeURIComponent(id) + '/assets', {headers: {'x-niannian-project-kind': projectKind()}});
+        var listed = responses[2];
+        canvasDocument = doc.body.document || {nodes:[],edges:[],viewport:{x:0,y:0,zoom:1}};
         assets = Array.isArray(listed.body.assets) ? listed.body.assets : [];
         renderAssets();
         renderImage2Assets();
-        var existingNodes = doc.body.document && doc.body.document.nodes || [];
+        var existingNodes = canvasDocument.nodes || [];
         renderNodes(existingNodes);
+        await syncStep01Runtime(projectState.body.project, true);
         var existingChain = existingNodes.some(function (node) { return node.id === 's1-source-input'; });
         if (existingChain) setStatus('S1 节点链已存在，可继续在画布中编辑。');
       } catch (error) { setStatus(error.message || '读取项目状态失败', true); }
@@ -241,6 +336,7 @@
       setStatus('正在提交 Step01 原片分析...');
       try {
         var result = await api('/api/projects/' + encodeURIComponent(projectId()) + '/step01-analysis', {method: 'POST', headers: {'content-type': 'application/json'}, body: '{}'});
+        await syncStep01Runtime(result.body.project, true);
         setStatus(result.body.code === 'STEP01_ANALYSIS_QUEUED' ? 'Step01 已进入服务器队列，正在准备原片证据。' : (result.body.code || 'Step01 状态已更新'));
       } catch (error) { setStatus((error.code ? error.code + ': ' : '') + (error.message || 'Step01 启动失败'), true); syncButton(); }
     }

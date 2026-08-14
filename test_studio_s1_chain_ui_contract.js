@@ -8,8 +8,14 @@ const root = __dirname;
 const html = fs.readFileSync(path.join(root, 'studio', 'index.html'), 'utf8');
 const source = fs.readFileSync(path.join(root, 'studio', 'assets', 's1-chain-ui.js'), 'utf8');
 
-assert.match(html, /assets\/s1-chain-ui\.js\?v=20260814-s1-canvas-host-r11/);
+assert.match(html, /assets\/s1-chain-ui\.js\?v=20260814-s1-canvas-host-r12/);
 assert.match(source, /\/api\/canvas\/documents\//);
+assert.match(source, /\/api\/projects\//);
+assert.match(source, /step01Projection/);
+assert.match(source, /evidence_ready/);
+assert.match(source, /persistRuntimeProjection/);
+assert.match(source, /canvas-rev-/);
+assert.match(source, /scheduleStep01Poll/);
 assert.match(source, /\/s1-chain/);
 assert.match(source, /if-match/);
 assert.match(source, /x-niannian-project-kind/);
