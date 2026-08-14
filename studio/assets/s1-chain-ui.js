@@ -21,6 +21,10 @@
     return 'redraw';
   }
 
+  function projectListPath() {
+    return projectKind() === 'script' ? '/api/script-projects' : '/api/projects';
+  }
+
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char];
@@ -262,8 +266,9 @@
       if (!active || !projectId()) return;
       step01PollTimer = setTimeout(async function () {
         try {
-          var result = await api('/api/projects/' + encodeURIComponent(projectId()));
-          await syncStep01Runtime(result.body.project, true);
+          var result = await api(projectListPath());
+          var projects = Array.isArray(result.body.projects) ? result.body.projects : [];
+          await syncStep01Runtime(projects.find(function (item) { return item && item.id === projectId(); }) || null, true);
         } catch (error) { setStatus(error.message || '读取 Step01 状态失败', true); }
       }, 3000);
     }
@@ -301,7 +306,7 @@
       try {
         var responses = await Promise.all([
           api('/api/canvas/documents/' + encodeURIComponent(projectKind()) + '/' + encodeURIComponent(id)),
-          api('/api/projects/' + encodeURIComponent(id)),
+          api(projectListPath()),
           api('/api/projects/' + encodeURIComponent(id) + '/assets', {headers: {'x-niannian-project-kind': projectKind()}})
         ]);
         var doc = responses[0];
@@ -314,7 +319,8 @@
         renderImage2Assets();
         var existingNodes = canvasDocument.nodes || [];
         renderNodes(existingNodes);
-        await syncStep01Runtime(projectState.body.project, true);
+        var listedProjects = Array.isArray(projectState.body.projects) ? projectState.body.projects : [];
+        await syncStep01Runtime(listedProjects.find(function (item) { return item && item.id === id; }) || null, true);
         var existingChain = existingNodes.some(function (node) { return node.id === 's1-source-input'; });
         if (existingChain) setStatus('S1 节点链已存在，可继续在画布中编辑。');
       } catch (error) { setStatus(error.message || '读取项目状态失败', true); }
