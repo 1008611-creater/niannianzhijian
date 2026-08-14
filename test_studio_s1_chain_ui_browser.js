@@ -66,11 +66,14 @@ async function main() {
     await panel.waitFor({state:'visible'});
     assert.equal(await panel.evaluate(node => node.parentElement && node.parentElement.getAttribute('aria-label')), 'AI 影像创作画布', 'the S1 chain must mount inside the generation canvas');
     await assert.rejects(panel.getByRole('button', {name:'创建节点链'}).click({timeout:300}), /Timeout|intercepted/, 'create remains disabled until all source gates pass');
-    await panel.getByRole('checkbox', {name:/source\.mp4/}).check();
+    await panel.getByRole('radio', {name:/source\.mp4/}).check();
     await panel.getByRole('checkbox', {name:/我确认拥有/}).check();
     await panel.locator('[data-s1-preflight]').selectOption('passed');
     await panel.getByRole('button', {name:'创建节点链'}).click();
     await panel.getByText('已创建 3 个节点和 2 条依赖边。').waitFor();
+    await panel.getByText('输出 source_asset：source.mp4。').waitFor();
+    await panel.getByText('输入 source_video：已连接 原片输入.source_asset。').waitFor();
+    await panel.getByText('输入 evidence_manifest：等待 Step01.evidence_manifest。').waitFor();
     assert.equal(await panel.locator('.s1-node').count(), 4);
     await panel.locator('[data-node="image2"]').getByText('Image2 关键帧生成').waitFor();
     assert.equal(await panel.locator('[data-s2-dry]').isDisabled(), true, 'Image2 preparation stays disabled before the node is saved');
@@ -83,7 +86,7 @@ async function main() {
     assert.deepEqual(consoleErrors, []);
     await context.close();
     await browser.close(); browser = null;
-    console.log(JSON.stringify({ok:true,verified:['desktop S1 panel selects a project video and creates the chain','creation is disabled until rights and preflight pass','mobile S1 panel stays within viewport','no provider task is sent']}));
+    console.log(JSON.stringify({ok:true,verified:['desktop S1 panel selects a project video and creates persistent port bindings','creation is disabled until rights and preflight pass','mobile S1 panel stays within viewport','no provider task is sent']}));
   } finally {
     if (browser) await browser.close();
     server.kill();

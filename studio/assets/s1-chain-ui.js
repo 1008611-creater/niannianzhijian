@@ -47,8 +47,8 @@
       '#s1-chain-canvas{position:absolute;inset:0;z-index:18;overflow:auto;padding:88px 28px 40px;color:#2a2118;font:13px/1.45 Inter,system-ui,sans-serif;pointer-events:none}',
       '#s1-chain-canvas[hidden]{display:none}#s1-chain-canvas .s1-chain-title{max-width:1360px;margin:0 auto 18px;padding:0 4px;color:#786958;pointer-events:none}#s1-chain-canvas .s1-eyebrow{font-size:10px;letter-spacing:.12em;color:#9a6a3c;font-weight:700}#s1-chain-canvas h2{margin:2px 0 0;color:#2a2118;font-size:18px;font-weight:750}',
       '#s1-chain-canvas .s1-chain-flow{position:relative;min-width:1360px;min-height:610px;margin:0 auto;padding:0 24px 60px;pointer-events:none}#s1-chain-canvas .s1-edge{position:absolute;height:2px;background:rgba(154,106,60,.58);transform-origin:0 50%;pointer-events:none;z-index:0}#s1-chain-canvas .s1-edge.dashed{background:repeating-linear-gradient(90deg,rgba(154,106,60,.58) 0 8px,transparent 8px 14px)}',
-      '#s1-chain-canvas .s1-node{position:absolute;width:276px;min-height:212px;padding:15px;border:1px solid rgba(90,64,42,.2);border-radius:14px;background:rgba(255,252,246,.97);box-shadow:0 16px 36px rgba(42,33,24,.13);pointer-events:auto;z-index:1;touch-action:none}#s1-chain-canvas .s1-node[data-node=source]{z-index:4}#s1-chain-canvas .s1-node[data-node=step01]{z-index:3}#s1-chain-canvas .s1-node[data-node=step02]{z-index:2}#s1-chain-canvas .s1-node[data-status=blocked]{border-color:rgba(154,106,60,.26)}#s1-chain-canvas .s1-node[data-status=ready]{border-color:#5b8d6b}#s1-chain-canvas .s1-node h3{margin:4px 0 5px;font-size:15px;cursor:grab}#s1-chain-canvas .s1-node.s1-dragging h3{cursor:grabbing}#s1-chain-canvas .s1-node p{margin:0 0 12px;color:#786958;font-size:12px}',
-      '#s1-chain-canvas .s1-meta{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px;color:#8b7764;font-size:11px}#s1-chain-canvas .s1-status{margin-top:10px;padding:8px;border-radius:8px;background:#f4eee6;color:#5d4d3d;white-space:pre-wrap}#s1-chain-canvas .s1-status.error{background:#fff0ee;color:#a33b2d}#s1-chain-canvas .s1-assets{display:grid;gap:5px;margin:8px 0 10px}#s1-chain-canvas label.s1-asset{display:flex;gap:7px;align-items:center;padding:7px;border:1px solid rgba(90,64,42,.12);border-radius:8px;background:#fffaf3;cursor:pointer}#s1-chain-canvas .s1-asset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#s1-chain-canvas .s1-row{display:flex;gap:7px;align-items:center;margin:7px 0}#s1-chain-canvas select{flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:7px;background:#fff}#s1-chain-canvas button{border:0;border-radius:7px;padding:7px 9px;background:#2a2118;color:#fff;cursor:pointer;font-weight:650;font-size:12px}#s1-chain-canvas button[disabled]{opacity:.45;cursor:default}#s1-chain-canvas .s1-secondary{background:#efe5d8;color:#4c3828}#s1-chain-canvas .s1-node small{color:#8b7764}#s1-chain-canvas .s1-contract{display:grid;gap:4px;margin:8px 0;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-contract span{display:block;padding:5px 7px;border-radius:6px;background:#faf5ef}',
+      '#s1-chain-canvas .s1-node{position:absolute;width:276px;min-height:212px;padding:15px;border:1px solid rgba(90,64,42,.2);border-radius:6px;background:rgba(255,252,246,.97);box-shadow:0 16px 36px rgba(42,33,24,.13);pointer-events:auto;z-index:1;touch-action:none}#s1-chain-canvas .s1-node[data-node=source]{z-index:4}#s1-chain-canvas .s1-node[data-node=step01]{z-index:3}#s1-chain-canvas .s1-node[data-node=step02]{z-index:2}#s1-chain-canvas .s1-node[data-status=blocked]{border-color:rgba(154,106,60,.26)}#s1-chain-canvas .s1-node[data-status=ready]{border-color:#5b8d6b}#s1-chain-canvas .s1-node h3{margin:4px 0 5px;font-size:15px;cursor:grab}#s1-chain-canvas .s1-node.s1-dragging h3{cursor:grabbing}#s1-chain-canvas .s1-node p{margin:0 0 12px;color:#786958;font-size:12px}',
+      '#s1-chain-canvas .s1-meta{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px;color:#8b7764;font-size:11px}#s1-chain-canvas .s1-status{margin-top:10px;padding:8px;border-radius:6px;background:#f4eee6;color:#5d4d3d;white-space:pre-wrap}#s1-chain-canvas .s1-status.error{background:#fff0ee;color:#a33b2d}#s1-chain-canvas .s1-assets{display:grid;gap:5px;margin:8px 0 10px}#s1-chain-canvas label.s1-asset{display:flex;gap:7px;align-items:center;padding:7px;border:1px solid rgba(90,64,42,.12);border-radius:6px;background:#fffaf3;cursor:pointer}#s1-chain-canvas .s1-asset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#s1-chain-canvas .s1-row{display:flex;gap:7px;align-items:center;margin:7px 0}#s1-chain-canvas select{flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:6px;background:#fff}#s1-chain-canvas button{border:0;border-radius:6px;padding:7px 9px;background:#2a2118;color:#fff;cursor:pointer;font-weight:650;font-size:12px}#s1-chain-canvas button[disabled]{opacity:.45;cursor:default}#s1-chain-canvas .s1-secondary{background:#efe5d8;color:#4c3828}#s1-chain-canvas .s1-node small{color:#8b7764}#s1-chain-canvas .s1-contract{display:grid;gap:4px;margin:8px 0;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-contract span{display:block;padding:5px 7px;border-radius:6px;background:#faf5ef}#s1-chain-canvas .s1-port-state{margin:7px 0 0;padding:6px 7px;border-radius:6px;background:#f4eee6;color:#5d4d3d;font-size:11px;line-height:1.35}#s1-chain-canvas .s1-port-state[data-state=ready]{background:#edf6ee;color:#376745}#s1-chain-canvas .s1-port-state[data-state=blocked]{background:#f8efe5;color:#785330}',
       '[data-node-id^="nn-skill-"]{display:none!important}@media (max-width:900px){#s1-chain-canvas{padding:72px 14px 30px}#s1-chain-canvas .s1-chain-flow{min-width:1240px}}@media (max-width:600px){#s1-chain-canvas{padding-top:62px}#s1-chain-canvas .s1-chain-title{margin-bottom:12px}}'
     ].join('');
     document.head.appendChild(style);
@@ -64,6 +64,21 @@
     panel.innerHTML = '<div class="s1-chain-title"><div class="s1-eyebrow">S1 → S2 CANVAS CHAIN</div><h2>原片到关键帧</h2></div><div class="s1-chain-flow"><div class="s1-edge" data-edge="source-step01"></div><div class="s1-edge" data-edge="step01-step02"></div><div class="s1-edge dashed" data-edge="step02-image2"></div><article class="s1-node" data-node="source" data-status="draft"><div class="s1-meta"><span>输入节点</span><small data-node-status>draft</small></div><h3>原片输入与权利确认</h3><p>上传原片，确认使用权并完成媒体预检。</p><div class="s1-contract"><span>输入：source_video · rights_declaration</span><span>输出：source_asset · preflight_report</span></div><div class="s1-assets" data-s1-assets><span>正在读取项目素材...</span></div><label class="s1-row"><input type="checkbox" data-s1-rights> 我确认拥有该原片的使用权</label><div class="s1-row"><span>媒体预检</span><select data-s1-preflight><option value="pending">未完成</option><option value="passed">已通过</option></select></div><div class="s1-row"><button type="button" data-s1-refresh class="s1-secondary">刷新素材</button><button type="button" data-s1-create disabled>创建节点链</button></div></article><article class="s1-node" data-node="step01" data-status="blocked"><div class="s1-meta"><span>Skill 节点 · mx-shortdrama-01</span><small data-node-status>blocked</small></div><h3>Step01 源片分析</h3><p>提取镜头、关键帧、对白、OCR 与证据清单。</p><div class="s1-contract"><span>输入：source_video</span><span>输出：evidence_manifest · shot_frames</span><span>参数：hq_full · 服务器证据门</span></div><div class="s1-status" data-s1-status>等待原片节点就绪。</div><div class="s1-row"><button type="button" data-s1-start disabled>开始 Step01 分析</button></div></article><article class="s1-node" data-node="step02" data-status="blocked"><div class="s1-meta"><span>Skill 节点 · mx-shortdrama-02</span><small data-node-status>blocked</small></div><h3>Step02 源片时间线</h3><p>只消费已验证的 Step01 证据，生成可确认时间线。</p><div class="s1-contract"><span>输入：evidence_manifest</span><span>输出：accepted_timeline</span><span>预览：时间线与镜头事实</span></div><div class="s1-status">等待 Step01 证据完成。</div></article><article class="s1-node" data-node="image2" data-status="draft"><div class="s1-meta"><span>Skill 节点 · image2-storyboard-video</span><small data-node-status>draft</small></div><h3>Image2 关键帧生成</h3><p>输入提示词和参考资产，生成可继续做视频的关键帧。</p><div class="s1-contract"><span>输入：prompt · reference_asset</span><span>输出：image_asset</span><span>结果：预览、尺寸、项目资产</span></div><div class="s1-assets" data-s2-assets><span>正在读取参考图...</span></div><label class="s1-row"><span>提示词</span><input data-s2-prompt placeholder="描述角色、场景和镜头" style="flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:7px"></label><div class="s1-row"><span>渠道</span><select data-s2-channel><option value="yunfei-gpt-image-2-1k">云飞 Image2 1K</option><option value="yunfei-gpt-image-2-hd">云飞 Image2 2K/4K</option><option value="runninghub-gpt-image-2">RunningHub Image2</option></select></div><div class="s1-row"><span>规格</span><select data-s2-resolution><option value="1k">1K</option><option value="2k">2K</option><option value="4k">4K</option></select><select data-s2-aspect><option value="1:1">1:1</option><option value="16:9">16:9</option><option value="9:16">9:16</option></select></div><div class="s1-contract"><span data-s2-output>输出尺寸将按渠道和比例校验</span></div><div class="s1-status" data-s2-status>未创建任务；先保存节点合同。</div><div class="s1-preview" data-s2-preview>结果预览：等待 Image2 产物</div><div class="s1-row"><button type="button" data-s2-create class="s1-secondary">保存 Image2 节点</button><button type="button" data-s2-dry disabled>准备任务</button></div></article></div>';
     host.appendChild(panel);
     installStyles();
+    function addPortState(nodeKey, portKey, initialText) {
+      var node = panel.querySelector('[data-node="' + nodeKey + '"]');
+      var contract = node && node.querySelector('.s1-contract');
+      if (!contract || contract.querySelector('[data-s1-port="' + portKey + '"]')) return;
+      var state = document.createElement('div');
+      state.className = 's1-port-state';
+      state.dataset.s1Port = portKey;
+      state.dataset.state = 'blocked';
+      state.textContent = initialText;
+      contract.insertAdjacentElement('afterend', state);
+    }
+    addPortState('source', 'source-output', '输出 source_asset：等待原片绑定。');
+    addPortState('step01', 'step01-input', '输入 source_video：等待 source_asset。');
+    addPortState('step01', 'step01-output', '输出 evidence_manifest：等待分析。');
+    addPortState('step02', 'step02-input', '输入 evidence_manifest：等待 Step01。');
     var assetsEl = panel.querySelector('[data-s1-assets]');
     var statusEl = panel.querySelector('[data-s1-status]');
     var nodesEl = panel.querySelector('.s1-chain-flow');
@@ -133,6 +148,39 @@
       var images = assets.filter(function (asset) { return String(asset.mimeType || '').startsWith('image/'); });
       image2AssetsEl.innerHTML = images.length ? images.map(function (asset) { return '<label class="s1-asset"><input type="checkbox" data-s2-asset value="' + escapeHtml(asset.id) + '"><span class="s1-asset-name">' + escapeHtml(asset.originalName || asset.id) + '</span></label>'; }).join('') : '<span>暂无参考图，可先在项目素材库上传。</span>';
     }
+    function parametersOf(node) { return node && (node.parameters || (node.data && node.data.parameters)) || {}; }
+    function bindingFor(node, field, portId) {
+      var bindings = parametersOf(node)[field];
+      return Array.isArray(bindings) ? bindings.find(function (binding) { return binding && binding.portId === portId; }) || null : null;
+    }
+    function assetLabel(assetId) {
+      var asset = assets.find(function (item) { return item.id === assetId; });
+      return asset && (asset.originalName || asset.id) || assetId;
+    }
+    function setPortState(portKey, state, text) {
+      var element = panel.querySelector('[data-s1-port="' + portKey + '"]');
+      if (!element) return;
+      element.dataset.state = state || 'blocked';
+      element.textContent = text;
+    }
+    function renderPortStates() {
+      var source = nodeById['s1-source-input'];
+      var step01 = nodeById['s1-step01-analysis'];
+      var step02 = nodeById['s1-step02-timeline'];
+      var sourceOutput = bindingFor(source, 'outputBindings', 'source_asset');
+      var sourceIds = sourceOutput && Array.isArray(sourceOutput.assetIds) ? sourceOutput.assetIds : [];
+      var sourceState = sourceOutput && sourceOutput.state || 'draft';
+      setPortState('source-output', sourceState, sourceIds.length ? '输出 source_asset：' + sourceIds.map(assetLabel).join('、') + '。' : '输出 source_asset：等待原片绑定。');
+      var step01Input = bindingFor(step01, 'inputBindings', 'source_video');
+      var inputState = step01Input && step01Input.state || 'blocked';
+      setPortState('step01-input', inputState, inputState === 'ready' ? '输入 source_video：已连接 原片输入.source_asset。' : '输入 source_video：等待 原片输入.source_asset。');
+      var step01Output = bindingFor(step01, 'outputBindings', 'evidence_manifest');
+      var outputState = step01Output && step01Output.state || 'blocked';
+      setPortState('step01-output', outputState, outputState === 'ready' ? '输出 evidence_manifest：已生成，可传给 Step02。' : '输出 evidence_manifest：等待 Step01 分析。');
+      var step02Input = bindingFor(step02, 'inputBindings', 'evidence_manifest');
+      var timelineState = step02Input && step02Input.state || 'blocked';
+      setPortState('step02-input', timelineState, timelineState === 'ready' ? '输入 evidence_manifest：已连接 Step01 输出。' : '输入 evidence_manifest：等待 Step01.evidence_manifest。');
+    }
     function renderNodes(nodes) {
       nodeById = Object.fromEntries((Array.isArray(nodes) ? nodes : []).map(function (node) { return [node.id,node]; }));
       var chainNodes = (Array.isArray(nodes) ? nodes : []).filter(function (node) { return /^s1-/.test(node.id); });
@@ -149,13 +197,14 @@
       }
       var image2 = (Array.isArray(nodes) ? nodes : []).find(function (node) { return node.id === 's2-image2-keyframe'; });
       if (image2) { image2Card.dataset.status = image2.status; image2Card.querySelector('[data-node-status]').textContent = image2.status; image2Prompt.value = image2.data && image2.data.prompt || ''; image2Channel.value = image2.data && image2.data.imageChannel || image2Channel.value; image2Resolution.value = image2.data && image2.data.resolution || image2Resolution.value; image2Aspect.value = image2.data && image2.data.aspectRatio || image2Aspect.value; image2Status.textContent = '节点合同已保存；生成仍需通过画布生成授权。'; syncImage2Spec(); }
+      renderPortStates();
       applyNodePositions();
       syncButton();
     }
     function renderAssets() {
       var videos = assets.filter(function (asset) { return String(asset.mimeType || '').startsWith('video/'); });
       assetsEl.innerHTML = videos.length ? videos.map(function (asset) { return '<label class="s1-asset"><input type="checkbox" data-s1-asset value="' + escapeHtml(asset.id) + '"><span class="s1-asset-name">' + escapeHtml(asset.originalName || asset.id) + '</span></label>'; }).join('') : '<span>当前项目暂无视频素材，请先在素材库上传原片。</span>';
-      panel.querySelectorAll('input[data-s1-asset]').forEach(function (input) { input.addEventListener('change', syncButton); });
+      panel.querySelectorAll('input[data-s1-asset]').forEach(function (input) { input.type = 'radio'; input.name = 's1-source-asset'; input.addEventListener('change', syncButton); });
       syncButton();
     }
     async function load() {

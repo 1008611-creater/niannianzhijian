@@ -62,13 +62,17 @@ async function run() {
   assert.equal(step01.data.parameters.blocker, 'STEP01_FULL_SOURCE_AUTHORITY_PENDING');
   assert.deepEqual(step01.data.inputPorts.map(item => item.id), ['source_video']);
   assert.deepEqual(step01.data.outputPorts.map(item => item.id), ['evidence_manifest','shot_frames']);
+  assert.deepEqual(step01.data.parameters.inputBindings, [{portId:'source_video',sourceNodeId:'s1-source-input',sourcePortId:'source_asset',state:'ready',assetIds:['legacy-source:' + project.id]}]);
+  assert.equal(step01.data.parameters.outputBindings.find(item => item.portId === 'evidence_manifest').state, 'blocked');
   const sourceNode = built.body.document.nodes.find(item => item.id === 's1-source-input');
   assert.equal(sourceNode.skillKey, 'mx-shortdrama-00-router');
   assert.equal(sourceNode.data.parameters.preflightStatus, 'passed');
   assert.deepEqual(sourceNode.data.outputPorts.map(item => item.id), ['source_asset','preflight_report']);
+  assert.deepEqual(sourceNode.data.parameters.outputBindings.find(item => item.portId === 'source_asset'), {portId:'source_asset',state:'ready',assetIds:['legacy-source:' + project.id]});
   const step02 = built.body.document.nodes.find(item => item.id === 's1-step02-timeline');
   assert.equal(step02.skillKey, 'mx-shortdrama-02-source-timeline');
   assert.deepEqual(step02.data.inputPorts.map(item => item.id), ['evidence_manifest']);
+  assert.deepEqual(step02.data.parameters.inputBindings, [{portId:'evidence_manifest',sourceNodeId:'s1-step01-analysis',sourcePortId:'evidence_manifest',state:'blocked',assetIds:[]}]);
   const image2 = await request('/api/canvas/documents/redraw/' + project.id + '/s2-image2', {method:'POST',headers:headers({'content-type':'application/json','if-match':built.response.headers.get('etag')}),body:JSON.stringify({prompt:'角色站在街角，电影感关键帧',imageChannel:'yunfei-gpt-image-2-1k',resolution:'1k',aspectRatio:'1:1',referenceAssetIds:[]})});
   assert.equal(image2.response.status, 201, JSON.stringify(image2.body));
   assert.equal(image2.body.node.skillKey, 'image2-storyboard-video');
@@ -91,7 +95,7 @@ async function run() {
   assert.equal(reloaded.body.document.nodes.find(item => item.id === 's1-step02-timeline').status, 'blocked');
   const stale = await request('/api/canvas/documents/redraw/' + project.id + '/s1-chain', {method:'POST',headers:headers({'content-type':'application/json','if-match':'"canvas-rev-0"'}),body:'{}'});
   assert.equal(stale.response.status, 412);
-  console.log(JSON.stringify({ok:true,verified:['legacy project source is exposed as a read-only canvas asset','S1 source/Step01/Step02 chain accepts the source','explicit Step01 authority block','revision conflict protection','no provider submission']}));
+  console.log(JSON.stringify({ok:true,verified:['legacy project source is exposed as a read-only canvas asset','S1 source/Step01/Step02 chain persists explicit port bindings','explicit Step01 authority block','revision conflict protection','no provider submission']}));
 }
 
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { if (child && !child.killed) child.kill(); await fsp.rm(dataRoot,{recursive:true,force:true}); });

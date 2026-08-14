@@ -8,7 +8,7 @@ const root = __dirname;
 const html = fs.readFileSync(path.join(root, 'studio', 'index.html'), 'utf8');
 const source = fs.readFileSync(path.join(root, 'studio', 'assets', 's1-chain-ui.js'), 'utf8');
 
-assert.match(html, /assets\/s1-chain-ui\.js\?v=20260814-s1-canvas-host-r10/);
+assert.match(html, /assets\/s1-chain-ui\.js\?v=20260814-s1-canvas-host-r11/);
 assert.match(source, /\/api\/canvas\/documents\//);
 assert.match(source, /\/s1-chain/);
 assert.match(source, /if-match/);
@@ -38,6 +38,11 @@ assert.match(source, /skill-node-layout/);
 assert.match(source, /setPointerCapture/);
 assert.match(source, /\[data-node-id\^="nn-skill-"\]/);
 assert.match(source, /selectedImage2Ids/);
+assert.match(source, /outputBindings/);
+assert.match(source, /inputBindings/);
+assert.match(source, /data-s1-port/);
+assert.match(source, /source_asset：/);
+assert.match(source, /evidence_manifest：/);
 assert.match(source, /referenceAssetIds/);
 assert.match(source, /s2-image2/);
 assert.match(source, /建立 Image2 候选并执行 dry-run/);
@@ -50,4 +55,4 @@ assert.ok(source.includes('/dry-run'));
 assert.match(source, /idempotency-key/);
 assert.doesNotMatch(source, /confirmProviderSpend/);
 
-console.log(JSON.stringify({ok:true,verified:['Studio loads the S1 control surface','legacy and canvas video assets are selected through the API','revision protection is sent on creation','Step01 uses the source-only server route','the UI cannot submit a paid canvas provider job']}));
+console.log(JSON.stringify({ok:true,verified:['Studio loads the S1 control surface','S1 ports render persisted source and evidence bindings','revision protection is sent on creation','Step01 uses the source-only server route','the UI cannot submit a paid canvas provider job']}));
