@@ -19,6 +19,14 @@ async function waitForHealth(baseUrl) {
   throw new Error('s1_ui_server_not_ready');
 }
 
+async function openGenerationCanvas(page) {
+  const canvas = page.getByRole('region', {name:'AI 影像创作画布'});
+  if (await canvas.count() === 0) {
+    await page.getByRole('button', {name:'生成', exact:true}).click({force:true});
+  }
+  await canvas.waitFor({state:'visible'});
+}
+
 async function main() {
   const dataRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'niannian-s1-ui-'));
   const port = 28600 + crypto.randomInt(500);
@@ -30,7 +38,7 @@ async function main() {
   await Promise.all([
     fs.writeFile(path.join(dataRoot, 'users.json'), JSON.stringify([user])),
     fs.writeFile(path.join(dataRoot, 'sessions.json'), JSON.stringify([{tokenHash,userId:user.id,expiresAt:new Date(Date.now() + 3600000).toISOString()}])),
-    fs.writeFile(path.join(dataRoot, 'projects.json'), '[]'),
+    fs.writeFile(path.join(dataRoot, 'projects.json'), JSON.stringify([project])),
     fs.writeFile(path.join(dataRoot, 'canvas-projects.json'), JSON.stringify([project])),
     fs.writeFile(path.join(dataRoot, 'canvas-documents.json'), '{}'),
     fs.writeFile(path.join(dataRoot, 'canvas-assets.json'), '[]'),
@@ -52,9 +60,11 @@ async function main() {
     const page = await context.newPage();
     const consoleErrors = [];
     page.on('pageerror', error => consoleErrors.push(error.message));
-    await page.goto(baseUrl + '/studio/?projectId=' + project.id + '&projectKind=redraw#/studio', {waitUntil:'networkidle'});
+    await page.goto(baseUrl + '/studio/?projectId=' + project.id + '&projectKind=redraw&step=generate#/studio', {waitUntil:'networkidle'});
+    await openGenerationCanvas(page);
     const panel = page.locator('#s1-chain-canvas');
     await panel.waitFor({state:'visible'});
+    assert.equal(await panel.evaluate(node => node.parentElement && node.parentElement.getAttribute('aria-label')), 'AI 影像创作画布', 'the S1 chain must mount inside the generation canvas');
     await assert.rejects(panel.getByRole('button', {name:'创建节点链'}).click({timeout:300}), /Timeout|intercepted/, 'create remains disabled until all source gates pass');
     await panel.getByRole('checkbox', {name:/source\.mp4/}).check();
     await panel.getByRole('checkbox', {name:/我确认拥有/}).check();
@@ -67,6 +77,7 @@ async function main() {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'desktop must not overflow');
     await page.setViewportSize({width:390,height:844});
     await page.reload({waitUntil:'networkidle'});
+    await openGenerationCanvas(page);
     await page.locator('#s1-chain-canvas').waitFor({state:'visible'});
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'mobile must not overflow');
     assert.deepEqual(consoleErrors, []);

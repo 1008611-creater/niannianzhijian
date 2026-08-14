@@ -54,10 +54,9 @@
     document.head.appendChild(style);
   }
 
-  function mount() {
-    if (document.getElementById('s1-chain-canvas')) return;
-    var host = document.querySelector('[aria-label="AI 影像创作画布"]') || document.body;
-    if (host !== document.body && getComputedStyle(host).position === 'static') host.style.position = 'relative';
+  function mount(host) {
+    if (!host || document.getElementById('s1-chain-canvas')) return false;
+    if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
     var panel = document.createElement('section');
     panel.id = 's1-chain-canvas';
     panel.setAttribute('aria-label', 'S1 原片到时间线');
@@ -222,7 +221,22 @@
     installDragging();
     load();
     window.addEventListener('hashchange', load);
+    return true;
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, {once: true}); else mount();
+  function mountIntoGenerationCanvas() {
+    var host = document.querySelector('[aria-label="AI 影像创作画布"]');
+    var canvas = document.getElementById('s1-chain-canvas');
+    if (canvas && canvas.parentElement === host) return true;
+    if (canvas) canvas.remove();
+    return mount(host);
+  }
+
+  function observeGenerationCanvas() {
+    mountIntoGenerationCanvas();
+    var observer = new MutationObserver(function () { mountIntoGenerationCanvas(); });
+    observer.observe(document.documentElement, {childList:true, subtree:true});
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observeGenerationCanvas, {once: true}); else observeGenerationCanvas();
 }());
