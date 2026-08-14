@@ -50,10 +50,10 @@
     style.textContent = [
       '#s1-chain-canvas{position:absolute;inset:0;z-index:18;overflow:auto;padding:88px 28px 40px;color:#2a2118;font:13px/1.45 Inter,system-ui,sans-serif;pointer-events:none}',
       '#s1-chain-canvas[hidden]{display:none}#s1-chain-canvas .s1-chain-title{max-width:1360px;margin:0 auto 18px;padding:0 4px;color:#786958;pointer-events:none}#s1-chain-canvas .s1-eyebrow{font-size:10px;letter-spacing:.12em;color:#9a6a3c;font-weight:700}#s1-chain-canvas h2{margin:2px 0 0;color:#2a2118;font-size:18px;font-weight:750}',
-      '#s1-chain-canvas .s1-chain-flow{position:relative;min-width:1360px;min-height:610px;margin:0 auto;padding:0 24px 60px;pointer-events:none}#s1-chain-canvas .s1-edge{position:absolute;height:2px;background:rgba(154,106,60,.58);transform-origin:0 50%;pointer-events:none;z-index:0}#s1-chain-canvas .s1-edge.dashed{background:repeating-linear-gradient(90deg,rgba(154,106,60,.58) 0 8px,transparent 8px 14px)}#s1-chain-canvas .s1-typed-edge{height:2px;background:#426f83;z-index:1}',
+      '#s1-chain-canvas .s1-chain-flow{position:relative;min-width:1680px;min-height:610px;margin:0 auto;padding:0 24px 60px;pointer-events:none}#s1-chain-canvas .s1-edge{position:absolute;height:2px;background:rgba(154,106,60,.58);transform-origin:0 50%;pointer-events:none;z-index:0}#s1-chain-canvas .s1-edge.dashed{background:repeating-linear-gradient(90deg,rgba(154,106,60,.58) 0 8px,transparent 8px 14px)}#s1-chain-canvas .s1-typed-edge{height:2px;background:#426f83;z-index:1}',
       '#s1-chain-canvas .s1-node{position:absolute;width:276px;min-height:212px;padding:15px;border:1px solid rgba(90,64,42,.2);border-radius:6px;background:rgba(255,252,246,.97);box-shadow:0 16px 36px rgba(42,33,24,.13);pointer-events:auto;z-index:1;touch-action:none}#s1-chain-canvas .s1-node[data-node=source]{z-index:4}#s1-chain-canvas .s1-node[data-node=step01]{z-index:3}#s1-chain-canvas .s1-node[data-node=step02]{z-index:2}#s1-chain-canvas .s1-node[data-status=blocked]{border-color:rgba(154,106,60,.26)}#s1-chain-canvas .s1-node[data-status=ready]{border-color:#5b8d6b}#s1-chain-canvas .s1-node h3{margin:4px 0 5px;font-size:15px;cursor:grab}#s1-chain-canvas .s1-node.s1-dragging h3{cursor:grabbing}#s1-chain-canvas .s1-node p{margin:0 0 12px;color:#786958;font-size:12px}',
       '#s1-chain-canvas .s1-meta{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px;color:#8b7764;font-size:11px}#s1-chain-canvas .s1-status{margin-top:10px;padding:8px;border-radius:6px;background:#f4eee6;color:#5d4d3d;white-space:pre-wrap}#s1-chain-canvas .s1-status.error{background:#fff0ee;color:#a33b2d}#s1-chain-canvas .s1-assets{display:grid;gap:5px;margin:8px 0 10px}#s1-chain-canvas label.s1-asset{display:flex;gap:7px;align-items:center;padding:7px;border:1px solid rgba(90,64,42,.12);border-radius:6px;background:#fffaf3;cursor:pointer}#s1-chain-canvas .s1-asset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#s1-chain-canvas .s1-row{display:flex;gap:7px;align-items:center;margin:7px 0}#s1-chain-canvas select{flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:6px;background:#fff}#s1-chain-canvas button{border:0;border-radius:6px;padding:7px 9px;background:#2a2118;color:#fff;cursor:pointer;font-weight:650;font-size:12px}#s1-chain-canvas button[disabled]{opacity:.45;cursor:default}#s1-chain-canvas .s1-secondary{background:#efe5d8;color:#4c3828}#s1-chain-canvas .s1-node small{color:#8b7764}#s1-chain-canvas .s1-contract{display:grid;gap:4px;margin:8px 0;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-contract span{display:block;padding:5px 7px;border-radius:6px;background:#faf5ef}#s1-chain-canvas .s1-port-state{margin:7px 0 0;padding:6px 7px;border-radius:6px;background:#f4eee6;color:#5d4d3d;font-size:11px;line-height:1.35}#s1-chain-canvas .s1-port-state[data-state=ready]{background:#edf6ee;color:#376745}#s1-chain-canvas .s1-port-state[data-state=blocked]{background:#f8efe5;color:#785330}#s1-chain-canvas .s1-context-menu{position:absolute;z-index:20;display:grid;gap:4px;min-width:206px;padding:7px;border:1px solid rgba(90,64,42,.22);border-radius:6px;background:#fffdf9;box-shadow:0 14px 34px rgba(42,33,24,.2);pointer-events:auto}#s1-chain-canvas .s1-context-menu[hidden]{display:none}#s1-chain-canvas .s1-context-menu strong{padding:5px 7px;color:#8b6040;font-size:10px;letter-spacing:.08em}#s1-chain-canvas .s1-context-menu button{width:100%;text-align:left;background:transparent;color:#2a2118;font-weight:600}#s1-chain-canvas .s1-context-menu button:hover{background:#f3e9dc}#s1-chain-canvas .s1-skill-node{border-top:3px solid #9a6a3c}#s1-chain-canvas .s1-port-list{display:grid;gap:4px;margin:8px 0}#s1-chain-canvas .s1-port-list span{display:block;padding:5px 7px;border-radius:5px;background:#faf5ef;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-ports{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}#s1-chain-canvas .s1-port-group{display:grid;gap:4px;color:#8b7764;font-size:10px}#s1-chain-canvas .s1-port-group.output{text-align:right}#s1-chain-canvas .s1-port-handle{display:block;width:100%;padding:5px 7px;border:1px solid #cdbca8;border-radius:5px;background:#fff8ef;color:#4b3829;text-align:left;cursor:crosshair}#s1-chain-canvas .s1-port-group.output .s1-port-handle{text-align:right}#s1-chain-canvas .s1-input-port{border-color:#89a8b5}#s1-chain-canvas .s1-output-port{border-color:#b68d63}#s1-chain-canvas .s1-port-handle.s1-connecting{background:#dcecf1;border-color:#426f83}',
-      '[data-node-id^="nn-skill-"]{display:none!important}@media (max-width:900px){#s1-chain-canvas{padding:72px 14px 30px}#s1-chain-canvas .s1-chain-flow{min-width:1240px}}@media (max-width:600px){#s1-chain-canvas{padding-top:62px}#s1-chain-canvas .s1-chain-title{margin-bottom:12px}}'
+      '[data-node-id^="nn-skill-"]{display:none!important}@media (max-width:900px){#s1-chain-canvas{padding:72px 14px 30px}#s1-chain-canvas .s1-chain-flow{min-width:1680px}}@media (max-width:600px){#s1-chain-canvas{padding-top:62px}#s1-chain-canvas .s1-chain-title{margin-bottom:12px}}'
     ].join('');
     document.head.appendChild(style);
   }
@@ -102,13 +102,36 @@
     var image2AssetsEl = panel.querySelector('[data-s2-assets]');
     var image2PreviewEl = panel.querySelector('[data-s2-preview]');
     var image2JobId = null;
+    function installH3NodeCard() {
+      if (panel.querySelector('[data-node="h3"]')) return;
+      var card = document.createElement('article');
+      card.className = 's1-node'; card.dataset.node = 'h3'; card.dataset.status = 'draft';
+      card.innerHTML = '<div class="s1-meta"><span>Skill 节点 · minimaxh3skill</span><small data-node-status>draft</small></div><h3>H3 生视频</h3><p>接收视频提示词与关键帧参考，生成任务始终由念念服务端创建、轮询并回库。</p><div class="s1-ports"><div class="s1-port-group input"><small>输入</small><button type="button" class="s1-port-handle s1-input-port" data-s1-input-node="s3-h3-video" data-s1-input-port="prompt" title="拖入 prompt 输出">prompt</button><button type="button" class="s1-port-handle s1-input-port" data-s1-input-node="s3-h3-video" data-s1-input-port="image_asset" title="拖入 image_asset 输出">image_asset</button></div><div class="s1-port-group output"><small>输出</small><button type="button" class="s1-port-handle s1-output-port" data-s1-output-node="s3-h3-video" data-s1-output-port="video_asset" title="从此端口拖到兼容输入">video_asset</button></div></div><div class="s1-assets" data-s3-assets><span>正在读取关键帧参考...</span></div><label class="s1-row"><span>提示词</span><input data-s3-prompt placeholder="描述镜头运动和画面连续性" style="flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:7px"></label><div class="s1-row"><span>规格</span><select data-s3-aspect><option value="9:16">9:16</option><option value="16:9">16:9</option></select><select data-s3-duration><option value="5">5 秒</option><option value="10">10 秒</option><option value="15">15 秒</option></select></div><div class="s1-status" data-s3-status>未创建任务；先保存 H3 节点合同。</div><div class="s1-preview" data-s3-preview>结果预览：等待 H3 产物</div><div class="s1-row"><button type="button" data-s3-create class="s1-secondary">保存 H3 节点</button><button type="button" data-s3-dry disabled>准备任务</button></div>';
+      nodesEl.insertBefore(card, panel.querySelector('[data-s1-context]'));
+      var menu = panel.querySelector('[data-s1-context]');
+      if (menu && !menu.querySelector('[data-s1-add-generation="h3"]')) {
+        var h3Button = document.createElement('button');
+        h3Button.type = 'button'; h3Button.dataset.s1AddGeneration = 'h3'; h3Button.textContent = '生成节点 · H3 生视频';
+        menu.appendChild(h3Button);
+      }
+    }
+    installH3NodeCard();
+    var h3Card = panel.querySelector('[data-node="h3"]');
+    var h3Prompt = panel.querySelector('[data-s3-prompt]');
+    var h3Aspect = panel.querySelector('[data-s3-aspect]');
+    var h3Duration = panel.querySelector('[data-s3-duration]');
+    var h3Status = panel.querySelector('[data-s3-status]');
+    var h3Create = panel.querySelector('[data-s3-create]');
+    var h3Dry = panel.querySelector('[data-s3-dry]');
+    var h3AssetsEl = panel.querySelector('[data-s3-assets]');
+    var h3JobId = null;
     var revision = 0;
     var assets = [];
     var chainReady = false;
     var nodeById = Object.create(null);
     var canvasDocument = {nodes:[], edges:[], viewport:{x:0,y:0,zoom:1}};
     var step01PollTimer = null;
-    var nodeIds = {source:'s1-source-input',step01:'s1-step01-analysis',step02:'s1-step02-timeline',image2:'s2-image2-keyframe'};
+    var nodeIds = {source:'s1-source-input',step01:'s1-step01-analysis',step02:'s1-step02-timeline',image2:'s2-image2-keyframe',h3:'s3-h3-video'};
     var championSpecs = {
       'screenwriter': {type:'text', version:'1.0.0', title:'剧本编排', note:'把故事或原始素材整理为剧本、梗概和设定集。', inputs:['story','source_material'], outputs:['screenplay','treatment','story_bible']},
       'chaoge-assets-trial': {type:'character', version:'1.3.0', title:'超哥资产方案', note:'从剧本和资产需求整理角色、道具与资产清单。', inputs:['screenplay','asset_requirements'], outputs:['character_assets','prop_assets','asset_manifest']},
@@ -138,9 +161,11 @@
       image2Dry.disabled = image2Create.disabled;
     }
     function selectedImage2Ids() { return Array.prototype.slice.call(panel.querySelectorAll('input[data-s2-asset]:checked')).map(function (input) { return input.value; }); }
-    function positionOf(key) { var node = nodeById[nodeIds[key]]; return node && node.position || {x:key === 'source' ? 90 : key === 'step01' ? 400 : key === 'step02' ? 710 : 1020,y:150}; }
+    function selectedH3Ids() { return Array.prototype.slice.call(panel.querySelectorAll('input[data-s3-asset]:checked')).map(function (input) { return input.value; }); }
+    function syncH3Spec() { h3Create.disabled = false; h3Dry.disabled = !nodeById['s3-h3-video']; }
+    function positionOf(key) { var node = nodeById[nodeIds[key]]; return node && node.position || {x:key === 'source' ? 90 : key === 'step01' ? 400 : key === 'step02' ? 710 : key === 'image2' ? 1020 : 1320,y:150}; }
     function applyNodePositions() {
-      ['source','step01','step02','image2'].forEach(function (key) { var card = panel.querySelector('[data-node="' + key + '"]'); var pos = positionOf(key); card.style.left = String(pos.x) + 'px'; card.style.top = String(pos.y) + 'px'; });
+      ['source','step01','step02','image2','h3'].forEach(function (key) { var card = panel.querySelector('[data-node="' + key + '"]'); var pos = positionOf(key); card.style.left = String(pos.x) + 'px'; card.style.top = String(pos.y) + 'px'; });
       panel.querySelectorAll('.s1-node[data-node-id]').forEach(function (card) {
         var node = nodeById[card.dataset.nodeId];
         if (!node || !node.position) return;
@@ -425,6 +450,9 @@
       }
       var image2 = (Array.isArray(nodes) ? nodes : []).find(function (node) { return node.id === 's2-image2-keyframe'; });
       if (image2) { image2Card.dataset.status = image2.status; image2Card.querySelector('[data-node-status]').textContent = image2.status; image2Prompt.value = image2.data && image2.data.prompt || ''; image2Channel.value = image2.data && image2.data.imageChannel || image2Channel.value; image2Resolution.value = image2.data && image2.data.resolution || image2Resolution.value; image2Aspect.value = image2.data && image2.data.aspectRatio || image2Aspect.value; image2Status.textContent = '节点合同已保存；生成仍需通过画布生成授权。'; syncImage2Spec(); }
+      var h3 = (Array.isArray(nodes) ? nodes : []).find(function (node) { return node.id === 's3-h3-video'; });
+      if (h3) { h3Card.dataset.status = h3.status; h3Card.querySelector('[data-node-status]').textContent = h3.status; h3Prompt.value = h3.data && h3.data.prompt || ''; h3Aspect.value = h3.data && h3.data.aspectRatio || h3Aspect.value; h3Duration.value = String(h3.data && h3.data.durationSeconds || h3Duration.value); h3Status.textContent = '节点合同已保存；任务会先进入等待授权状态。'; }
+      syncH3Spec();
       renderChampionNodes(nodes);
       renderPortStates();
       applyNodePositions();
@@ -435,6 +463,10 @@
       assetsEl.innerHTML = videos.length ? videos.map(function (asset) { return '<label class="s1-asset"><input type="checkbox" data-s1-asset value="' + escapeHtml(asset.id) + '"><span class="s1-asset-name">' + escapeHtml(asset.originalName || asset.id) + '</span></label>'; }).join('') : '<span>当前项目暂无视频素材，请先在素材库上传原片。</span>';
       panel.querySelectorAll('input[data-s1-asset]').forEach(function (input) { input.type = 'radio'; input.name = 's1-source-asset'; input.addEventListener('change', syncButton); });
       syncButton();
+    }
+    function renderH3Assets() {
+      var images = assets.filter(function (asset) { return asset.kind === 'reference_image' || asset.kind === 'generated_image'; });
+      h3AssetsEl.innerHTML = images.length ? images.map(function (asset) { return '<label class="s1-asset"><input type="checkbox" data-s3-asset value="' + escapeHtml(asset.id) + '"><span class="s1-asset-name">' + escapeHtml(asset.originalName || asset.id) + '</span></label>'; }).join('') : '<span>暂无可用关键帧；可先连接 Image2.image_asset 或在素材库上传图片。</span>';
     }
     async function load() {
       var id = projectId();
@@ -454,6 +486,7 @@
         assets = Array.isArray(listed.body.assets) ? listed.body.assets : [];
         renderAssets();
         renderImage2Assets();
+        renderH3Assets();
         var existingNodes = canvasDocument.nodes || [];
         renderNodes(existingNodes);
         var listedProjects = Array.isArray(projectState.body.projects) ? projectState.body.projects : [];
@@ -501,6 +534,29 @@
         image2Status.textContent = dry.body.dryRun && dry.body.dryRun.providerSubmitEnabled ? '规格检查通过；提交前仍需明确授权。' : '规格检查通过；当前仅建立候选，Provider 未启用或未授权。';
       } catch (error) { image2Status.textContent = (error.code ? error.code + ': ' : '') + (error.message || '准备失败'); image2Dry.disabled = false; }
     }
+    async function createH3() {
+      h3Create.disabled = true; h3Status.textContent = '正在保存 H3 节点合同...';
+      try {
+        var result = await api('/api/canvas/documents/' + encodeURIComponent(projectKind()) + '/' + encodeURIComponent(projectId()) + '/s3-h3', {method:'POST',headers:{'content-type':'application/json','if-match':'"canvas-rev-' + revision + '"'},body:JSON.stringify({prompt:h3Prompt.value,aspectRatio:h3Aspect.value,durationSeconds:Number(h3Duration.value),referenceAssetIds:selectedH3Ids()})});
+        revision = Number(result.body.revision || revision); canvasDocument.nodes = (canvasDocument.nodes || []).filter(function (node) { return node.id !== 's3-h3-video'; }).concat([result.body.node]); renderNodes(canvasDocument.nodes); h3Status.textContent = 'H3 节点已保存。下一步只能准备服务端候选，提交仍需明确授权。';
+      } catch (error) { h3Status.textContent = (error.code ? error.code + ': ' : '') + (error.message || '保存失败'); }
+      syncH3Spec();
+    }
+    async function dryRunH3() {
+      h3Dry.disabled = true; h3Status.textContent = '正在建立 H3 候选并执行 dry-run（不提交 Provider）...';
+      try {
+        var prepared = await api('/api/projects/' + encodeURIComponent(projectId()) + '/canvas/jobs', {method:'POST',headers:{'content-type':'application/json','idempotency-key':'s3-h3-' + Date.now()},body:JSON.stringify({projectKind:projectKind(),nodeId:'s3-h3-video',model:'h3',prompt:h3Prompt.value,aspectRatio:h3Aspect.value,durationSeconds:Number(h3Duration.value),inputAssetIds:selectedH3Ids()})});
+        h3JobId = prepared.body.job && prepared.body.job.id;
+        if (!h3JobId) throw new Error('服务器没有返回 H3 候选任务');
+        var dry = await api('/api/projects/' + encodeURIComponent(projectId()) + '/canvas/jobs/' + encodeURIComponent(h3JobId) + '/dry-run', {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({projectKind:projectKind()})});
+        h3Status.textContent = dry.body.dryRun && dry.body.dryRun.providerSubmitEnabled ? '规格检查通过；提交前仍需明确授权。' : '规格检查通过；当前仅建立候选，Provider 未启用或未授权。';
+      } catch (error) {
+        h3Status.textContent = error.code === 'CANVAS_SKILL_COMPILED_PROMPT_REQUIRED'
+          ? '等待 Hell Grind 完成 video_prompt 编译后再准备 H3 任务。'
+          : (error.code ? error.code + ': ' : '') + (error.message || '准备失败');
+      }
+      syncH3Spec();
+    }
     var contextMenu = panel.querySelector('[data-s1-context]');
     var contextPoint = {x:120, y:360};
     function hideContextMenu() { contextMenu.hidden = true; }
@@ -515,17 +571,22 @@
     nodesEl.addEventListener('contextmenu', showContextMenu);
     contextMenu.addEventListener('click', function (event) {
       var button = event.target.closest('[data-s1-add-skill]');
-      if (!button) return;
-      var skillKey = button.getAttribute('data-s1-add-skill');
+      var generation = event.target.closest('[data-s1-add-generation]');
+      if (!button && !generation) return;
       hideContextMenu();
+      if (generation) { createH3().catch(function (error) { setStatus((error.code ? error.code + ': ' : '') + (error.message || '添加节点失败'), true); }); return; }
+      var skillKey = button.getAttribute('data-s1-add-skill');
       createChampionNode(skillKey, contextPoint).catch(function (error) { setStatus((error.code ? error.code + ': ' : '') + (error.message || '添加节点失败'), true); });
     });
     panel.addEventListener('pointerdown', function (event) { if (!event.target.closest('[data-s1-context]')) hideContextMenu(); });
     panel.querySelector('[data-s1-refresh]').addEventListener('click', load);
     startBtn.addEventListener('click', startStep01);
     image2Create.addEventListener('click', createImage2); image2Dry.addEventListener('click', dryRunImage2);
+    h3Create.addEventListener('click', createH3); h3Dry.addEventListener('click', dryRunH3);
     [image2Prompt,image2Channel,image2Resolution,image2Aspect].forEach(function (el) { el.addEventListener('input', syncImage2Spec); el.addEventListener('change', syncImage2Spec); });
+    [h3Prompt,h3Aspect,h3Duration].forEach(function (el) { el.addEventListener('input', syncH3Spec); el.addEventListener('change', syncH3Spec); });
     syncImage2Spec();
+    syncH3Spec();
     rightsEl.addEventListener('change', syncButton); preflightEl.addEventListener('change', syncButton); createBtn.addEventListener('click', create);
     installDragging();
     installPortConnections();

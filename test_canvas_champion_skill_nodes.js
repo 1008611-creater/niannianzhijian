@@ -108,6 +108,18 @@ async function run() {
   assert.deepEqual(moved.body.document.nodes.find(item => item.id === 'champion-hellgrind').position, {x:960,y:420});
   etag = moved.response.headers.get('etag');
 
+  const h3Node = await request('/api/canvas/documents/redraw/' + project.id + '/s3-h3', {method:'POST',headers:headers({'content-type':'application/json','if-match':etag}),body:JSON.stringify({prompt:'雨夜人物缓慢前行，镜头稳定跟拍。',aspectRatio:'9:16',durationSeconds:5})});
+  assert.equal(h3Node.response.status, 201, JSON.stringify(h3Node.body));
+  assert.equal(h3Node.body.code, 'CANVAS_S3_H3_NODE_READY');
+  assert.equal(h3Node.body.node.skillKey, 'minimaxh3skill');
+  assert.deepEqual(h3Node.body.node.inputPorts.map(port => port.id), ['prompt','image_asset']);
+  assert.deepEqual(h3Node.body.node.outputPorts.map(port => port.id), ['video_asset']);
+  etag = h3Node.response.headers.get('etag');
+  const h3NodeJob = await request('/api/projects/' + project.id + '/canvas/jobs', {method:'POST',headers:headers({'content-type':'application/json','idempotency-key':'champion-s3-h3-job-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'s3-h3-video',model:'h3',durationSeconds:5,aspectRatio:'9:16'})});
+  assert.equal(h3NodeJob.response.status, 201, JSON.stringify(h3NodeJob.body));
+  assert.equal(h3NodeJob.body.job.status, 'awaiting_authorization');
+  assert.equal(h3NodeJob.body.providerSubmitEnabled, false);
+
   const imageJob = await request('/api/projects/' + project.id + '/canvas/jobs', {method:'POST',headers:headers({'content-type':'application/json','idempotency-key':'champion-image-job-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'champion-image',model:'yunfei-gpt-image-2-1k',resolution:'1k',aspectRatio:'1:1'})});
   assert.equal(imageJob.response.status, 201, JSON.stringify(imageJob.body));
   assert.equal(imageJob.body.job.status, 'awaiting_authorization');
@@ -154,7 +166,7 @@ async function run() {
   invalid = await save(sensitive, etag);
   assert.equal(invalid.response.status, 422);
   assert.equal(invalid.body.code, 'CANVAS_SKILL_NODE_SENSITIVE_FIELD');
-  console.log(JSON.stringify({ok:true,verified:['four typed orchestration Skill nodes persist and reload','all persisted Skill nodes use the existing layout-save path','typed ports reject unknown/mismatched/cross-project/sensitive data','Hell Grind prompt reaches existing Image2/H3 server job preparation','compiler nodes cannot submit provider jobs','dry-run keeps provider submission and spend disabled']}));
+  console.log(JSON.stringify({ok:true,verified:['four typed orchestration Skill nodes persist and reload','all persisted Skill nodes use the existing layout-save path','H3 uses the same persisted node and server-job contract as Image2','typed ports reject unknown/mismatched/cross-project/sensitive data','Hell Grind prompt reaches existing Image2/H3 server job preparation','compiler nodes cannot submit provider jobs','dry-run keeps provider submission and spend disabled']}));
 }
 
 run().catch(error => { console.error(error.stack || error.message || String(error)); process.exitCode = 1; }).finally(async () => {
