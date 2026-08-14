@@ -640,6 +640,16 @@
       contextMenu.hidden = false;
     }
     nodesEl.addEventListener('contextmenu', showContextMenu);
+    // The shipped Studio canvas owns the blank-surface context menu. Register on
+    // its root during capture so Skill nodes use the same right-click entry point
+    // without editing the hashed Studio bundle or intercepting node controls.
+    function showCanvasSkillMenu(event) {
+      if (event.target.closest('#s1-chain-canvas')) return;
+      if (event.target.closest('button,input,textarea,select,a,[role="menu"]')) return;
+      showContextMenu(event);
+      event.stopPropagation();
+    }
+    host.addEventListener('contextmenu', showCanvasSkillMenu, true);
     contextMenu.addEventListener('click', function (event) {
       var button = event.target.closest('[data-s1-add-skill]');
       var generation = event.target.closest('[data-s1-add-generation]');

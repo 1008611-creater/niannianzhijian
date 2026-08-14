@@ -8,7 +8,7 @@ const root = __dirname;
 const html = fs.readFileSync(path.join(root, 'studio', 'index.html'), 'utf8');
 const source = fs.readFileSync(path.join(root, 'studio', 'assets', 's1-chain-ui.js'), 'utf8');
 
-assert.match(html, /assets\/s1-chain-ui\.js\?v=20260815-mcgrox-compiler-r18/);
+assert.match(html, /assets\/s1-chain-ui\.js\?v=20260815-champion-menu-r19/);
 assert.match(source, /\/api\/canvas\/documents\//);
 assert.match(source, /\/api\/projects\//);
 assert.match(source, /step01Projection/);
@@ -43,6 +43,8 @@ assert.match(source, /data-s2-assets/);
 assert.match(source, /skill-node-layout/);
 assert.match(source, /setPointerCapture/);
 assert.match(source, /contextmenu/);
+assert.match(source, /host\.addEventListener\('contextmenu', showCanvasSkillMenu, true\)/);
+assert.match(source, /event\.target\.closest\('#s1-chain-canvas'\)/);
 assert.match(source, /data-s1-add-skill/);
 assert.match(source, /data-s1-output-port/);
 assert.match(source, /data-s1-input-port/);
