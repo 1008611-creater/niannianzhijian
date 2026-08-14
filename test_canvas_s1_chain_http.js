@@ -35,7 +35,13 @@ async function run() {
     fsp.writeFile(path.join(dataRoot,'sessions.json'), JSON.stringify([{tokenHash:tokenHash(token),userId:user.id,expiresAt:new Date(Date.now()+3600000).toISOString()}])),
     fsp.writeFile(path.join(dataRoot,'projects.json'), '[]'),
     fsp.writeFile(path.join(dataRoot,'canvas-projects.json'), JSON.stringify([project])),
-    fsp.writeFile(path.join(dataRoot,'canvas-documents.json'), '{}'),
+    fsp.writeFile(path.join(dataRoot,'canvas-documents.json'), JSON.stringify({
+      ['redraw:' + project.id]: {revision:4,document:{version:1,nodes:[
+        {id:'s1-source-input',type:'source_input',status:'ready',data:{assetIds:['ASSET-LEGACY-VIDEO'],parameters:{rightsConfirmed:true,preflightStatus:'passed'}}},
+        {id:'s1-step01-analysis',type:'analysis',status:'failed',data:{parameters:{profile:'hq_full'}}},
+        {id:'s1-step02-timeline',type:'timeline',status:'blocked',data:{parameters:{}}}
+      ],edges:[]}}
+    })),
     fsp.writeFile(path.join(dataRoot,'canvas-assets.json'), '[]'),
     fsp.writeFile(path.join(dataRoot,'canvas-generation-jobs.json'), '[]'),
     fsp.writeFile(path.join(dataRoot,'workspace-bindings.json'), '[]'),
@@ -47,10 +53,17 @@ async function run() {
   await waitForServer();
   const initial = await request('/api/canvas/documents/redraw/' + project.id, {headers:headers()});
   assert.equal(initial.response.status, 200);
+  const legacySource = initial.body.document.nodes.find(item => item.id === 's1-source-input');
+  const legacyStep01 = initial.body.document.nodes.find(item => item.id === 's1-step01-analysis');
+  assert.deepEqual(legacySource.parameters.outputBindings.find(item => item.portId === 'source_asset'), {portId:'source_asset',state:'ready',assetIds:['ASSET-LEGACY-VIDEO']});
+  assert.deepEqual(legacyStep01.parameters.inputBindings.find(item => item.portId === 'source_video'), {portId:'source_video',sourceNodeId:'s1-source-input',sourcePortId:'source_asset',state:'ready',assetIds:['ASSET-LEGACY-VIDEO']});
+  const migrated = await request('/api/canvas/documents/redraw/' + project.id, {method:'PUT',headers:headers({'content-type':'application/json','if-match':initial.response.headers.get('etag')}),body:JSON.stringify({document:initial.body.document})});
+  assert.equal(migrated.response.status, 200, JSON.stringify(migrated.body));
+  assert.equal(migrated.body.document.nodes.find(item => item.id === 's1-source-input').parameters.outputBindings.find(item => item.portId === 'source_asset').state, 'ready');
   const assets = await request('/api/projects/' + project.id + '/assets', {headers:headers({'x-niannian-project-kind':'redraw'})});
   assert.equal(assets.response.status, 200);
   assert.equal(assets.body.assets[0].id, 'legacy-source:' + project.id);
-  const built = await request('/api/canvas/documents/redraw/' + project.id + '/s1-chain', {method:'POST',headers:headers({'content-type':'application/json','if-match':initial.response.headers.get('etag')||'"canvas-rev-0"'}),body:JSON.stringify({sourceAssetIds:['legacy-source:' + project.id],rightsConfirmed:true,preflightStatus:'passed'})});
+  const built = await request('/api/canvas/documents/redraw/' + project.id + '/s1-chain', {method:'POST',headers:headers({'content-type':'application/json','if-match':migrated.response.headers.get('etag')||'"canvas-rev-0"'}),body:JSON.stringify({sourceAssetIds:['legacy-source:' + project.id],rightsConfirmed:true,preflightStatus:'passed'})});
   assert.equal(built.response.status, 201, JSON.stringify(built.body));
   assert.deepEqual(built.body.chain.nodeIds, ['s1-source-input','s1-step01-analysis','s1-step02-timeline']);
   assert.equal(built.body.chain.sourceReady, true);

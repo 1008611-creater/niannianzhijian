@@ -6857,7 +6857,7 @@ function normalizeCanvasDocument(value, project) {
   const allowedTypes = new Set(['intent','source_input','analysis','timeline','adaptation','character','scene','shot','reference','image','video','smart_cut','director','delivery','note','text','skill']);
   const allowedStatuses = new Set(['draft','blocked','ready','awaiting_authorization','queued','running','succeeded','failed','needs_review','review']);
   const ids = new Set();
-  const nodes = Array.isArray(raw.nodes) ? raw.nodes.slice(0, 300).flatMap((node, index) => {
+  const normalizedNodes = Array.isArray(raw.nodes) ? raw.nodes.slice(0, 300).flatMap((node, index) => {
     if (!node || typeof node !== 'object' || Array.isArray(node)) return [];
     const id = canvasText(node.id || node.nodeId, 80);
     const type = canvasText(node.type || node.kind, 40);
@@ -6914,6 +6914,7 @@ function normalizeCanvasDocument(value, project) {
       }
     }];
   }) : [];
+  const nodes = canvasS1Chain.reconcileChainNodes(normalizedNodes, project.id);
   const nodeIds = new Set(nodes.map(node => node.id));
   const edgeIds = new Set();
   const allowedKinds = new Set(['depends_on','derived_from','reference','approved_to','variant_of']);

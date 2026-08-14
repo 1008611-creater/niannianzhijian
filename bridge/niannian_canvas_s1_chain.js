@@ -32,6 +32,73 @@ function portBinding(portId, sourceNodeId, sourcePortId, state, assetIds = []) {
   return {portId, sourceNodeId, sourcePortId, state, assetIds:[...assetIds]};
 }
 
+function replaceBinding(bindings, next) {
+  const current = Array.isArray(bindings) ? bindings.filter(item => item && typeof item === 'object').map(item => ({...item})) : [];
+  const index = current.findIndex(item => item.portId === next.portId);
+  if (index >= 0) current[index] = {...current[index], ...next};
+  else current.push(next);
+  return current;
+}
+
+function ensureBinding(bindings, next) {
+  const current = Array.isArray(bindings) ? bindings.filter(item => item && typeof item === 'object').map(item => ({...item})) : [];
+  return current.some(item => item.portId === next.portId) ? current : [...current, next];
+}
+
+// Early S1 documents stored selected assets but predate explicit port bindings.
+// Reconcile at the persistence boundary so an existing project keeps its source
+// connection after reload without pretending Step01 evidence already exists.
+function reconcileChainNodes(nodes, projectId) {
+  if (!Array.isArray(nodes)) return [];
+  const byId = new Map(nodes.filter(node => node && CHAIN_NODE_IDS.includes(node.id)).map(node => [node.id, node]));
+  const source = byId.get(SOURCE_NODE_ID);
+  if (!source) return nodes;
+  const sourceParams = source.parameters && typeof source.parameters === 'object' ? source.parameters : {};
+  const sourceData = source.data && typeof source.data === 'object' ? source.data : {};
+  const assets = uniqueIds([
+    ...(Array.isArray(sourceData.assetIds) ? sourceData.assetIds : []),
+    ...(Array.isArray(source.assetRefs) ? source.assetRefs.map(item => item && item.assetId) : [])
+  ]);
+  const preflight = text(sourceParams.preflightStatus, 40) === 'passed' ? 'passed' : null;
+  const sourceReady = assets.length > 0 && sourceParams.rightsConfirmed === true && preflight === 'passed';
+  const sourceBindings = replaceBinding(
+    replaceBinding(sourceParams.outputBindings, {portId:'source_asset', state:sourceReady ? 'ready' : 'draft', assetIds:assets}),
+    {portId:'preflight_report', state:preflight === 'passed' ? 'ready' : 'draft', assetIds:[]}
+  );
+  const sourceAssetRefs = assets.map(assetId => ({assetId, projectId, role:'source_video'}));
+  const sourceNext = {
+    ...source,
+    status:sourceReady ? 'ready' : 'draft',
+    assetRefs:sourceAssetRefs,
+    parameters:{...sourceParams, rightsConfirmed:sourceParams.rightsConfirmed === true, preflightStatus:preflight, gateState:sourceReady ? 'source_ready' : 'source_input_incomplete', outputBindings:sourceBindings},
+    data:{...sourceData, assetIds:assets, status:sourceReady ? 'ready' : 'draft', assetRefs:sourceAssetRefs, parameters:{...sourceParams, rightsConfirmed:sourceParams.rightsConfirmed === true, preflightStatus:preflight, gateState:sourceReady ? 'source_ready' : 'source_input_incomplete', outputBindings:sourceBindings}}
+  };
+  byId.set(SOURCE_NODE_ID, sourceNext);
+
+  const step01 = byId.get(STEP01_NODE_ID);
+  if (step01) {
+    const params = step01.parameters && typeof step01.parameters === 'object' ? step01.parameters : {};
+    const data = step01.data && typeof step01.data === 'object' ? step01.data : {};
+    const inputBindings = replaceBinding(params.inputBindings, portBinding('source_video', SOURCE_NODE_ID, 'source_asset', sourceReady ? 'ready' : 'blocked', assets));
+    const outputBindings = ensureBinding(ensureBinding(params.outputBindings, {portId:'evidence_manifest', state:'blocked', assetIds:[]}), {portId:'shot_frames', state:'blocked', assetIds:[]});
+    const nextParams = {...params, inputBindings, outputBindings};
+    byId.set(STEP01_NODE_ID, {...step01, parameters:nextParams, data:{...data, inputAssetIds:assets, status:step01.status, parameters:nextParams}});
+  }
+
+  const step01Output = byId.get(STEP01_NODE_ID)?.parameters?.outputBindings?.find(item => item && item.portId === 'evidence_manifest');
+  const evidenceReady = step01Output && step01Output.state === 'ready';
+  const step02 = byId.get(STEP02_NODE_ID);
+  if (step02) {
+    const params = step02.parameters && typeof step02.parameters === 'object' ? step02.parameters : {};
+    const data = step02.data && typeof step02.data === 'object' ? step02.data : {};
+    const inputBindings = replaceBinding(params.inputBindings, portBinding('evidence_manifest', STEP01_NODE_ID, 'evidence_manifest', evidenceReady ? 'ready' : 'blocked'));
+    const outputBindings = ensureBinding(params.outputBindings, {portId:'accepted_timeline', state:'blocked', assetIds:[]});
+    const nextParams = {...params, inputBindings, outputBindings};
+    byId.set(STEP02_NODE_ID, {...step02, parameters:nextParams, data:{...data, status:step02.status, parameters:nextParams}});
+  }
+  return nodes.map(node => byId.get(node?.id) || node);
+}
+
 function createChain({projectId, sourceAssetIds = [], rightsConfirmed = false, preflightStatus = null, existingNodes = []} = {}) {
   const assets = uniqueIds(sourceAssetIds);
   const preflight = text(preflightStatus, 40) === 'passed' ? 'passed' : null;
@@ -100,4 +167,4 @@ function mergeChain(document, chain) {
   };
 }
 
-module.exports = {CHAIN_NODE_IDS,SOURCE_NODE_ID,STEP01_NODE_ID,STEP02_NODE_ID,LEGACY_SOURCE_ASSET_PREFIX,PORTS,createChain,mergeChain,uniqueIds,legacySourceAssetId,isLegacySourceAssetId,portBinding};
+module.exports = {CHAIN_NODE_IDS,SOURCE_NODE_ID,STEP01_NODE_ID,STEP02_NODE_ID,LEGACY_SOURCE_ASSET_PREFIX,PORTS,createChain,mergeChain,reconcileChainNodes,uniqueIds,legacySourceAssetId,isLegacySourceAssetId,portBinding};
