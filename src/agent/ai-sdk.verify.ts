@@ -819,6 +819,50 @@ await assert.rejects(
   AgentPreOutputFailure,
   'an empty stream start must not block an automatic provider fallback',
 );
+const emptyCompletionThenGenerate = new MockLanguageModelV4({
+  doStream: {
+    stream: simulateReadableStream({
+      chunks: [{
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: undefined },
+        usage: {
+          inputTokens: { total: 1, noCache: 1, cacheRead: undefined, cacheWrite: undefined },
+          outputTokens: { total: 0, text: 0, reasoning: undefined },
+        },
+      }],
+    }),
+  },
+  doGenerate: {
+    content: [{ type: 'text', text: '文字 Agent 已就绪。' }],
+    finishReason: { unified: 'stop', raw: undefined },
+    usage: {
+      inputTokens: { total: 1, noCache: 1, cacheRead: undefined, cacheWrite: undefined },
+      outputTokens: { total: 1, text: 1, reasoning: undefined },
+    },
+    warnings: [],
+  },
+});
+const emptyCompletionEvents: AgentEvent[] = [];
+await runApiAgent(
+  [{ role: 'user', content: 'Reply with a short confirmation.' }],
+  apiContext,
+  (event) => emptyCompletionEvents.push(event),
+  { ...apiChoice, openAiApiMode: 'chat' },
+  'Test system prompt.',
+  false,
+  1_000,
+  undefined,
+  { model: emptyCompletionThenGenerate },
+);
+assert.equal(emptyCompletionThenGenerate.doGenerateCalls.length, 1);
+assert.match(
+  emptyCompletionEvents
+    .filter((event): event is Extract<AgentEvent, { type: 'text-delta' }> => event.type === 'text-delta')
+    .map((event) => event.delta)
+    .join(''),
+  /文字 Agent 已就绪/,
+  'an empty compatible stream must fall back to a non-streaming response',
+);
 const usage = {
   inputTokens: { total: 1, noCache: 1, cacheRead: undefined, cacheWrite: undefined },
   outputTokens: { total: 1, text: 1, reasoning: undefined },

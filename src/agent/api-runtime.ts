@@ -405,6 +405,19 @@ export async function runApiAgent(
               break;
             }
           }
+          // Some compatible endpoints close a stream successfully without
+          // emitting text, reasoning, or a tool call. Treat that as an
+          // unusable streaming response and use the same bounded fallback.
+          if (
+            choice.openAiApiMode === 'chat'
+            && !outputStarted
+            && !toolExecutionObserved
+            && !aborted
+            && !opts?.signal?.aborted
+          ) {
+            compatibleStreamTimedOut = true;
+            throw new Error('Compatible Chat stream completed without visible output.');
+          }
         } catch (error) {
           if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
           if (compatibleStreamTimedOut && !opts?.signal?.aborted) {
