@@ -62,6 +62,7 @@ async function main() {
     page.on('pageerror', error => consoleErrors.push(error.message));
     await page.goto(baseUrl + '/studio/?projectId=' + project.id + '&projectKind=redraw&step=generate#/studio', {waitUntil:'networkidle'});
     await openGenerationCanvas(page);
+    const canvas = page.getByRole('region', {name:'AI 影像创作画布'});
     const panel = page.locator('#s1-chain-canvas');
     await panel.waitFor({state:'visible'});
     assert.equal(await panel.evaluate(node => node.parentElement && node.parentElement.getAttribute('aria-label')), 'AI 影像创作画布', 'the S1 chain must mount inside the generation canvas');
@@ -77,6 +78,9 @@ async function main() {
     assert.equal(await panel.locator('.s1-node').count(), 5);
     await panel.locator('[data-node="image2"]').getByText('Image2 关键帧生成').waitFor();
     const flow = panel.locator('.s1-chain-flow');
+    await canvas.click({button:'right', position:{x:1080, y:180}});
+    await panel.getByRole('button', {name:'编剧 · Screenwriter'}).waitFor();
+    await page.mouse.click(1120, 220);
     for (const [index, label] of ['编剧 · Screenwriter', '资产方案 · Chaoge', '分镜 · Shotlist Builder', '镜头提示 · Hell Grind'].entries()) {
       await flow.click({button:'right', position:{x:260, y:370}});
       await panel.getByRole('button', {name:label}).click();
