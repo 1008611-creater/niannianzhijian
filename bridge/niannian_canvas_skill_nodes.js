@@ -260,4 +260,28 @@ function orchestrationReadiness(document, targetNodeId) {
   return {nodeId:target.nodeId || target.id, skillKey:target.skillKey, ready:blockers.length === 0, blockers};
 }
 
-module.exports = {SKILLS, STATUS, normalizeSkillNode, validateDocumentSkillNodes, validateSkillConnections, resolveCompiledPrompt, orchestrationReadiness, contractError};
+function resolveOrchestrationInputs(document, targetNodeId) {
+  const nodes = Array.isArray(document?.nodes) ? document.nodes : [];
+  const edges = Array.isArray(document?.edges) ? document.edges : [];
+  const target = nodes.find(node => (node?.nodeId || node?.id) === targetNodeId) || null;
+  if (!target) throw contractError('CANVAS_SKILL_NODE_NOT_FOUND', '编排节点不存在');
+  if (target.executionMode !== 'orchestration') throw contractError('CANVAS_SKILL_NODE_NOT_ORCHESTRATION', '当前节点不是编排 Skill');
+  const readiness = orchestrationReadiness(document, targetNodeId);
+  if (!readiness.ready) throw contractError('CANVAS_SKILL_NODE_INPUT_REQUIRED', '编排节点输入未完成', {blockers:readiness.blockers});
+  const manual = target.parameters?.inputs && typeof target.parameters.inputs === 'object' && !Array.isArray(target.parameters.inputs)
+    ? target.parameters.inputs
+    : {};
+  const byId = new Map(nodes.filter(Boolean).map(node => [node.nodeId || node.id, node]));
+  const inputs = {};
+  for (const port of target.inputPorts || []) {
+    const direct = text(manual[port.id], 8000);
+    if (direct) { inputs[port.id] = direct; continue; }
+    const edge = edges.find(item => item?.target === targetNodeId && item?.targetPort === port.id) || null;
+    const source = edge ? byId.get(edge.source) : null;
+    const value = text(source?.parameters?.compiledOutputs?.[edge?.sourcePort], 8000);
+    if (value) inputs[port.id] = value;
+  }
+  return {node:target, inputs, readiness};
+}
+
+module.exports = {SKILLS, STATUS, normalizeSkillNode, validateDocumentSkillNodes, validateSkillConnections, resolveCompiledPrompt, orchestrationReadiness, resolveOrchestrationInputs, contractError};

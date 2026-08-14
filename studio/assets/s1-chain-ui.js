@@ -198,7 +198,7 @@
     function championInputValue(node, portId) { return node && node.parameters && node.parameters.inputs && node.parameters.inputs[portId] || ''; }
     function championNodeMarkup(node, spec) {
       var primaryPort = championPrimaryPort(spec);
-      return '<article class="s1-node s1-skill-node" data-champion-node data-node-id="' + escapeHtml(node.id) + '" data-status="' + escapeHtml(node.status || 'draft') + '"><div class="s1-meta"><span>编排 Skill · ' + escapeHtml(node.skillKey) + '</span><small data-node-status>' + escapeHtml(node.status || 'draft') + '</small></div><h3>' + escapeHtml((node.data && node.data.title) || spec.title) + '</h3><p>' + escapeHtml((node.data && node.data.note) || spec.note) + '</p><div class="s1-ports"><div class="s1-port-group input"><small>输入</small>' + nodePortButtons(node, 'input') + '</div><div class="s1-port-group output"><small>输出</small>' + nodePortButtons(node, 'output') + '</div></div><label class="s1-row" style="align-items:flex-start"><span>核心输入 · ' + escapeHtml(primaryPort) + '</span><textarea data-champion-input data-champion-port="' + escapeHtml(primaryPort) + '" placeholder="填写内容或从左侧端口连接上游输出" style="flex:1;min-width:0;min-height:54px;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:6px;font:inherit">' + escapeHtml(championInputValue(node, primaryPort)) + '</textarea></label><div class="s1-status" data-champion-readiness>保存后可检查当前节点是否具备编排输入。</div><div class="s1-row"><button type="button" class="s1-secondary" data-champion-save>保存参数</button><button type="button" data-champion-check>检查输入</button></div><div class="s1-status">编排节点只输出计划、提示词或资产引用；图像和视频仍通过后续生成节点的服务器任务链。</div></article>';
+      return '<article class="s1-node s1-skill-node" data-champion-node data-node-id="' + escapeHtml(node.id) + '" data-status="' + escapeHtml(node.status || 'draft') + '"><div class="s1-meta"><span>编排 Skill · ' + escapeHtml(node.skillKey) + '</span><small data-node-status>' + escapeHtml(node.status || 'draft') + '</small></div><h3>' + escapeHtml((node.data && node.data.title) || spec.title) + '</h3><p>' + escapeHtml((node.data && node.data.note) || spec.note) + '</p><div class="s1-ports"><div class="s1-port-group input"><small>输入</small>' + nodePortButtons(node, 'input') + '</div><div class="s1-port-group output"><small>输出</small>' + nodePortButtons(node, 'output') + '</div></div><label class="s1-row" style="align-items:flex-start"><span>核心输入 · ' + escapeHtml(primaryPort) + '</span><textarea data-champion-input data-champion-port="' + escapeHtml(primaryPort) + '" placeholder="填写内容或从左侧端口连接上游输出" style="flex:1;min-width:0;min-height:54px;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:6px;font:inherit">' + escapeHtml(championInputValue(node, primaryPort)) + '</textarea></label><div class="s1-status" data-champion-readiness>保存后可检查当前节点是否具备编排输入。</div><div class="s1-row"><button type="button" class="s1-secondary" data-champion-save>保存参数</button><button type="button" data-champion-check>检查输入</button><button type="button" data-champion-run>运行编排（MCGrox）</button></div><div class="s1-status">编排节点只输出计划、提示词或资产引用；图像和视频仍通过后续生成节点的服务器任务链。</div></article>';
     }
     function renderChampionNodes(nodes) {
       panel.querySelectorAll('[data-champion-node]').forEach(function (card) { card.remove(); });
@@ -300,6 +300,28 @@
         var readiness = result.body.readiness || {};
         status.textContent = readiness.ready ? '核心输入已齐全，可在文本模型配置完成后请求编排。' : '尚缺：' + (readiness.blockers || []).map(function (blocker) { return blocker.portId + (blocker.reason === 'upstream_output_missing' ? '（等待上游输出）' : '（需要输入）'); }).join('、');
       } catch (error) { status.textContent = (error.code ? error.code + ': ' : '') + (error.message || '输入检查失败'); }
+    }
+    async function runChampionNode(card) {
+      var node = nodeById[card && card.dataset.nodeId];
+      var status = card && card.querySelector('[data-champion-readiness]');
+      if (!node || !status) return;
+      status.textContent = '正在检查 MCGrox 编排任务...';
+      var endpoint = '/api/projects/' + encodeURIComponent(projectId()) + '/canvas/skill-nodes/' + encodeURIComponent(node.id) + '/compile';
+      try {
+        var dry = await api(endpoint, {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({projectKind:projectKind()})});
+        if (!dry.body.providerSubmitEnabled) {
+          status.textContent = 'MCGrox 服务端执行器未就绪；节点输入已保留，可在服务恢复后重试。';
+          return;
+        }
+        status.textContent = '正在运行编排；完成后输出会回写到此节点。';
+        var result = await api(endpoint, {method:'POST',headers:{'content-type':'application/json','if-match':'"canvas-rev-' + revision + '"','idempotency-key':'canvas-compiler-' + node.id + '-' + Date.now()},body:JSON.stringify({projectKind:projectKind(),confirmProviderCall:true})});
+        revision = Number(result.body.revision || revision);
+        canvasDocument.nodes = (canvasDocument.nodes || []).map(function (item) { return item.id === node.id ? result.body.node : item; });
+        renderNodes(canvasDocument.nodes);
+        setStatus('「' + (node.data && node.data.title || node.skillKey) + '」已完成编排，输出已回写到画布端口。');
+      } catch (error) {
+        status.textContent = (error.code ? error.code + ': ' : '') + (error.message || '编排任务失败，可检查输入后重试');
+      }
     }
     function installDragging() {
       panel.addEventListener('pointerdown', function (event) {
@@ -633,6 +655,7 @@
       if (!card) return;
       if (event.target.closest('[data-champion-save]')) saveChampionInput(card).catch(function (error) { setStatus(error.message || '参数保存失败', true); });
       if (event.target.closest('[data-champion-check]')) checkChampionReadiness(card);
+      if (event.target.closest('[data-champion-run]')) runChampionNode(card);
     });
     panel.querySelector('[data-s1-refresh]').addEventListener('click', load);
     startBtn.addEventListener('click', startStep01);

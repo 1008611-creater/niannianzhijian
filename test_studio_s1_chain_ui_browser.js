@@ -46,7 +46,7 @@ async function main() {
     fs.writeFile(path.join(dataRoot, 'script-projects.json'), '[]'),
     fs.writeFile(path.join(dataRoot, 'workspace-bindings.json'), '[]')
   ]);
-  const server = spawn(process.execPath, ['server.js'], {cwd:root,env:{...process.env,PORT:String(port),DATA_DIR:dataRoot,NIANNIAN_RUNNINGHUB_SUBMIT:'off'},stdio:['ignore','ignore','ignore']});
+  const server = spawn(process.execPath, ['server.js'], {cwd:root,env:{...process.env,PORT:String(port),DATA_DIR:dataRoot,NIANNIAN_RUNNINGHUB_SUBMIT:'off',NIANNIAN_GPT_API_KEY:'',NIANNIAN_TEXT_API_KEY:''},stdio:['ignore','ignore','ignore']});
   let browser;
   try {
     await waitForHealth(baseUrl);
@@ -90,6 +90,8 @@ async function main() {
     await page.getByText('已保存「剧本编排」的核心输入。').waitFor();
     await screenwriterCard.getByRole('button', {name:'检查输入'}).click();
     await screenwriterCard.getByText('核心输入已齐全，可在文本模型配置完成后请求编排。').waitFor();
+    await screenwriterCard.getByRole('button', {name:'运行编排（MCGrox）'}).click();
+    await screenwriterCard.getByText('MCGrox 服务端执行器未就绪；节点输入已保留，可在服务恢复后重试。').waitFor();
     await flow.click({button:'right', position:{x:1180, y:370}});
     await panel.getByRole('button', {name:'生成节点 · H3 生视频'}).click();
     await panel.getByRole('heading', {name:'H3 生视频', exact:true}).waitFor();
@@ -152,7 +154,7 @@ async function main() {
     assert.deepEqual(consoleErrors, []);
     await context.close();
     await browser.close(); browser = null;
-    console.log(JSON.stringify({ok:true,verified:['desktop S1 panel selects a project video and creates persistent port bindings','right click creates four persisted orchestration Skill nodes and the H3 generation node','each orchestration node saves a core input and receives a server readiness result','new nodes use the same draggable canvas card contract','compatible ports create persisted visual edges including Hell Grind to H3','H3 blocks until the upstream compiler emits video_prompt','creation is disabled until rights and preflight pass','mobile S1 panel stays within viewport','no provider task is sent']}));
+    console.log(JSON.stringify({ok:true,verified:['desktop S1 panel selects a project video and creates persistent port bindings','right click creates four persisted orchestration Skill nodes and the H3 generation node','each orchestration node saves a core input and receives a server readiness result','MCGrox compiler preflight keeps input recoverable when server configuration is absent','new nodes use the same draggable canvas card contract','compatible ports create persisted visual edges including Hell Grind to H3','H3 blocks until the upstream compiler emits video_prompt','creation is disabled until rights and preflight pass','mobile S1 panel stays within viewport','no provider task is sent']}));
   } finally {
     if (browser) await browser.close();
     server.kill();

@@ -104,6 +104,11 @@ async function run() {
   const screenwriterReady = await request('/api/projects/' + project.id + '/canvas/skill-nodes/champion-screenwriter/readiness?projectKind=redraw', {headers:headers()});
   assert.equal(screenwriterReady.response.status, 200, JSON.stringify(screenwriterReady.body));
   assert.equal(screenwriterReady.body.readiness.ready, true);
+  const compilerDryRun = await request('/api/projects/' + project.id + '/canvas/skill-nodes/champion-screenwriter/compile', {method:'POST',headers:headers({'content-type':'application/json'}),body:JSON.stringify({projectKind:'redraw'})});
+  assert.equal(compilerDryRun.response.status, 200, JSON.stringify(compilerDryRun.body));
+  assert.equal(compilerDryRun.body.code, 'CANVAS_COMPILER_DRY_RUN_READY');
+  assert.equal(compilerDryRun.body.spendRequested, false);
+  assert.deepEqual(compilerDryRun.body.inputPorts, ['story']);
   const skillNodes = saved.body.document.nodes.filter(item => ['screenwriter','chaoge-assets-trial','shotlist-builder','hell-grind'].includes(item.skillKey));
   assert.equal(skillNodes.length, 4);
   for (const item of skillNodes) {

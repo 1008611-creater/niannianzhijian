@@ -57,6 +57,7 @@ const canvasProviderConfig = require('./bridge/niannian_canvas_provider_config')
 const canvasTextRuntimeModule = require('./bridge/niannian_canvas_text_runtime');
 const canvasTextJobs = require('./bridge/niannian_canvas_text_jobs');
 const canvasSkillNodes = require('./bridge/niannian_canvas_skill_nodes');
+const canvasMcgroxCompilerModule = require('./bridge/niannian_canvas_mcgrox_compiler');
 const canvasS1Chain = require('./bridge/niannian_canvas_s1_chain');
 const canvasImage2Node = require('./bridge/niannian_canvas_image2_node');
 const canvasH3Node = require('./bridge/niannian_canvas_h3_node');
@@ -172,6 +173,7 @@ const canvasAnimateRuntime = canvasAnimateRuntimeModule.createCanvasAnimateRunti
 });
 const canvasTextRuntime = canvasTextRuntimeModule.createCanvasTextRuntime();
 const canvasTextJobService = canvasTextJobs.createCanvasTextJobService({filePath:canvasTextJobsPath});
+const canvasMcgroxCompiler = canvasMcgroxCompilerModule.createCanvasMcgroxCompiler();
 const activeCanvasTextJobs = new Set();
 const nomiWebH3 = nomiRunningHubH3.createNomiRunningHubH3();
 const nomiWebTaskStore = nomiWebTaskStoreModule.createNomiWebTaskStore({filePath:nomiWebTasksPath});
@@ -7371,6 +7373,100 @@ async function handleCanvasSkillReadinessApi(request, response, pathname, user) 
   }
 }
 
+async function updateCanvasCompilerNode({user, owned, nodeId, expectedTaskId = null, mutate}) {
+  const key = canvasDocumentKey(owned.projectKind, owned.project.id);
+  return withCanvasDocumentsWriteLock(async () => {
+    const documents = await readCanvasDocuments();
+    const current = documents[key] || null;
+    const currentDocument = normalizeCanvasDocument(current?.document, owned.project);
+    const node = currentDocument.nodes.find(item => item.id === nodeId) || null;
+    if (!node || node.executionMode !== 'orchestration') throw Object.assign(new Error('编排节点不存在或尚未保存'), {code:'CANVAS_SKILL_NODE_NOT_FOUND',httpStatus:404});
+    if (expectedTaskId && node.taskRef?.id !== expectedTaskId) return null;
+    mutate(node, currentDocument);
+    node.data = Object.assign({}, node.data || {}, {
+      status:node.status,
+      parameters:node.parameters,
+      taskRef:node.taskRef,
+      recovery:node.recovery
+    });
+    const document = normalizeCanvasDocument(currentDocument, owned.project);
+    const revision = Number(current?.revision || 0) + 1;
+    const record = {schemaVersion:'niannian.canvas-document.v1',projectId:owned.project.id,projectKind:owned.projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
+    documents[key] = record;
+    await syncSkillDocumentToNomiCanvas({documents,project:owned.project,projectKind:owned.projectKind,skillDocument:document});
+    await writeCanvasDocuments(documents);
+    return record;
+  });
+}
+
+async function handleCanvasSkillCompileApi(request, response, pathname, user) {
+  const match = pathname.match(/^\/api\/projects\/([^/]+)\/canvas\/skill-nodes\/([^/]+)\/compile$/);
+  if (!match) return false;
+  if (request.method !== 'POST') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
+  const projectId = decodeURIComponent(match[1]);
+  const nodeId = decodeURIComponent(match[2]);
+  try {
+    const body = await readBodyJson(request);
+    const requestedKind = canvasText(body.projectKind || request.headers['x-niannian-project-kind'] || '', 20) || null;
+    const owned = await ownedCanvasProjectById(user, projectId, requestedKind);
+    if (!owned) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
+    const record = (await readCanvasDocuments())[canvasDocumentKey(owned.projectKind, projectId)];
+    const document = normalizeCanvasDocument(record?.document, owned.project);
+    const resolved = canvasSkillNodes.resolveOrchestrationInputs(document, nodeId);
+    const providerStatus = canvasMcgroxCompilerModule.configuredStatus();
+    if (body.confirmProviderCall !== true) {
+      return json(response, 200, {
+        code:'CANVAS_COMPILER_DRY_RUN_READY',
+        projectId,
+        projectKind:owned.projectKind,
+        nodeId,
+        skillKey:resolved.node.skillKey,
+        inputPorts:Object.keys(resolved.inputs),
+        providerStatus,
+        providerSubmitEnabled:providerStatus.submitEnabled,
+        spendRequested:false,
+        nextAction:'确认后才会调用服务器端 MCGrox 编排模型。'
+      }, {'Cache-Control':'no-store'});
+    }
+    if (!providerStatus.submitEnabled) return json(response, 409, {code:'CANVAS_COMPILER_NOT_READY',error:'MCGrox 服务端文本执行器尚未配置完成',providerStatus,spendRequested:false});
+    if (request.headers['if-match'] !== canvasEtag(Number(record?.revision || 0))) throw Object.assign(new Error('画布已更新，请重新读取后再运行编排。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:412});
+    const taskId = 'CPL-' + crypto.randomBytes(12).toString('hex');
+    const idempotencyKey = canvasText(request.headers['idempotency-key'], 160) || null;
+    const started = await updateCanvasCompilerNode({user,owned,nodeId,mutate(node) {
+      node.status = 'running';
+      node.taskRef = {id:taskId,idempotencyKey,status:'running'};
+      node.recovery = {actions:['retry','repair_input'],lastAction:'compile'};
+    }});
+    try {
+      const result = await canvasMcgroxCompiler.compile({
+        skillKey:resolved.node.skillKey,
+        skillVersion:resolved.node.skillVersion,
+        description:resolved.node.description,
+        inputs:resolved.inputs,
+        outputPorts:resolved.node.outputPorts
+      });
+      const completed = await updateCanvasCompilerNode({user,owned,nodeId,expectedTaskId:taskId,mutate(node) {
+        node.status = 'succeeded';
+        node.parameters = Object.assign({}, node.parameters || {}, {compiledOutputs:result.outputs, compiler:{provider:'mcgrox',model:result.model,completedAt:new Date().toISOString()}});
+        node.taskRef = {id:taskId,idempotencyKey,status:'succeeded'};
+        node.recovery = {actions:['retry','repair_input'],lastAction:'compile_succeeded'};
+      }});
+      if (!completed) throw Object.assign(new Error('编排运行期间节点已被修改，请重新检查输入。'), {code:'CANVAS_COMPILER_STALE_TASK',httpStatus:409});
+      const compiled = completed.document.nodes.find(item => item.id === nodeId);
+      return json(response, 200, {code:'CANVAS_COMPILER_SUCCEEDED',revision:completed.revision,node:compiled,providerStatus,providerSubmitEnabled:true,spendRequested:true}, {ETag:canvasEtag(completed.revision),'Cache-Control':'no-store'});
+    } catch (error) {
+      await updateCanvasCompilerNode({user,owned,nodeId,expectedTaskId:taskId,mutate(node) {
+        node.status = 'failed';
+        node.taskRef = {id:taskId,idempotencyKey,status:'failed'};
+        node.recovery = {actions:['retry','repair_input'],lastAction:'compile_failed'};
+      }}).catch(() => {});
+      throw error;
+    }
+  } catch (error) {
+    return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_COMPILER_FAILED',error:error.message || '编排任务失败'});
+  }
+}
+
 function decodeDirectorDeskCapture(value) {
   const match = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(value || '').trim());
   if (!match) throw Object.assign(new Error('导演台截图格式无效'), {code:'DIRECTOR_CAPTURE_INVALID',httpStatus:422});
@@ -8653,6 +8749,10 @@ async function handleApi(request, response, pathname) {
   }
   if (pathname.match(/^\/api\/projects\/[^/]+\/canvas\/jobs/)) {
     const handled = await handleCanvasGenerationApi(request, response, pathname, user);
+    if (handled) return;
+  }
+  if (pathname.match(/^\/api\/projects\/[^/]+\/canvas\/skill-nodes\/[^/]+\/compile$/)) {
+    const handled = await handleCanvasSkillCompileApi(request, response, pathname, user);
     if (handled) return;
   }
   if (pathname.match(/^\/api\/projects\/[^/]+\/canvas\/skill-nodes\/[^/]+\/readiness$/)) {
