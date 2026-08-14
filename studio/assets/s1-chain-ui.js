@@ -194,8 +194,11 @@
       var ports = node[direction + 'Ports'] || (node.data && node.data[direction + 'Ports']) || [];
       return ports.map(function (port) { return '<button type="button" class="s1-port-handle s1-' + direction + '-port" data-s1-' + direction + '-node="' + escapeHtml(node.id) + '" data-s1-' + direction + '-port="' + escapeHtml(port.id) + '" title="' + (direction === 'output' ? '从此端口拖到兼容输入' : '接收兼容输出') + '">' + escapeHtml(port.id) + '</button>'; }).join('') || '<span>等待连接</span>';
     }
+    function championPrimaryPort(spec) { var port = spec.inputs[0]; return typeof port === 'string' ? port : port.id; }
+    function championInputValue(node, portId) { return node && node.parameters && node.parameters.inputs && node.parameters.inputs[portId] || ''; }
     function championNodeMarkup(node, spec) {
-      return '<article class="s1-node s1-skill-node" data-champion-node data-node-id="' + escapeHtml(node.id) + '" data-status="' + escapeHtml(node.status || 'draft') + '"><div class="s1-meta"><span>编排 Skill · ' + escapeHtml(node.skillKey) + '</span><small data-node-status>' + escapeHtml(node.status || 'draft') + '</small></div><h3>' + escapeHtml((node.data && node.data.title) || spec.title) + '</h3><p>' + escapeHtml((node.data && node.data.note) || spec.note) + '</p><div class="s1-ports"><div class="s1-port-group input"><small>输入</small>' + nodePortButtons(node, 'input') + '</div><div class="s1-port-group output"><small>输出</small>' + nodePortButtons(node, 'output') + '</div></div><div class="s1-status">编排节点只输出计划、提示词或资产引用；图像和视频仍通过后续生成节点的服务器任务链。</div></article>';
+      var primaryPort = championPrimaryPort(spec);
+      return '<article class="s1-node s1-skill-node" data-champion-node data-node-id="' + escapeHtml(node.id) + '" data-status="' + escapeHtml(node.status || 'draft') + '"><div class="s1-meta"><span>编排 Skill · ' + escapeHtml(node.skillKey) + '</span><small data-node-status>' + escapeHtml(node.status || 'draft') + '</small></div><h3>' + escapeHtml((node.data && node.data.title) || spec.title) + '</h3><p>' + escapeHtml((node.data && node.data.note) || spec.note) + '</p><div class="s1-ports"><div class="s1-port-group input"><small>输入</small>' + nodePortButtons(node, 'input') + '</div><div class="s1-port-group output"><small>输出</small>' + nodePortButtons(node, 'output') + '</div></div><label class="s1-row" style="align-items:flex-start"><span>核心输入 · ' + escapeHtml(primaryPort) + '</span><textarea data-champion-input data-champion-port="' + escapeHtml(primaryPort) + '" placeholder="填写内容或从左侧端口连接上游输出" style="flex:1;min-width:0;min-height:54px;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:6px;font:inherit">' + escapeHtml(championInputValue(node, primaryPort)) + '</textarea></label><div class="s1-status" data-champion-readiness>保存后可检查当前节点是否具备编排输入。</div><div class="s1-row"><button type="button" class="s1-secondary" data-champion-save>保存参数</button><button type="button" data-champion-check>检查输入</button></div><div class="s1-status">编排节点只输出计划、提示词或资产引用；图像和视频仍通过后续生成节点的服务器任务链。</div></article>';
     }
     function renderChampionNodes(nodes) {
       panel.querySelectorAll('[data-champion-node]').forEach(function (card) { card.remove(); });
@@ -256,10 +259,10 @@
     function freeChampionPosition(position) {
       var occupied = Object.keys(nodeById).map(function (id) { return nodeById[id] && nodeById[id].position; }).filter(Boolean);
       for (var index = 0; index < 32; index += 1) {
-        var candidate = {x:Math.max(0,Math.round(position.x + (index % 3) * 320)),y:Math.max(80,Math.round(position.y + Math.floor(index / 3) * 250))};
-        if (!occupied.some(function (item) { return Math.abs(item.x - candidate.x) < 280 && Math.abs(item.y - candidate.y) < 220; })) return candidate;
+        var candidate = {x:Math.max(0,Math.round(position.x + (index % 3) * 320)),y:Math.max(80,Math.round(position.y + Math.floor(index / 3) * 460))};
+        if (!occupied.some(function (item) { return Math.abs(item.x - candidate.x) < 300 && Math.abs(item.y - candidate.y) < 430; })) return candidate;
       }
-      return {x:Math.max(0,Math.round(position.x + 960)),y:Math.max(80,Math.round(position.y + 750))};
+      return {x:Math.max(0,Math.round(position.x + 960)),y:Math.max(80,Math.round(position.y + 1380))};
     }
     async function createChampionNode(skillKey, position) {
       var spec = championSpecs[skillKey];
@@ -276,6 +279,28 @@
       await persistRuntimeProjection();
       setStatus('已添加「' + spec.title + '」。拖动标题可调整位置；端口只能连接同类型输出。');
     }
+    async function saveChampionInput(card) {
+      var node = nodeById[card && card.dataset.nodeId];
+      var input = card && card.querySelector('[data-champion-input]');
+      if (!node || !input) return;
+      var parameters = Object.assign({}, node.parameters || {}, {inputs:Object.assign({}, node.parameters && node.parameters.inputs || {})});
+      parameters.inputs[input.dataset.championPort] = input.value.trim();
+      node.parameters = parameters;
+      node.data = Object.assign({}, node.data || {}, {parameters:parameters});
+      await persistRuntimeProjection();
+      setStatus('已保存「' + (node.data && node.data.title || node.skillKey) + '」的核心输入。');
+    }
+    async function checkChampionReadiness(card) {
+      var node = nodeById[card && card.dataset.nodeId];
+      var status = card && card.querySelector('[data-champion-readiness]');
+      if (!node || !status) return;
+      status.textContent = '正在检查服务端输入合同...';
+      try {
+        var result = await api('/api/projects/' + encodeURIComponent(projectId()) + '/canvas/skill-nodes/' + encodeURIComponent(node.id) + '/readiness?projectKind=' + encodeURIComponent(projectKind()));
+        var readiness = result.body.readiness || {};
+        status.textContent = readiness.ready ? '核心输入已齐全，可在文本模型配置完成后请求编排。' : '尚缺：' + (readiness.blockers || []).map(function (blocker) { return blocker.portId + (blocker.reason === 'upstream_output_missing' ? '（等待上游输出）' : '（需要输入）'); }).join('、');
+      } catch (error) { status.textContent = (error.code ? error.code + ': ' : '') + (error.message || '输入检查失败'); }
+    }
     function installDragging() {
       panel.addEventListener('pointerdown', function (event) {
         var handle = event.target.closest('.s1-node h3');
@@ -291,6 +316,11 @@
       });
     }
     function installPortConnections() {
+      var selected = null;
+      function clearSelected() {
+        if (selected && selected.element) selected.element.classList.remove('s1-connecting');
+        selected = null;
+      }
       panel.addEventListener('pointerdown', function (event) {
         var source = event.target.closest('[data-s1-output-port]');
         if (!source || !panel.contains(source)) return;
@@ -308,6 +338,25 @@
           });
         }
         window.addEventListener('pointerup', finish, {once:true});
+      });
+      panel.addEventListener('click', function (event) {
+        var output = event.target.closest('[data-s1-output-port]');
+        if (output && panel.contains(output)) {
+          event.preventDefault(); event.stopPropagation();
+          if (selected && selected.element === output) { clearSelected(); return; }
+          clearSelected();
+          selected = {element:output,nodeId:output.dataset.s1OutputNode,portId:output.dataset.s1OutputPort};
+          output.classList.add('s1-connecting');
+          setStatus('已选择输出端口；点击兼容输入端完成连接。');
+          return;
+        }
+        var input = event.target.closest('[data-s1-input-port]');
+        if (!input || !selected || !panel.contains(input)) return;
+        var source = selected;
+        clearSelected();
+        connectPorts(source.nodeId, source.portId, input.dataset.s1InputNode, input.dataset.s1InputPort).catch(function (error) {
+          setStatus(error.message || '端口连接失败', true);
+        });
       });
     }
     function renderImage2Assets() {
@@ -579,6 +628,12 @@
       createChampionNode(skillKey, contextPoint).catch(function (error) { setStatus((error.code ? error.code + ': ' : '') + (error.message || '添加节点失败'), true); });
     });
     panel.addEventListener('pointerdown', function (event) { if (!event.target.closest('[data-s1-context]')) hideContextMenu(); });
+    panel.addEventListener('click', function (event) {
+      var card = event.target.closest('[data-champion-node]');
+      if (!card) return;
+      if (event.target.closest('[data-champion-save]')) saveChampionInput(card).catch(function (error) { setStatus(error.message || '参数保存失败', true); });
+      if (event.target.closest('[data-champion-check]')) checkChampionReadiness(card);
+    });
     panel.querySelector('[data-s1-refresh]').addEventListener('click', load);
     startBtn.addEventListener('click', startStep01);
     image2Create.addEventListener('click', createImage2); image2Dry.addEventListener('click', dryRunImage2);

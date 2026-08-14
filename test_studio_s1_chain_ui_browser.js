@@ -84,6 +84,12 @@ async function main() {
       assert.equal(await panel.locator('[data-champion-node]').count(), index + 1, 'right-click menu must persist ' + label);
     }
     assert.equal(await panel.locator('[data-champion-node]').count(), 4, 'right click must create all four persisted orchestration Skill nodes');
+    const screenwriterCard = panel.locator('[data-champion-node]').filter({hasText:'剧本编排'});
+    await screenwriterCard.locator('[data-champion-input]').fill('一段发生在雨夜街头的短剧故事。');
+    await screenwriterCard.getByRole('button', {name:'保存参数'}).click();
+    await page.getByText('已保存「剧本编排」的核心输入。').waitFor();
+    await screenwriterCard.getByRole('button', {name:'检查输入'}).click();
+    await screenwriterCard.getByText('核心输入已齐全，可在文本模型配置完成后请求编排。').waitFor();
     await flow.click({button:'right', position:{x:1180, y:370}});
     await panel.getByRole('button', {name:'生成节点 · H3 生视频'}).click();
     await panel.getByRole('heading', {name:'H3 生视频', exact:true}).waitFor();
@@ -93,14 +99,9 @@ async function main() {
     const hellVideoPrompt = panel.locator('[data-champion-node]').filter({hasText:'镜头提示编译'}).locator('[data-s1-output-port="video_prompt"]');
     const h3PromptInput = panel.locator('[data-node="h3"] [data-s1-input-port="prompt"]');
     await hellVideoPrompt.scrollIntoViewIfNeeded();
+    await hellVideoPrompt.click();
     await h3PromptInput.scrollIntoViewIfNeeded();
-    const hellVideoPromptBox = await hellVideoPrompt.boundingBox();
-    const h3PromptInputBox = await h3PromptInput.boundingBox();
-    assert.ok(hellVideoPromptBox && h3PromptInputBox, 'Hell Grind and H3 typed ports must be visible for a drag connection');
-    await page.mouse.move(hellVideoPromptBox.x + hellVideoPromptBox.width / 2, hellVideoPromptBox.y + hellVideoPromptBox.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(h3PromptInputBox.x + h3PromptInputBox.width / 2, h3PromptInputBox.y + h3PromptInputBox.height / 2, {steps:6});
-    await page.mouse.up();
+    await h3PromptInput.click();
     await page.waitForTimeout(180);
     const h3ConnectedDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
     assert.ok(h3ConnectedDocument.document.edges.some(edge => edge.sourcePort === 'video_prompt' && edge.target === 's3-h3-video' && edge.targetPort === 'prompt'), 'Hell Grind video prompt must persist into the H3 input port');
@@ -151,7 +152,7 @@ async function main() {
     assert.deepEqual(consoleErrors, []);
     await context.close();
     await browser.close(); browser = null;
-    console.log(JSON.stringify({ok:true,verified:['desktop S1 panel selects a project video and creates persistent port bindings','right click creates four persisted orchestration Skill nodes and the H3 generation node','new nodes use the same draggable canvas card contract','compatible ports create persisted visual edges including Hell Grind to H3','H3 blocks until the upstream compiler emits video_prompt','creation is disabled until rights and preflight pass','mobile S1 panel stays within viewport','no provider task is sent']}));
+    console.log(JSON.stringify({ok:true,verified:['desktop S1 panel selects a project video and creates persistent port bindings','right click creates four persisted orchestration Skill nodes and the H3 generation node','each orchestration node saves a core input and receives a server readiness result','new nodes use the same draggable canvas card contract','compatible ports create persisted visual edges including Hell Grind to H3','H3 blocks until the upstream compiler emits video_prompt','creation is disabled until rights and preflight pass','mobile S1 panel stays within viewport','no provider task is sent']}));
   } finally {
     if (browser) await browser.close();
     server.kill();

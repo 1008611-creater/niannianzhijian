@@ -7352,6 +7352,25 @@ async function handleCanvasH3NodeApi(request, response, pathname, user) {
   }
 }
 
+async function handleCanvasSkillReadinessApi(request, response, pathname, user) {
+  const match = pathname.match(/^\/api\/projects\/([^/]+)\/canvas\/skill-nodes\/([^/]+)\/readiness$/);
+  if (!match) return false;
+  const projectId = decodeURIComponent(match[1]);
+  const nodeId = decodeURIComponent(match[2]);
+  if (request.method !== 'GET') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
+  try {
+    const projectKind = canvasText(new URL(request.url, 'http://127.0.0.1').searchParams.get('projectKind'), 20) || null;
+    const owned = await ownedCanvasProjectById(user, projectId, projectKind);
+    if (!owned) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
+    const record = (await readCanvasDocuments())[canvasDocumentKey(owned.projectKind, projectId)];
+    const document = normalizeCanvasDocument(record?.document, owned.project);
+    const readiness = canvasSkillNodes.orchestrationReadiness(document, nodeId);
+    return json(response, 200, {code:'CANVAS_SKILL_NODE_READINESS',projectId,projectKind:owned.projectKind,readiness,providerSubmitEnabled:false,spendRequested:false}, {'Cache-Control':'no-store'});
+  } catch (error) {
+    return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_SKILL_NODE_READINESS_FAILED',error:error.message || '编排输入检查失败'});
+  }
+}
+
 function decodeDirectorDeskCapture(value) {
   const match = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(value || '').trim());
   if (!match) throw Object.assign(new Error('导演台截图格式无效'), {code:'DIRECTOR_CAPTURE_INVALID',httpStatus:422});
@@ -8634,6 +8653,10 @@ async function handleApi(request, response, pathname) {
   }
   if (pathname.match(/^\/api\/projects\/[^/]+\/canvas\/jobs/)) {
     const handled = await handleCanvasGenerationApi(request, response, pathname, user);
+    if (handled) return;
+  }
+  if (pathname.match(/^\/api\/projects\/[^/]+\/canvas\/skill-nodes\/[^/]+\/readiness$/)) {
+    const handled = await handleCanvasSkillReadinessApi(request, response, pathname, user);
     if (handled) return;
   }
   if (pathname.match(/^\/api\/projects\/[^/]+\/text\/jobs/)) {

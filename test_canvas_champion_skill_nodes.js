@@ -90,6 +90,20 @@ async function run() {
   const saved = await save(championDocument(), initial.response.headers.get('etag'));
   assert.equal(saved.response.status, 200, JSON.stringify(saved.body));
   let etag = saved.response.headers.get('etag');
+  const screenwriterBlocked = await request('/api/projects/' + project.id + '/canvas/skill-nodes/champion-screenwriter/readiness?projectKind=redraw', {headers:headers()});
+  assert.equal(screenwriterBlocked.response.status, 200, JSON.stringify(screenwriterBlocked.body));
+  assert.equal(screenwriterBlocked.body.readiness.ready, false);
+  assert.deepEqual(screenwriterBlocked.body.readiness.blockers, [{portId:'story',type:'story',reason:'input_required'}]);
+  const withStory = saved.body.document;
+  const screenwriter = withStory.nodes.find(item => item.id === 'champion-screenwriter');
+  screenwriter.parameters = {...screenwriter.parameters, inputs:{story:'一段发生在雨夜街头的短剧故事。'}};
+  screenwriter.data.parameters = screenwriter.parameters;
+  const storySaved = await save(withStory, etag);
+  assert.equal(storySaved.response.status, 200, JSON.stringify(storySaved.body));
+  etag = storySaved.response.headers.get('etag');
+  const screenwriterReady = await request('/api/projects/' + project.id + '/canvas/skill-nodes/champion-screenwriter/readiness?projectKind=redraw', {headers:headers()});
+  assert.equal(screenwriterReady.response.status, 200, JSON.stringify(screenwriterReady.body));
+  assert.equal(screenwriterReady.body.readiness.ready, true);
   const skillNodes = saved.body.document.nodes.filter(item => ['screenwriter','chaoge-assets-trial','shotlist-builder','hell-grind'].includes(item.skillKey));
   assert.equal(skillNodes.length, 4);
   for (const item of skillNodes) {

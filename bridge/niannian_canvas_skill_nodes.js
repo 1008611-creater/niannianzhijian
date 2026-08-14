@@ -235,4 +235,29 @@ function resolveCompiledPrompt(document, targetNodeId) {
   return {prompt:text(value, 4000), sourceNodeId:source.nodeId || source.id, sourcePort:edge.sourcePort};
 }
 
-module.exports = {SKILLS, STATUS, normalizeSkillNode, validateDocumentSkillNodes, validateSkillConnections, resolveCompiledPrompt, contractError};
+function orchestrationReadiness(document, targetNodeId) {
+  const nodes = Array.isArray(document?.nodes) ? document.nodes : [];
+  const edges = Array.isArray(document?.edges) ? document.edges : [];
+  const target = nodes.find(node => (node?.nodeId || node?.id) === targetNodeId) || null;
+  if (!target) throw contractError('CANVAS_SKILL_NODE_NOT_FOUND', '编排节点不存在');
+  if (target.executionMode !== 'orchestration') throw contractError('CANVAS_SKILL_NODE_NOT_ORCHESTRATION', '当前节点不是编排 Skill');
+  const inputs = target.parameters?.inputs && typeof target.parameters.inputs === 'object' && !Array.isArray(target.parameters.inputs)
+    ? target.parameters.inputs
+    : {};
+  const byId = new Map(nodes.filter(Boolean).map(node => [node.nodeId || node.id, node]));
+  const blockers = [];
+  for (const port of target.inputPorts || []) {
+    if (!port.required) continue;
+    const manual = text(inputs[port.id], 4000);
+    const inbound = edges.find(edge => edge?.target === targetNodeId && edge?.targetPort === port.id) || null;
+    const upstream = inbound ? byId.get(inbound.source) : null;
+    const upstreamValue = upstream?.parameters?.compiledOutputs?.[inbound?.sourcePort];
+    const upstreamReady = upstream?.executionMode !== 'orchestration' || Boolean(text(upstreamValue, 4000));
+    if (!manual && (!inbound || !upstreamReady)) {
+      blockers.push({portId:port.id, type:port.type, reason:inbound && upstream ? 'upstream_output_missing' : 'input_required'});
+    }
+  }
+  return {nodeId:target.nodeId || target.id, skillKey:target.skillKey, ready:blockers.length === 0, blockers};
+}
+
+module.exports = {SKILLS, STATUS, normalizeSkillNode, validateDocumentSkillNodes, validateSkillConnections, resolveCompiledPrompt, orchestrationReadiness, contractError};
