@@ -42,8 +42,8 @@ function hooksOf(arg?: UploadProgress | ImportMediaHooks): ImportMediaHooks {
   return arg;
 }
 
-/** Files at/above this size use multipart so a single network glitch doesn't redo GBs. */
-const MULTIPART_THRESHOLD = 32 * 1024 * 1024;
+/** Files at/above this size use multipart so gateway timeouts do not abort a single long request. */
+const MULTIPART_THRESHOLD = 16 * 1024 * 1024;
 const MULTIPART_CONCURRENCY = 3;
 const PART_RETRIES = 4;
 
