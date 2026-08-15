@@ -58,6 +58,23 @@
     document.head.appendChild(style);
   }
 
+  function installBackButton() {
+    var appbarLeft = document.querySelector('.nomi-appbar__left');
+    if (!appbarLeft || document.getElementById('s1-chain-back')) return;
+    var style = document.createElement('style');
+    style.id = 's1-chain-back-style';
+    style.textContent = '#s1-chain-back{display:inline-flex;align-items:center;height:30px;padding:0 10px;border:1px solid rgba(90,64,42,.16);border-radius:7px;background:transparent;color:var(--nomi-ink-60,#6d5947);cursor:pointer;font:500 13px/1 Inter,system-ui,sans-serif;white-space:nowrap}#s1-chain-back:hover{background:var(--nomi-ink-05,rgba(90,64,42,.07));color:var(--nomi-ink,#2a2118)}@media(max-width:700px){#s1-chain-back{padding:0 7px;font-size:12px}}';
+    document.head.appendChild(style);
+    var backButton = document.createElement('button');
+    backButton.id = 's1-chain-back';
+    backButton.type = 'button';
+    backButton.textContent = '返回项目库';
+    backButton.setAttribute('aria-label', '返回项目库');
+    backButton.title = '返回项目库';
+    backButton.addEventListener('click', function () { window.location.assign('/#projects'); });
+    appbarLeft.insertBefore(backButton, appbarLeft.firstChild);
+  }
+
   function mount(host) {
     if (!host || document.getElementById('s1-chain-canvas')) return false;
     if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
@@ -692,8 +709,9 @@
   }
 
   function observeGenerationCanvas() {
+    installBackButton();
     mountIntoGenerationCanvas();
-    var observer = new MutationObserver(function () { mountIntoGenerationCanvas(); });
+    var observer = new MutationObserver(function () { installBackButton(); mountIntoGenerationCanvas(); });
     observer.observe(document.documentElement, {childList:true, subtree:true});
   }
 
