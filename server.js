@@ -49,6 +49,7 @@ const canvasGenerationJobs = require('./bridge/niannian_canvas_generation_jobs')
 const canvasAssets = require('./bridge/niannian_canvas_assets');
 const canvasImage2RuntimeModule = require('./bridge/niannian_canvas_image2_runtime');
 const yunfeiImage2Adapter = require('./bridge/niannian_yunfei_image2_adapter');
+const yunwuAgentVaultImage2Adapter = require('./bridge/niannian_yunwu_agent_vault_image2_adapter');
 const canvasImage2Channels = require('./bridge/niannian_canvas_image2_channels');
 const canvasH3RuntimeModule = require('./bridge/niannian_canvas_h3_runtime');
 const canvasAnimateRuntimeModule = require('./bridge/niannian_canvas_animate_runtime');
@@ -161,7 +162,8 @@ const canvasImage2Runtime = canvasImage2RuntimeModule.createCanvasImage2Runtime(
   adapters:{
     runninghub: undefined,
     'yunfei-1k': yunfeiImage2Adapter.createYunfeiImage2Adapter({baseUrl:canvasProviderStatus.yunfei1kBaseUrl,apiKey:process.env.YUNFEI_IMAGE2_1K_API_KEY}),
-    'yunfei-hd': yunfeiImage2Adapter.createYunfeiImage2Adapter({baseUrl:canvasProviderStatus.yunfeiHdBaseUrl,apiKey:process.env.YUNFEI_IMAGE2_HD_API_KEY})
+    'yunfei-hd': yunfeiImage2Adapter.createYunfeiImage2Adapter({baseUrl:canvasProviderStatus.yunfeiHdBaseUrl,apiKey:process.env.YUNFEI_IMAGE2_HD_API_KEY}),
+    'yunwu-agent-vault': yunwuAgentVaultImage2Adapter.createYunwuAgentVaultImage2Adapter()
   }
 });
 const canvasH3Runtime = canvasH3RuntimeModule.createCanvasH3Runtime({jobService:canvasGenerationJobService,assetService:canvasAssetService,enabled:canvasProviderStatus.videoSubmitEnabled});
@@ -7875,14 +7877,21 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         model:requestedModel || (nodeType === 'image' ? 'runninghub-gpt-image-2' : 'h3'),
         prompt:canvasText(compiledPrompt?.prompt || body.prompt || node.data?.prompt, 4000),
         inputAssetIds,
-        resolution:canvasText(body.resolution || node.data?.resolution || '2k', 8),
-        aspectRatio:canvasText(
-          body.aspectRatio
-            || (nodeType === 'video'
-              ? (node.data?.aspectRatio && node.data.aspectRatio !== '1:1' ? node.data.aspectRatio : '9:16')
-              : node.data?.aspectRatio || '1:1'),
-          16
-        ),
+        // The Yunwu portrait channel accepts exactly one delivery shape. Older canvas
+        // nodes still carry the generic 1:1 default, so prevent it from overriding
+        // the selected channel contract at submit time.
+        resolution:nodeType === 'image' && requestedModel === 'yunwu-gpt-image-2-c'
+          ? '4k'
+          : canvasText(body.resolution || node.data?.resolution || '2k', 8),
+        aspectRatio:nodeType === 'image' && requestedModel === 'yunwu-gpt-image-2-c'
+          ? '9:16'
+          : canvasText(
+            body.aspectRatio
+              || (nodeType === 'video'
+                ? (node.data?.aspectRatio && node.data.aspectRatio !== '1:1' ? node.data.aspectRatio : '9:16')
+                : node.data?.aspectRatio || '1:1'),
+            16
+          ),
         durationSeconds:body.durationSeconds || body.duration_seconds || node.data?.durationSeconds || node.data?.duration_seconds || (nodeType === 'video' ? 5 : 0),
         idempotencyKey:request.headers['idempotency-key']
       });

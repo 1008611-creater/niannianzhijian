@@ -22,10 +22,12 @@ function readCanvasProviderConfig(env = process.env) {
   const yunfeiHdBaseUrl = String(env.YUNFEI_IMAGE2_HD_BASE_URL || DEFAULT_YUNFEI_BASE_URL).trim().replace(/\/+$/, '') || DEFAULT_YUNFEI_BASE_URL;
   const yunfei1kSubmitEnabled = isConfigured(env.YUNFEI_IMAGE2_1K_API_KEY) && /^https:\/\//.test(yunfei1kBaseUrl) && isOn(env.NIANNIAN_CANVAS_YUNFEI_1K_SUBMIT);
   const yunfeiHdSubmitEnabled = isConfigured(env.YUNFEI_IMAGE2_HD_API_KEY) && /^https:\/\//.test(yunfeiHdBaseUrl) && isOn(env.NIANNIAN_CANVAS_YUNFEI_HD_SUBMIT);
+  const yunwuSubmitEnabled = isConfigured(env.AGENT_VAULT_ADDR) && isConfigured(env.AGENT_VAULT_VAULT) && isConfigured(env.AGENT_VAULT_TOKEN) && isConfigured(env.HTTPS_PROXY || env.https_proxy) && isOn(env.NIANNIAN_CANVAS_YUNWU_SUBMIT);
   const imageChannelEnabled = Object.freeze({
     [CHANNELS['runninghub-gpt-image-2'].id]: imageSubmitEnabled,
     [CHANNELS['yunfei-gpt-image-2-1k'].id]: yunfei1kSubmitEnabled,
-    [CHANNELS['yunfei-gpt-image-2-hd'].id]: yunfeiHdSubmitEnabled
+    [CHANNELS['yunfei-gpt-image-2-hd'].id]: yunfeiHdSubmitEnabled,
+    [CHANNELS['yunwu-gpt-image-2-c'].id]: yunwuSubmitEnabled
   });
   const videoSubmitEnabled = credentialConfigured && baseUrlValid && isOn(env.NIANNIAN_CANVAS_H3_SUBMIT);
   const animateCredentialConfigured = isConfigured(env.NIANNIAN_RUNNINGHUB_ANIMATE_API_KEY);
@@ -43,6 +45,7 @@ function readCanvasProviderConfig(env = process.env) {
     yunfeiHdBaseUrl,
     yunfei1kSubmitEnabled,
     yunfeiHdSubmitEnabled,
+    yunwuSubmitEnabled,
     videoSubmitEnabled,
     animateCredentialConfigured,
     animateSubmitEnabled
