@@ -21,6 +21,10 @@
     return 'redraw';
   }
 
+  function isStudioLibraryRoute() {
+    return !projectId() && /^#\/studio(?:\?.*)?$/.test(String(window.location.hash || ''));
+  }
+
   function projectListPath() {
     return projectKind() === 'script' ? '/api/script-projects' : '/api/projects';
   }
@@ -85,6 +89,23 @@
       event.stopImmediatePropagation();
       window.location.assign('/studio/#/studio');
     }, true);
+  }
+
+  function installStudioLibraryWorkbenchBack() {
+    if (!isStudioLibraryRoute() || document.getElementById('s1-library-workbench-back')) return;
+    if (!document.body) return;
+    var style = document.createElement('style');
+    style.id = 's1-library-workbench-back-style';
+    style.textContent = '#s1-library-workbench-back{position:fixed;top:18px;left:24px;z-index:1000;display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px;border:1px solid rgba(90,64,42,.18);border-radius:7px;background:rgba(255,253,249,.96);box-shadow:0 4px 14px rgba(42,33,24,.08);color:#6d5947;cursor:pointer;font:600 13px/1 Inter,system-ui,sans-serif;white-space:nowrap}#s1-library-workbench-back:hover{background:#2a2118;color:#fff}#s1-library-workbench-back:focus-visible{outline:2px solid #426f83;outline-offset:2px}#s1-library-workbench-back .s1-library-workbench-arrow{font-size:17px;line-height:1}@media(max-width:600px){#s1-library-workbench-back{top:12px;left:12px;height:32px;padding:0 9px;font-size:12px}}';
+    document.head.appendChild(style);
+    var backButton = document.createElement('button');
+    backButton.id = 's1-library-workbench-back';
+    backButton.type = 'button';
+    backButton.innerHTML = '<span class="s1-library-workbench-arrow" aria-hidden="true">←</span><span>工作台</span>';
+    backButton.setAttribute('aria-label', '返回主站工作台');
+    backButton.title = '返回主站工作台';
+    backButton.addEventListener('click', function () { window.location.assign('/#workbench'); });
+    document.body.appendChild(backButton);
   }
 
   function mount(host) {
@@ -722,9 +743,10 @@
 
   function observeGenerationCanvas() {
     installStudioLibraryNavigation();
+    installStudioLibraryWorkbenchBack();
     installBackButton();
     mountIntoGenerationCanvas();
-    var observer = new MutationObserver(function () { installBackButton(); mountIntoGenerationCanvas(); });
+    var observer = new MutationObserver(function () { installStudioLibraryWorkbenchBack(); installBackButton(); mountIntoGenerationCanvas(); });
     observer.observe(document.documentElement, {childList:true, subtree:true});
   }
 
