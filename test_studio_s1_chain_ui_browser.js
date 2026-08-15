@@ -61,6 +61,7 @@ async function main() {
     const consoleErrors = [];
     page.on('pageerror', error => consoleErrors.push(error.message));
     await page.goto(baseUrl + '/studio/?projectId=' + project.id + '&projectKind=redraw&step=generate#/studio', {waitUntil:'networkidle'});
+    await page.locator('#s1-chain-back').waitFor({state:'visible'});
     await openGenerationCanvas(page);
     const canvas = page.getByRole('region', {name:'AI 影像创作画布'});
     const panel = page.locator('#s1-chain-canvas');
