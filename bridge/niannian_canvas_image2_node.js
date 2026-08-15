@@ -25,9 +25,9 @@ function createImage2Node({projectId, referenceAssetIds = [], existingNode = nul
   const assetIds = ids(referenceAssetIds);
   const prior = existingNode && typeof existingNode === 'object' ? existingNode : {};
   const priorData = prior.data && typeof prior.data === 'object' ? prior.data : {};
-  const imageChannel = clean(priorData.imageChannel || prior.imageChannel || 'yunfei-gpt-image-2-1k', 80);
-  const resolution = clean(priorData.resolution || prior.resolution || '1k', 8).toLowerCase();
-  const aspectRatio = clean(priorData.aspectRatio || prior.aspectRatio || '1:1', 16);
+  const imageChannel = clean(priorData.imageChannel || prior.imageChannel || 'yunwu-gpt-image-2-c', 80);
+  const resolution = clean(priorData.resolution || prior.resolution || '4k', 8).toLowerCase();
+  const aspectRatio = clean(priorData.aspectRatio || prior.aspectRatio || '9:16', 16);
   const prompt = clean(priorData.prompt || prior.prompt, 4000);
   const parameters = {imageChannel, resolution, aspectRatio, outputSize: clean(priorData.outputSize || prior.outputSize, 32) || null, providerSubmitRequested:false, gateState:'awaiting_user_authorization'};
   const assetRefs = assetIds.map(assetId => ({assetId, projectId, role:'reference_asset'}));

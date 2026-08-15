@@ -1,6 +1,4 @@
 const crypto = require('crypto');
-const {createRunningHubAdapter} = require('./niannian_runninghub_image_adapter');
-const {createYunfeiImage2Adapter} = require('./niannian_yunfei_image2_adapter');
 const {createYunwuAgentVaultImage2Adapter} = require('./niannian_yunwu_agent_vault_image2_adapter');
 const {resolveImage2Channel} = require('./niannian_canvas_image2_channels');
 
@@ -12,8 +10,8 @@ function runtimeError(code, message, httpStatus = 409) {
 }
 
 function publicFailure(error) {
-  if (['RUNNINGHUB_CREDENTIAL_NOT_CONFIGURED', 'YUNFEI_CREDENTIAL_NOT_CONFIGURED', 'YUNWU_AGENT_VAULT_NOT_CONFIGURED'].includes(error?.code)) return '所选图像渠道尚未配置，暂时不能提交。';
-  if (['RUNNINGHUB_NETWORK_UNCERTAIN', 'YUNFEI_NETWORK_UNCERTAIN', 'YUNWU_NETWORK_UNCERTAIN'].includes(error?.code)) return '生成请求状态待确认，请稍后查看任务状态。';
+  if (error?.code === 'YUNWU_AGENT_VAULT_NOT_CONFIGURED') return '云雾图像渠道尚未配置，暂时不能提交。';
+  if (error?.code === 'YUNWU_NETWORK_UNCERTAIN') return '生成请求状态待确认，请稍后查看任务状态。';
   return '图像生成暂未完成，请检查输入后重试。';
 }
 
@@ -25,9 +23,6 @@ function createCanvasImage2Runtime(options = {}) {
   const jobs = options.jobService;
   const assets = options.assetService;
   const adapters = {
-    runninghub: options.adapters?.runninghub || options.adapter || createRunningHubAdapter(options.runningHub || {}),
-    'yunfei-1k': options.adapters?.['yunfei-1k'] || createYunfeiImage2Adapter({baseUrl:'https://img.yunfei.best', ...(options.yunfei1k || {})}),
-    'yunfei-hd': options.adapters?.['yunfei-hd'] || createYunfeiImage2Adapter({baseUrl:'https://img.yunfei.best', ...(options.yunfeiHd || {})}),
     'yunwu-agent-vault': options.adapters?.['yunwu-agent-vault'] || createYunwuAgentVaultImage2Adapter(options.yunwu || {})
   };
   const enabled = options.enabled === true;
@@ -45,7 +40,7 @@ function createCanvasImage2Runtime(options = {}) {
 
   function adapterFor(job) {
     const provider = job.imageProvider || resolveImage2Channel(job.imageChannel)?.provider;
-    const adapter = adapters[provider] || adapters[job.imageChannel] || (job.imageChannel === 'runninghub-gpt-image-2' ? adapters.runninghub : null);
+    const adapter = adapters[provider] || adapters[job.imageChannel] || null;
     if (!adapter) throw runtimeError('CANVAS_IMAGE2_CHANNEL_NOT_CONFIGURED', '所选图像渠道尚未配置', 503);
     return adapter;
   }
@@ -81,7 +76,7 @@ function createCanvasImage2Runtime(options = {}) {
       const submitted = await adapter.submit(taskFor(job), references.map(asset => asset.storedPath));
       return await jobs.updateOwned(ownerId, projectId, jobId, {status:'queued',providerSubmitState:'accepted',providerTaskId:submitted.taskId,providerPayload:submitted.payload,publicError:null});
     } catch (error) {
-      const unknown = ['RUNNINGHUB_NETWORK_UNCERTAIN', 'YUNFEI_NETWORK_UNCERTAIN', 'YUNWU_NETWORK_UNCERTAIN'].includes(error?.code);
+      const unknown = error?.code === 'YUNWU_NETWORK_UNCERTAIN';
       return await jobs.updateOwned(ownerId, projectId, jobId, {status:unknown ? 'review' : 'failed',providerSubmitState:unknown ? 'uncertain' : 'failed',publicError:publicFailure(error)}).then(() => { throw error; });
     }
   }
@@ -113,7 +108,7 @@ function createCanvasImage2Runtime(options = {}) {
       if (!outputAssetIds.length) throw runtimeError('CANVAS_IMAGE2_OUTPUT_MISSING', '图像生成尚未返回结果', 502);
       return await jobs.updateOwned(ownerId, projectId, jobId, {status:'succeeded',providerSubmitState:'completed',outputAssetIds:[...new Set(outputAssetIds)],publicError:null,completedAt:new Date().toISOString()});
     } catch (error) {
-      if (['RUNNINGHUB_NETWORK_UNCERTAIN', 'YUNFEI_NETWORK_UNCERTAIN', 'YUNWU_NETWORK_UNCERTAIN'].includes(error?.code)) return await jobs.updateOwned(ownerId, projectId, jobId, {status:'review',providerSubmitState:'uncertain',publicError:publicFailure(error)});
+      if (error?.code === 'YUNWU_NETWORK_UNCERTAIN') return await jobs.updateOwned(ownerId, projectId, jobId, {status:'review',providerSubmitState:'uncertain',publicError:publicFailure(error)});
       return await jobs.updateOwned(ownerId, projectId, jobId, {status:'failed',providerSubmitState:'failed',publicError:publicFailure(error)});
     }
   }

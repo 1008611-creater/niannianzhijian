@@ -17,15 +17,8 @@ async function run() {
     assert.equal(first.created, true);
     assert.equal(first.job.status, 'awaiting_authorization');
     assert.equal(first.job.providerSubmitEnabled, false);
-    assert.equal(first.job.imageChannel, 'runninghub-gpt-image-2');
-    assert.equal(first.job.outputSize, null);
-
-    const yunfei1k = await service.create({...request, model:'yunfei-gpt-image-2-1k', resolution:'1k', aspectRatio:'1:1', idempotencyKey:'canvas-job-yunfei-1k'});
-    assert.equal(yunfei1k.job.imageChannel, 'yunfei-gpt-image-2-1k');
-    assert.equal(yunfei1k.job.outputSize, '1024x1024');
-    const yunfei4k = await service.create({...request, model:'yunfei-gpt-image-2-hd', resolution:'4k', aspectRatio:'16:9', idempotencyKey:'canvas-job-yunfei-4k'});
-    assert.equal(yunfei4k.job.imageChannel, 'yunfei-gpt-image-2-hd');
-    assert.equal(yunfei4k.job.outputSize, '3840x2160');
+    assert.equal(first.job.imageChannel, 'yunwu-gpt-image-2-c');
+    assert.equal(first.job.outputSize, '2160x3840');
     const yunwu4k = await service.create({...request, model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'9:16', idempotencyKey:'canvas-job-yunwu-4k'});
     assert.equal(yunwu4k.job.imageChannel, 'yunwu-gpt-image-2-c');
     assert.equal(yunwu4k.job.aspectRatio, '9:16');
@@ -34,8 +27,8 @@ async function run() {
     assert.equal(yunwuEdit.job.imageChannel, 'yunwu-gpt-image-2-c-edit');
     assert.equal(yunwuEdit.job.outputSize, '3840x2160');
     await assert.rejects(
-      () => service.create({...request, model:'yunfei-gpt-image-2-1k', resolution:'2k', aspectRatio:'1:1', idempotencyKey:'canvas-job-yunfei-invalid'}),
-      error => error.code === 'CANVAS_IMAGE2_RESOLUTION_UNSUPPORTED'
+      () => service.create({...request, model:'yunfei-gpt-image-2-1k', resolution:'1k', aspectRatio:'1:1', idempotencyKey:'canvas-job-yunfei-invalid'}),
+      error => error.code === 'CANVAS_IMAGE2_CHANNEL_INVALID'
     );
 
     const animate = await service.create({
@@ -68,7 +61,7 @@ async function run() {
     assert.equal(replacement.created, true);
     assert.notEqual(replacement.job.id, first.job.id);
     assert.match(replacement.job.idempotencyKey, /^canvas-job-0001\.retry-/);
-    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 8);
+    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 6);
     assert.equal((await service.listOwned('USR-B', 'NN-PROJECT-A')).length, 0);
     assert.equal(await service.getOwned('USR-B', 'NN-PROJECT-A', first.job.id), null);
 
@@ -77,10 +70,10 @@ async function run() {
     assert.equal(Object.hasOwn(publicJob, 'idempotencyKey'), false);
     assert.equal(Object.hasOwn(publicJob, 'requestHash'), false);
     const dryRun = service.dryRunContract(first.job);
-    assert.equal(dryRun.model, 'runninghub-image2-image');
+    assert.equal(dryRun.model, 'yunwu-gpt-image-2-c');
     assert.equal(dryRun.spendRequested, false);
     assert.equal(dryRun.providerSubmitEnabled, false);
-    assert.equal(dryRun.imageChannel, 'runninghub-gpt-image-2');
+    assert.equal(dryRun.imageChannel, 'yunwu-gpt-image-2-c');
     console.log('CANVAS_GENERATION_JOBS_CONTRACT_OK');
   } finally {
     await fsp.rm(directory, {recursive:true, force:true});
