@@ -90,7 +90,9 @@ def main(argv=None) -> None:
     # Keep every evidence tool in the locked Haika runtime. The runner itself
     # may be launched by a system Python, but child commands need the configured
     # virtualenv so numpy/OpenCV and the other Step01 dependencies resolve.
-    tool_python = Path(os.environ.get("NIANNIAN_STEP01_HQ_PYTHON", sys.executable)).resolve()
+    # Do not resolve the virtualenv symlink: its target is the system binary,
+    # while the symlink path carries the venv site-packages on sys.path.
+    tool_python = Path(os.environ.get("NIANNIAN_STEP01_HQ_PYTHON", sys.executable))
     if not tool_python.is_file():
         raise RuntimeError("STEP01_HQ_PYTHON_MISSING")
     plan = legacy.build_command_plan(tool_python, source, work, args.episode_id, step01_root, step02_root)
