@@ -1,1 +1,1 @@
-import{l as e}from"./proxy-B50diLEI-r4.js?v=20260811-static-r6";const o=[["path",{d:"M17 4h-10a3 3 0 0 0 -3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3 -3v-10a3 3 0 0 0 -3 -3z",key:"svg-0"}]],l=e("filled","player-stop-filled","PlayerStopFilled",o);export{l as I};
+import{l as e}from"./proxy-B50diLEI-r4.js?v=20260816-batch-group-r7";const o=[["path",{d:"M17 4h-10a3 3 0 0 0 -3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3 -3v-10a3 3 0 0 0 -3 -3z",key:"svg-0"}]],l=e("filled","player-stop-filled","PlayerStopFilled",o);export{l as I};

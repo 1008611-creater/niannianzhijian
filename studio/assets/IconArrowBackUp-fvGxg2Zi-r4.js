@@ -1,1 +1,1 @@
-import{l as o}from"./proxy-B50diLEI-r4.js?v=20260811-static-r6";const a=[["path",{d:"M9 14l-4 -4l4 -4",key:"svg-0"}],["path",{d:"M5 10h11a4 4 0 1 1 0 8h-1",key:"svg-1"}]],t=o("outline","arrow-back-up","ArrowBackUp",a);export{t as I};
+import{l as o}from"./proxy-B50diLEI-r4.js?v=20260816-batch-group-r7";const a=[["path",{d:"M9 14l-4 -4l4 -4",key:"svg-0"}],["path",{d:"M5 10h11a4 4 0 1 1 0 8h-1",key:"svg-1"}]],t=o("outline","arrow-back-up","ArrowBackUp",a);export{t as I};
