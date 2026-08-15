@@ -32,6 +32,14 @@ const CHANNELS = Object.freeze({
     resolutions: Object.freeze(['4k']),
     aspectRatios: Object.freeze(['9:16']),
     outputSizes: Object.freeze({'4k': '2160x3840'})
+  }),
+  'yunwu-gpt-image-2-c-edit': Object.freeze({
+    id: 'yunwu-gpt-image-2-c-edit',
+    provider: 'yunwu-agent-vault',
+    label: '云雾 Image2 图改图 4K',
+    resolutions: Object.freeze(['4k']),
+    aspectRatios: Object.freeze(['16:9']),
+    outputSizes: Object.freeze({'4k': '3840x2160'})
   })
 });
 

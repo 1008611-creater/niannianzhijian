@@ -27,7 +27,8 @@ function readCanvasProviderConfig(env = process.env) {
     [CHANNELS['runninghub-gpt-image-2'].id]: imageSubmitEnabled,
     [CHANNELS['yunfei-gpt-image-2-1k'].id]: yunfei1kSubmitEnabled,
     [CHANNELS['yunfei-gpt-image-2-hd'].id]: yunfeiHdSubmitEnabled,
-    [CHANNELS['yunwu-gpt-image-2-c'].id]: yunwuSubmitEnabled
+    [CHANNELS['yunwu-gpt-image-2-c'].id]: yunwuSubmitEnabled,
+    [CHANNELS['yunwu-gpt-image-2-c-edit'].id]: yunwuSubmitEnabled
   });
   const videoSubmitEnabled = credentialConfigured && baseUrlValid && isOn(env.NIANNIAN_CANVAS_H3_SUBMIT);
   const animateCredentialConfigured = isConfigured(env.NIANNIAN_RUNNINGHUB_ANIMATE_API_KEY);

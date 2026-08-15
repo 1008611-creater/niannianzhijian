@@ -10,6 +10,9 @@ const {imageMime} = require('./niannian_runninghub_image_adapter');
 
 const DEFAULT_SCRIPT = 'C:\\Users\\lsb\\.codex\\skills\\image2-skill\\scripts\\image2_channel.py';
 const DEFAULT_PYTHON = 'C:\\Users\\lsb\\anaconda3\\python.exe';
+const EDIT_CHANNEL = 'yunwu-gpt-image-2-c-edit';
+const EDIT_OUTPUT_SIZE = '3840x2160';
+const GENERATE_OUTPUT_SIZE = '2160x3840';
 
 function adapterError(code, message, httpStatus = 502) {
   const error = new Error(message || code);
@@ -41,16 +44,19 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
   const run = options.run || execute;
 
   function dryRun(task, referenceFiles = []) {
-    if (referenceFiles.length) throw adapterError('YUNWU_IMAGE_REFERENCE_UNSUPPORTED', '云雾 Image2 当前只支持文生图，不能使用参考图', 422);
-    if (String(task.output_size || task.outputSize || '') !== '2160x3840') throw adapterError('YUNWU_OUTPUT_SIZE_INVALID', '云雾 Image2 当前只支持竖版 2160x3840 输出', 422);
+    const isEdit = referenceFiles.length > 0;
+    if (isEdit && (referenceFiles.length > 16 || task.image_channel !== EDIT_CHANNEL)) throw adapterError('YUNWU_IMAGE_REFERENCE_INVALID', '云雾图改图需要一至十六张参考图和图改图通道', 422);
+    if (!isEdit && referenceFiles.length) throw adapterError('YUNWU_IMAGE_REFERENCE_INVALID', '云雾图改图参考图无效', 422);
+    const expectedSize = isEdit ? EDIT_OUTPUT_SIZE : GENERATE_OUTPUT_SIZE;
+    if (String(task.output_size || task.outputSize || '') !== expectedSize) throw adapterError('YUNWU_OUTPUT_SIZE_INVALID', `云雾 Image2 当前只支持 ${expectedSize} 输出`, 422);
     if (!vaultReady(env)) throw adapterError('YUNWU_AGENT_VAULT_NOT_CONFIGURED', '云雾受保护代理会话尚未配置', 503);
-    return {endpoint:'/v1/images/generations', payload:{model:'gpt-image-2-c', size:'2160x3840', referenceCount:0, credentialMode:'agent_vault_proxy'}};
+    return {endpoint:isEdit ? '/v1/images/edits' : '/v1/images/generations', payload:{model:'gpt-image-2-c', size:expectedSize, referenceCount:referenceFiles.length, operation:isEdit ? 'edit' : 'generate', credentialMode:'agent_vault_proxy'}};
   }
 
   async function cleanup(paths) { await Promise.all(paths.map(file => fsp.rm(file, {force:true}).catch(() => {}))); }
 
   async function submit(task, referenceFiles = []) {
-    dryRun(task, referenceFiles);
+    const preflight = dryRun(task, referenceFiles);
     const id = crypto.randomUUID();
     await fsp.mkdir(tempRoot, {recursive:true});
     const promptPath = path.join(tempRoot, `${id}.prompt.txt`);
@@ -59,7 +65,9 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
     await fsp.writeFile(promptPath, String(task.prompt || ''), 'utf8');
     let result;
     try {
-      result = await run(pythonPath, [scriptPath, '--channel', 'yunwu', '--prompt-file', promptPath, '--model', 'gpt-image-2-c', '--size', '2160x3840', '--asset-id', `canvas-${id}`, '--submit', '--output', outputPath, '--receipt', receiptPath], env);
+      const args = [scriptPath, '--channel', 'yunwu', '--operation', preflight.payload.operation, '--prompt-file', promptPath, '--model', 'gpt-image-2-c', '--size', preflight.payload.size, '--asset-id', `canvas-${id}`, '--submit', '--output', outputPath, '--receipt', receiptPath];
+      for (const referenceFile of referenceFiles) args.push('--reference-image', referenceFile);
+      result = await run(pythonPath, args, env);
     } catch {
       await cleanup([promptPath, outputPath, receiptPath]);
       throw adapterError('YUNWU_NETWORK_UNCERTAIN', '云雾请求状态待确认');
@@ -85,7 +93,7 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
     }
   }
 
-  return {dryRun, submit, query, constants:{endpoint:'https://yunwu.ai/v1/images/generations', model:'gpt-image-2-c', outputSize:'2160x3840'}};
+  return {dryRun, submit, query, constants:{generateEndpoint:'https://yunwu.ai/v1/images/generations', editEndpoint:'https://yunwu.ai/v1/images/edits', model:'gpt-image-2-c', generateOutputSize:GENERATE_OUTPUT_SIZE, editOutputSize:EDIT_OUTPUT_SIZE}};
 }
 
 module.exports = {createYunwuAgentVaultImage2Adapter, vaultReady};

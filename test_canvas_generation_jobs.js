@@ -30,6 +30,9 @@ async function run() {
     assert.equal(yunwu4k.job.imageChannel, 'yunwu-gpt-image-2-c');
     assert.equal(yunwu4k.job.aspectRatio, '9:16');
     assert.equal(yunwu4k.job.outputSize, '2160x3840');
+    const yunwuEdit = await service.create({...request, model:'yunwu-gpt-image-2-c-edit', resolution:'4k', aspectRatio:'16:9', idempotencyKey:'canvas-job-yunwu-edit'});
+    assert.equal(yunwuEdit.job.imageChannel, 'yunwu-gpt-image-2-c-edit');
+    assert.equal(yunwuEdit.job.outputSize, '3840x2160');
     await assert.rejects(
       () => service.create({...request, model:'yunfei-gpt-image-2-1k', resolution:'2k', aspectRatio:'1:1', idempotencyKey:'canvas-job-yunfei-invalid'}),
       error => error.code === 'CANVAS_IMAGE2_RESOLUTION_UNSUPPORTED'
@@ -65,7 +68,7 @@ async function run() {
     assert.equal(replacement.created, true);
     assert.notEqual(replacement.job.id, first.job.id);
     assert.match(replacement.job.idempotencyKey, /^canvas-job-0001\.retry-/);
-    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 7);
+    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 8);
     assert.equal((await service.listOwned('USR-B', 'NN-PROJECT-A')).length, 0);
     assert.equal(await service.getOwned('USR-B', 'NN-PROJECT-A', first.job.id), null);
 

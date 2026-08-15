@@ -7877,14 +7877,13 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         model:requestedModel || (nodeType === 'image' ? 'runninghub-gpt-image-2' : 'h3'),
         prompt:canvasText(compiledPrompt?.prompt || body.prompt || node.data?.prompt, 4000),
         inputAssetIds,
-        // The Yunwu portrait channel accepts exactly one delivery shape. Older canvas
-        // nodes still carry the generic 1:1 default, so prevent it from overriding
-        // the selected channel contract at submit time.
-        resolution:nodeType === 'image' && requestedModel === 'yunwu-gpt-image-2-c'
+        // Yunwu channels have fixed delivery shapes. Older canvas nodes still carry
+        // generic defaults, so prevent them from overriding the selected channel.
+        resolution:nodeType === 'image' && ['yunwu-gpt-image-2-c','yunwu-gpt-image-2-c-edit'].includes(requestedModel)
           ? '4k'
           : canvasText(body.resolution || node.data?.resolution || '2k', 8),
-        aspectRatio:nodeType === 'image' && requestedModel === 'yunwu-gpt-image-2-c'
-          ? '9:16'
+        aspectRatio:nodeType === 'image' && ['yunwu-gpt-image-2-c','yunwu-gpt-image-2-c-edit'].includes(requestedModel)
+          ? (requestedModel === 'yunwu-gpt-image-2-c-edit' ? '16:9' : '9:16')
           : canvasText(
             body.aspectRatio
               || (nodeType === 'video'
