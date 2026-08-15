@@ -1,7 +1,6 @@
 'use strict';
 
 const DEFAULT_BASE_URL = 'https://www.runninghub.cn';
-const DEFAULT_YUNFEI_BASE_URL = 'https://img.yunfei.best';
 const {CHANNELS, publicImage2Channel} = require('./niannian_canvas_image2_channels');
 
 function isOn(value) {
@@ -13,20 +12,12 @@ function isConfigured(value) {
 }
 
 function readCanvasProviderConfig(env = process.env) {
-  const provider = 'runninghub';
+  const provider = 'yunwu-agent-vault';
   const credentialConfigured = isConfigured(env.RUNNINGHUB_API_KEY);
   const baseUrl = String(env.RUNNINGHUB_BASE_URL || DEFAULT_BASE_URL).trim().replace(/\/+$/, '') || DEFAULT_BASE_URL;
   const baseUrlValid = /^https:\/\//.test(baseUrl);
-  const imageSubmitEnabled = credentialConfigured && baseUrlValid && isOn(env.NIANNIAN_CANVAS_PROVIDER_SUBMIT);
-  const yunfei1kBaseUrl = String(env.YUNFEI_IMAGE2_1K_BASE_URL || DEFAULT_YUNFEI_BASE_URL).trim().replace(/\/+$/, '') || DEFAULT_YUNFEI_BASE_URL;
-  const yunfeiHdBaseUrl = String(env.YUNFEI_IMAGE2_HD_BASE_URL || DEFAULT_YUNFEI_BASE_URL).trim().replace(/\/+$/, '') || DEFAULT_YUNFEI_BASE_URL;
-  const yunfei1kSubmitEnabled = isConfigured(env.YUNFEI_IMAGE2_1K_API_KEY) && /^https:\/\//.test(yunfei1kBaseUrl) && isOn(env.NIANNIAN_CANVAS_YUNFEI_1K_SUBMIT);
-  const yunfeiHdSubmitEnabled = isConfigured(env.YUNFEI_IMAGE2_HD_API_KEY) && /^https:\/\//.test(yunfeiHdBaseUrl) && isOn(env.NIANNIAN_CANVAS_YUNFEI_HD_SUBMIT);
   const yunwuSubmitEnabled = isConfigured(env.AGENT_VAULT_ADDR) && isConfigured(env.AGENT_VAULT_VAULT) && isConfigured(env.AGENT_VAULT_TOKEN) && isConfigured(env.HTTPS_PROXY || env.https_proxy) && isOn(env.NIANNIAN_CANVAS_YUNWU_SUBMIT);
   const imageChannelEnabled = Object.freeze({
-    [CHANNELS['runninghub-gpt-image-2'].id]: imageSubmitEnabled,
-    [CHANNELS['yunfei-gpt-image-2-1k'].id]: yunfei1kSubmitEnabled,
-    [CHANNELS['yunfei-gpt-image-2-hd'].id]: yunfeiHdSubmitEnabled,
     [CHANNELS['yunwu-gpt-image-2-c'].id]: yunwuSubmitEnabled,
     [CHANNELS['yunwu-gpt-image-2-c-edit'].id]: yunwuSubmitEnabled
   });
@@ -41,14 +32,9 @@ function readCanvasProviderConfig(env = process.env) {
     baseUrl,
     baseUrlValid,
     credentialConfigured,
-    imageSubmitEnabled: Object.values(imageChannelEnabled).some(Boolean),
-    runningHubImageSubmitEnabled: imageSubmitEnabled,
+    imageSubmitEnabled: yunwuSubmitEnabled,
     imageChannelEnabled,
     imageChannels: Object.freeze(Object.values(CHANNELS).map(channel => publicImage2Channel(channel, imageChannelEnabled[channel.id]))),
-    yunfei1kBaseUrl,
-    yunfeiHdBaseUrl,
-    yunfei1kSubmitEnabled,
-    yunfeiHdSubmitEnabled,
     yunwuSubmitEnabled,
     h3CredentialConfigured,
     videoSubmitEnabled,
@@ -70,4 +56,4 @@ function publicCanvasProviderStatus(env = process.env) {
   };
 }
 
-module.exports = {DEFAULT_BASE_URL, DEFAULT_YUNFEI_BASE_URL, readCanvasProviderConfig, publicCanvasProviderStatus};
+module.exports = {DEFAULT_BASE_URL, readCanvasProviderConfig, publicCanvasProviderStatus};

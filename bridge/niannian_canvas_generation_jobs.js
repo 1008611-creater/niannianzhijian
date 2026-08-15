@@ -7,9 +7,9 @@ const {resolveVideoChannel} = require('./niannian_canvas_video_channels');
 
 const MODELS = Object.freeze({
   image: Object.freeze({
-    id: 'runninghub-image2-image',
-    label: 'Image2 作图',
-    provider: 'runninghub',
+    id: 'yunwu-gpt-image-2-c',
+    label: '云雾 Image2 作图',
+    provider: 'yunwu-agent-vault',
     providerSubmitEnabled: false
   }),
   video: Object.freeze({
@@ -70,8 +70,8 @@ function publicJob(job, options = {}) {
     providerSubmitEnabled,
     inputAssetIds: Array.isArray(job.inputAssetIds) ? job.inputAssetIds : [],
     outputAssetIds: Array.isArray(job.outputAssetIds) ? job.outputAssetIds : [],
-    imageChannel: job.nodeType === 'image' ? (job.imageChannel || 'runninghub-gpt-image-2') : null,
-    imageChannelLabel: job.nodeType === 'image' ? (job.imageChannelLabel || 'RunningHub Image2') : null,
+    imageChannel: job.nodeType === 'image' ? (job.imageChannel || 'yunwu-gpt-image-2-c') : null,
+    imageChannelLabel: job.nodeType === 'image' ? (job.imageChannelLabel || '云雾 Image2 竖版 4K') : null,
     videoChannel: videoChannel?.id || null,
     videoChannelLabel: videoChannel?.label || null,
     resolution: job.resolution || '2k',
@@ -105,8 +105,8 @@ function dryRunContract(job, options = {}) {
     providerSubmitEnabled,
     spendRequested: false,
     inputAssetCount: job.inputAssetIds.length,
-    imageChannel: job.nodeType === 'image' ? (job.imageChannel || 'runninghub-gpt-image-2') : null,
-    imageChannelLabel: job.nodeType === 'image' ? (job.imageChannelLabel || 'RunningHub Image2') : null,
+    imageChannel: job.nodeType === 'image' ? (job.imageChannel || 'yunwu-gpt-image-2-c') : null,
+    imageChannelLabel: job.nodeType === 'image' ? (job.imageChannelLabel || '云雾 Image2 竖版 4K') : null,
     videoChannel: videoChannel?.id || null,
     videoChannelLabel: videoChannel?.label || null,
     resolution: job.resolution || '2k',
@@ -159,8 +159,8 @@ function createCanvasGenerationJobService(options = {}) {
     const nodeId = clean(input.nodeId, 80);
     const prompt = clean(input.prompt, 4000);
     const inputAssetIds = [...new Set((Array.isArray(input.inputAssetIds) ? input.inputAssetIds : []).map(item => clean(item, 120)).filter(Boolean))].slice(0, 24);
-    const resolution = clean(input.resolution || '2k', 8).toLowerCase();
-    const aspectRatio = clean(input.aspectRatio || input.aspect_ratio || '1:1', 16);
+    const resolution = clean(input.resolution || (nodeType === 'image' ? '4k' : '2k'), 8).toLowerCase();
+    const aspectRatio = clean(input.aspectRatio || input.aspect_ratio || (nodeType === 'image' ? '9:16' : '1:1'), 16);
     const durationSeconds = Number(input.durationSeconds || input.duration_seconds || (nodeType === 'video' ? 5 : 0));
     const videoSpec = nodeType === 'video' ? resolveVideoChannel(input.videoChannel || input.model || 'h3') : null;
     if (!projectId || !nodeId) throw jobError('CANVAS_JOB_INPUT_INVALID', '项目和节点不能为空', 422);
