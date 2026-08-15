@@ -16,6 +16,8 @@ const shell = fs.readFileSync(
 assert.match(source, /批量归组/);
 assert.match(source, /已选择 \$\{e\.length\} 个节点/);
 assert.match(source, /输入目标批次名称/);
+assert.match(source, /未找到同名目标批次，请先新建分组后再归组/);
+assert.match(source, /if\(!l\)\{re\(\{message/);
 assert.match(source, /B\(i\.id\),E\(i\.id,\{categoryId:l\.id\}\)/);
 assert.match(source, /disabled:!R\.length\|\|!fe\.some\(e=>!e\.isBuiltin\)/);
 assert.match(shell, /CategoryTree-D1LnwwpQ-r4\.js/);
