@@ -7883,7 +7883,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         projectKind:owned.projectKind,
         nodeId,
         nodeType,
-        model:requestedModel || (nodeType === 'image' ? 'runninghub-gpt-image-2' : 'h3'),
+        model:requestedModel || (nodeType === 'image' ? 'yunwu-gpt-image-2-c' : 'h3'),
         prompt:canvasText(compiledPrompt?.prompt || body.prompt || node.data?.prompt, 4000),
         inputAssetIds,
         // Yunwu channels have fixed delivery shapes. Older canvas nodes still carry
