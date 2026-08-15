@@ -8,7 +8,7 @@ const path = require('path');
 const projectRoot = __dirname;
 const assetsRoot = path.join(projectRoot, 'studio', 'assets');
 const releaseTag = 'r4';
-const moduleCacheVersion = '20260816-persisted-image-r3';
+const moduleCacheVersion = '20260816-persisted-image-r4';
 const starts = ['index-M-8MrEH2-r28-19b89ec-r4.js', 'web-runtime-adapter-r4.js'];
 
 function localReferences(source) {
@@ -77,6 +77,7 @@ for (const name of reachable) {
   assert.doesNotMatch(source, /(?:index-M-8MrEH2-r28-19b89ec|NomiStudioApp-DDB0IgSO-r28-19b89ec)-r4\.js\?v=20260816-batch-group-feedback-r8/);
   assert.doesNotMatch(source, /(?:index-M-8MrEH2-r28-19b89ec|NomiStudioApp-DDB0IgSO-r28-19b89ec)-r4\.js\?v=20260816-persisted-image-r1/);
   assert.doesNotMatch(source, /(?:index-M-8MrEH2-r28-19b89ec|NomiStudioApp-DDB0IgSO-r28-19b89ec)-r4\.js\?v=20260816-persisted-image-r2/);
+  assert.doesNotMatch(source, /(?:index-M-8MrEH2-r28-19b89ec|NomiStudioApp-DDB0IgSO-r28-19b89ec)-r4\.js\?v=20260816-persisted-image-r3/);
 }
 
 const serviceWorker = fs.readFileSync(path.join(projectRoot, 'sw.js'), 'utf8');
