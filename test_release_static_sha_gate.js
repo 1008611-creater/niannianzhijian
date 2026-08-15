@@ -40,6 +40,7 @@ async function main() {
     assert.equal(failed.sha256, expected);
 
     const beacon = `<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","r":1}' crossorigin="anonymous"></script>`;
+    const moduleBeacon = `<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","r":1}' crossorigin="anonymous"></script>`;
     const publicBody = Buffer.from('<!doctype html>\n<body>approved page\n  ' + beacon + '\n</body>\n', 'utf8');
     const publicExpected = crypto.createHash('sha256').update(Buffer.from('<!doctype html>\n<body>approved page\n  </body>\n', 'utf8')).digest('hex');
     const publicServer = await listen((request, response) => {
@@ -59,10 +60,52 @@ async function main() {
     } finally {
       await close(publicServer);
     }
+
+    const originBody = Buffer.from('<!doctype html>\n<html>\r\n  <body>approved page\r\r\n  </body>\r\n  </html>\r\n', 'utf8');
+    const edgeInjectedBody = Buffer.from('<!doctype html>\n<html>\r\n  <body>approved page\r\r\n  ' + moduleBeacon + '\n  </body>\r\n  </html>\r\n', 'utf8');
+    const originExpected = crypto.createHash('sha256').update(originBody).digest('hex');
+    const edgeServer = await listen((request, response) => {
+      response.writeHead(200, { 'content-type':'text/html' });
+      response.end(edgeInjectedBody);
+    });
+    try {
+      const normalized = await verifyPublicHtmlSha256(`http://127.0.0.1:${edgeServer.address().port}/`, originExpected, {
+        connectTimeoutMs:100,
+        requestTimeoutMs:150,
+        maxBytes:1024
+      });
+      assert.equal(normalized.ok, true);
+      assert.equal(normalized.normalization, 'cloudflare_standard_beacon_before_body');
+      assert.equal(normalized.normalizedSha256, originExpected);
+      assert.notEqual(normalized.sha256, originExpected);
+    } finally {
+      await close(edgeServer);
+    }
+
+    const compactOriginBody = Buffer.from('<!doctype html>\n<html>\n<body>approved page\n</body>\n</html>\n', 'utf8');
+    const compactEdgeInjectedBody = Buffer.from('<!doctype html>\n<html>\n<body>approved page\n' + moduleBeacon + '\n</body>\n</html>\n', 'utf8');
+    const compactOriginExpected = crypto.createHash('sha256').update(compactOriginBody).digest('hex');
+    const compactEdgeServer = await listen((request, response) => {
+      response.writeHead(200, { 'content-type':'text/html' });
+      response.end(compactEdgeInjectedBody);
+    });
+    try {
+      const normalized = await verifyPublicHtmlSha256(`http://127.0.0.1:${compactEdgeServer.address().port}/`, compactOriginExpected, {
+        connectTimeoutMs:100,
+        requestTimeoutMs:150,
+        maxBytes:1024
+      });
+      assert.equal(normalized.ok, true);
+      assert.equal(normalized.normalization, 'cloudflare_standard_beacon_before_body');
+      assert.equal(normalized.normalizedSha256, compactOriginExpected);
+      assert.notEqual(normalized.sha256, compactOriginExpected);
+    } finally {
+      await close(compactEdgeServer);
+    }
   } finally {
     await close(server);
   }
-  process.stdout.write(JSON.stringify({ ok:true, verified:['raw response SHA retains trailing newline', 'newline-stripped SHA is rejected', 'only the documented Cloudflare telemetry beacon is normalized'] }) + '\n');
+  process.stdout.write(JSON.stringify({ ok:true, verified:['raw response SHA retains trailing newline', 'newline-stripped SHA is rejected', 'only documented Cloudflare telemetry beacon forms are normalized'] }) + '\n');
 }
 
 main().catch(error => {
