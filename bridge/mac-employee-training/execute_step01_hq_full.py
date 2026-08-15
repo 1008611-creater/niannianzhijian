@@ -275,7 +275,9 @@ def build_command_plan(
     step01_root: Path = STEP01_SKILL_ROOT,
     step02_root: Path = STEP02_SKILL_ROOT,
 ):
-    python_executable = Path(python_executable).resolve()
+    # Preserve the configured virtualenv symlink. Resolving it points at the
+    # system interpreter and drops the locked Step01 site-packages.
+    python_executable = Path(python_executable)
     source = Path(source).resolve()
     output = Path(output).resolve()
     step01_scripts = Path(step01_root).resolve() / "scripts"
