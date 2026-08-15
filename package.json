@@ -28,6 +28,7 @@
     "test:redraw-step01-facts-api": "node test_step01_source_facts_api.js",
     "test:redraw-step01-evidence-delivery": "node test_step01_evidence_delivery.js",
     "test:redraw-step01-projection-recovery": "node test_reconcile_exact_step01_incomplete_projection.js",
+    "test:redraw-step01-auto-projection": "node test_step01_auto_projection_contract.js",
     "test:redraw-project-isolation": "node test_redraw_project_isolation.js",
     "test:redraw-controller-rights": "node test_niannian_controller_rights_identity.js",
     "test:worker": "node test_codex_worker_dispatcher.js",

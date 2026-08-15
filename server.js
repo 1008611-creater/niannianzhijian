@@ -6239,6 +6239,33 @@ async function reconcileStep01Orchestrator(project) {
   return false;
 }
 
+// Server-executed Step01 results must converge even when no browser request is
+// active.  The browser read path still reconciles on demand, but an idle
+// service must not leave projects showing the previous failure forever.
+let serverStep01ProjectionBusy = false;
+async function reconcileServerStep01Projections() {
+  if (serverStep01ProjectionBusy) return false;
+  serverStep01ProjectionBusy = true;
+  try {
+    return await withRedrawProjectsWriteLock(async () => {
+      const projects = await readProjects();
+      let changed = false;
+      for (const project of projects) {
+        try {
+          if (await reconcileServerStep01Execution(project)) changed = true;
+        } catch (error) {
+          // Keep the service alive; the next pass can retry a transient read.
+          console.error('[step01-projection]', String(error.code || 'RECONCILE_FAILED'));
+        }
+      }
+      if (changed) await writeProjects(projects);
+      return changed;
+    });
+  } finally {
+    serverStep01ProjectionBusy = false;
+  }
+}
+
 async function readOwnedProjects(userId) {
   const projects = await readProjects();
   let changed = false;
@@ -9470,4 +9497,12 @@ const server = http.createServer(async (request, response) => {
   }
 });
 
-ensureData().then(() => server.listen(port, '127.0.0.1', () => console.log('NianNian AI listening on http://127.0.0.1:' + port)));
+const serverStep01ProjectionIntervalMs = Math.max(5000, Number(process.env.NIANNIAN_STEP01_PROJECTION_INTERVAL_MS || 10000));
+ensureData().then(async () => {
+  await reconcileServerStep01Projections().catch(error => console.error('[step01-projection]', String(error.code || 'INITIAL_RECONCILE_FAILED')));
+  const projectionTimer = setInterval(() => {
+    reconcileServerStep01Projections().catch(error => console.error('[step01-projection]', String(error.code || 'RECONCILE_FAILED')));
+  }, serverStep01ProjectionIntervalMs);
+  projectionTimer.unref?.();
+  server.listen(port, '127.0.0.1', () => console.log('NianNian AI listening on http://127.0.0.1:' + port));
+});
