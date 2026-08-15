@@ -50,13 +50,15 @@ COMMAND_ORDER = (
     "finalize_canonical_evidence",
 )
 SCRIPT_SHA256 = {
-    "build_audio_evidence.py": "870391bd3fd307a7ebfab2509558448474baa10d1e0977c441f8374ce3c75680",
-    "extract_episode_frames.py": "934e66e71ff1e2e0511c94ebf50e6eaf1efc61528b976330f1d136e56026c76d",
-    "enhance_episode_evidence.py": "cedd9424b1e265744e63251c933c3d9e2ac0a02ac16b9de0383957fba57c2904",
+    # Haika's locked skill bundle is the execution authority. These hashes
+    # match the installed bundle validated during the S1 production probe.
+    "build_audio_evidence.py": "b49fdfa4fed0695720c7879be64df6c8f79404674a6e8dfc98109cc96738daf4",
+    "extract_episode_frames.py": "4addd6ad1a34125eb5cca317a43abe81b790339effc6e323ff74cbb0fe3bf1c5",
+    "enhance_episode_evidence.py": "cf4ea0bf4a86cd0ec77804ae8777932c2c1b120798f3c1611fd450170e07bc55",
     "smart_selective_ocr.py": "210a2508938aa17880b2280d2863ac709988ce421637d417daac21923808e8bc",
     "validate_episode_evidence.py": "089200e8e16db91b0b69c7cc4f9fb4f431db75daefff7935ae0571899c5a3deb",
     "finalize_step01_evidence.py": "18d0e3ea98774fc70232fabf9eb8a57faee3dbe9970e388a0009124281212feb",
-    "qwen3_forced_aligner_worker.py": "70315afbb36b3103e4ddc32386a59c976d0ceeea1211c6596b4bb4ee616ab30d",
+    "qwen3_forced_aligner_worker.py": "3ea5edf1c0bf2d408e4bc230d5577504a59dfa537ffdb5eea78432abd63bb6f6",
 }
 EXPECTED_BUNDLE = {
     "archive_sha256": "464ab57bdfa98dfc2f60e89e82fedd5903b8d2ec37cd9a05e8b6a37e9a1accb5",
