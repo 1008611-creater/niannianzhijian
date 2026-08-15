@@ -22,7 +22,8 @@
   }
 
   function isStudioLibraryRoute() {
-    return !projectId() && /^#\/studio(?:\?.*)?$/.test(String(window.location.hash || ''));
+    var hash = String(window.location.hash || '');
+    return !projectId() && (!hash || /^#\/studio(?:\?.*)?$/.test(hash));
   }
 
   function projectListPath() {
@@ -62,7 +63,26 @@
     document.head.appendChild(style);
   }
 
+  function removeElement(id) {
+    var element = document.getElementById(id);
+    if (element) element.remove();
+  }
+
+  function removeProjectLibraryBack() {
+    removeElement('s1-chain-back');
+    removeElement('s1-chain-back-style');
+  }
+
+  function removeWorkbenchBack() {
+    removeElement('s1-library-workbench-back');
+    removeElement('s1-library-workbench-back-style');
+  }
+
   function installBackButton() {
+    if (isStudioLibraryRoute()) {
+      removeProjectLibraryBack();
+      return;
+    }
     var appbarLeft = document.querySelector('.nomi-appbar__left');
     if (!appbarLeft || document.getElementById('s1-chain-back')) return;
     var style = document.createElement('style');
@@ -92,7 +112,11 @@
   }
 
   function installStudioLibraryWorkbenchBack() {
-    if (!isStudioLibraryRoute() || document.getElementById('s1-library-workbench-back')) return;
+    if (!isStudioLibraryRoute()) {
+      removeWorkbenchBack();
+      return;
+    }
+    if (document.getElementById('s1-library-workbench-back')) return;
     if (!document.body) return;
     var style = document.createElement('style');
     style.id = 's1-library-workbench-back-style';
