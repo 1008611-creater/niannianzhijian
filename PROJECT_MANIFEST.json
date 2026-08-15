@@ -118,20 +118,20 @@
     },
     "shared_file_handoff_baseline": {
       "schema_version": "niannian_shared_file_handoff_baseline_v2",
-      "review_id": "release-baseline-20260810-canonical-main",
-      "captured_at": "2026-08-10T19:14:00+08:00",
-      "capture_reason": "Recomputed the shared-file baseline from canonical main at 2fcc5395 after the six-item navigation app.js change and the project-hub redesign merged without a baseline refresh; this record does not claim online parity or authorize deployment.",
+      "review_id": "release-baseline-20260816-canonical-main",
+      "captured_at": "2026-08-16T03:39:50+08:00",
+      "capture_reason": "Recomputed the protected shared-file baseline from canonical main at d4ab06b before the release-d4ab06b candidate after the existing record no longer matched index.html, server.js, and product-system.css; this record does not claim online parity or authorize deployment.",
       "attestation": {
-        "path": "release_baseline_attestation_20260810_canonical_main.json",
-          "sha256": "3bcdf9c4c5e75eba452940d83b08890e84b5bb7ae0a2ae5f062a41c2004c69fc"
+        "path": "release_baseline_attestation_20260816_canonical_main.json",
+        "sha256": "754149999ec0ed1942e60cba363d03ebfca692df8f28ee9f8a34443beddfc78a"
       },
       "files": {
-        "server.js": "c6d5cfaa8f5d065064185732f68c000a8c84662bc7ead3cd3d537f7845360c75",
-        "index.html": "8d2a0c65fe634deb8efc79200bd336afe8d910e0df670f01586a72100fba0ba2",
+        "server.js": "000c2cd3fe91f9bc49edc432b7921121d9575b5eda9923fd2d7dd7b0df29b1f1",
+        "index.html": "47d426e2c16455de9faaa8d0e7da29fd426c16746fc83216fe2f1a597fab54c0",
         "app.js": "4a8ac9a9952f20fdc0363f2144c53977578a71b25ae09fdb855887f85dea4b51",
         "product.css": "fafa35df7cea0d8abbc6f9cf7a6590a9f80ef63657bcaab9e1390ce4da02f028",
         "styles.css": "d8254de1de1b0cddeee13301ee64a0e5605294980a9c8de384ea76625822a489",
-        "product-system.css": "c1a4d982abf3861a69b5a4df8c50a1b1892f84743c0de2f7540788a82cd20115",
+        "product-system.css": "e571291eab9acd8f808b7fc39e5585f630802862e6805f9872f6334441a9630a",
         "hero-oil-paint.css": "0fcba9536da02a0f8843331f986f01dbb670e0d2c1b1ccd2226046ffc0f60cdd",
         "sw.js": "292159030702c25198b9dadd6ac31b7f9981a858d4bb5ab23fde6de5e83396f2",
         "bridge/niannian_controller_bridge.js": "64157f96db7f48c33dfe028263cd15138a109e15a194e0375a18ee0f89e427cc"
