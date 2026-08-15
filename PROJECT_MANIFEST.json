@@ -118,15 +118,15 @@
     },
     "shared_file_handoff_baseline": {
       "schema_version": "niannian_shared_file_handoff_baseline_v2",
-      "review_id": "release-baseline-20260816-canonical-main",
-      "captured_at": "2026-08-16T03:39:50+08:00",
-      "capture_reason": "Recomputed the protected shared-file baseline from canonical main at d4ab06b before the release-d4ab06b candidate after the existing record no longer matched index.html, server.js, and product-system.css; this record does not claim online parity or authorize deployment.",
+      "review_id": "release-baseline-20260816-canonical-main-server-refresh",
+      "captured_at": "2026-08-16T03:45:54+08:00",
+      "capture_reason": "Recomputed the protected shared-file baseline from canonical main at 0ddd8b0 after the merged browser asset import durability fix changed server.js; this record does not claim online parity or authorize deployment.",
       "attestation": {
-        "path": "release_baseline_attestation_20260816_canonical_main.json",
-        "sha256": "754149999ec0ed1942e60cba363d03ebfca692df8f28ee9f8a34443beddfc78a"
+        "path": "release_baseline_attestation_20260816_canonical_main_server_refresh.json",
+        "sha256": "db018378dae62d9bcda7800b4b7c792fc6a9c0352e0031d56cc9a591028aed0b"
       },
       "files": {
-        "server.js": "000c2cd3fe91f9bc49edc432b7921121d9575b5eda9923fd2d7dd7b0df29b1f1",
+        "server.js": "7339008a09e0f45e2f387ecc9649fcc176a6eedadf9c30def81718826986d0e2",
         "index.html": "47d426e2c16455de9faaa8d0e7da29fd426c16746fc83216fe2f1a597fab54c0",
         "app.js": "4a8ac9a9952f20fdc0363f2144c53977578a71b25ae09fdb855887f85dea4b51",
         "product.css": "fafa35df7cea0d8abbc6f9cf7a6590a9f80ef63657bcaab9e1390ce4da02f028",
