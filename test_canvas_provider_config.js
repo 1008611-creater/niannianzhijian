@@ -46,7 +46,8 @@ function run() {
   assert.deepEqual(publicStatus.imageChannels.map(channel => [channel.id, channel.submitEnabled, channel.outputSizes]), [
     ['runninghub-gpt-image-2', true, {}],
     ['yunfei-gpt-image-2-1k', false, {'1k':'1024x1024'}],
-    ['yunfei-gpt-image-2-hd', false, {'2k':'2048x1152','4k':'3840x2160'}]
+    ['yunfei-gpt-image-2-hd', false, {'2k':'2048x1152','4k':'3840x2160'}],
+    ['yunwu-gpt-image-2-c', false, {'4k':'2160x3840'}]
   ]);
   const yunfei = readCanvasProviderConfig({
     YUNFEI_IMAGE2_1K_API_KEY:'configured-only-in-test',
@@ -57,6 +58,8 @@ function run() {
   assert.equal(yunfei.imageSubmitEnabled, true);
   assert.equal(yunfei.imageChannelEnabled['yunfei-gpt-image-2-1k'], true);
   assert.equal(yunfei.imageChannelEnabled['yunfei-gpt-image-2-hd'], true);
+  const yunwu = readCanvasProviderConfig({AGENT_VAULT_ADDR:'http://127.0.0.1:14321',AGENT_VAULT_VAULT:'niannian-production',AGENT_VAULT_TOKEN:'protected-test-token',HTTPS_PROXY:'http://127.0.0.1:14322',NIANNIAN_CANVAS_YUNWU_SUBMIT:'on'});
+  assert.equal(yunwu.imageChannelEnabled['yunwu-gpt-image-2-c'], true);
   assert.equal(Object.hasOwn(publicStatus, 'apiKey'), false);
   console.log('CANVAS_PROVIDER_CONFIG_CONTRACT_OK');
 }

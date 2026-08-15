@@ -26,6 +26,10 @@ async function run() {
     const yunfei4k = await service.create({...request, model:'yunfei-gpt-image-2-hd', resolution:'4k', aspectRatio:'16:9', idempotencyKey:'canvas-job-yunfei-4k'});
     assert.equal(yunfei4k.job.imageChannel, 'yunfei-gpt-image-2-hd');
     assert.equal(yunfei4k.job.outputSize, '3840x2160');
+    const yunwu4k = await service.create({...request, model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'9:16', idempotencyKey:'canvas-job-yunwu-4k'});
+    assert.equal(yunwu4k.job.imageChannel, 'yunwu-gpt-image-2-c');
+    assert.equal(yunwu4k.job.aspectRatio, '9:16');
+    assert.equal(yunwu4k.job.outputSize, '2160x3840');
     await assert.rejects(
       () => service.create({...request, model:'yunfei-gpt-image-2-1k', resolution:'2k', aspectRatio:'1:1', idempotencyKey:'canvas-job-yunfei-invalid'}),
       error => error.code === 'CANVAS_IMAGE2_RESOLUTION_UNSUPPORTED'
@@ -56,7 +60,12 @@ async function run() {
       () => service.create({...request, prompt:'另一项请求'}),
       error => error.code === 'CANVAS_JOB_IDEMPOTENCY_CONFLICT'
     );
-    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 5);
+    await service.updateOwned('USR-A', 'NN-PROJECT-A', first.job.id, {status:'review', providerSubmitState:'uncertain'});
+    const replacement = await service.create(request);
+    assert.equal(replacement.created, true);
+    assert.notEqual(replacement.job.id, first.job.id);
+    assert.match(replacement.job.idempotencyKey, /^canvas-job-0001\.retry-/);
+    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 7);
     assert.equal((await service.listOwned('USR-B', 'NN-PROJECT-A')).length, 0);
     assert.equal(await service.getOwned('USR-B', 'NN-PROJECT-A', first.job.id), null);
 

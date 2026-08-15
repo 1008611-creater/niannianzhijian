@@ -188,15 +188,24 @@ function createCanvasGenerationJobService(options = {}) {
 
   async function create(input) {
     const normalized = normalizeInput(input);
-    const idempotencyKey = validateIdempotencyKey(input.idempotencyKey);
-    const hash = requestHash({...normalized, idempotencyKey});
+    const requestedIdempotencyKey = validateIdempotencyKey(input.idempotencyKey);
     return withWriteLock(async () => {
       const jobs = await readAll();
-      const existing = jobs.find(item => item.ownerId === input.ownerId && item.projectId === normalized.projectId && item.idempotencyKey === idempotencyKey);
+      const existing = jobs.find(item => item.ownerId === input.ownerId && item.projectId === normalized.projectId && item.idempotencyKey === requestedIdempotencyKey);
       if (existing) {
-        if (existing.requestHash !== hash) throw jobError('CANVAS_JOB_IDEMPOTENCY_CONFLICT', '该幂等键已经用于另一项生成请求', 409);
-        return {job: existing, created: false};
+        const canCreateReplacement = !existing.providerTaskId
+          && ['failed', 'review'].includes(existing.status)
+          && ['failed', 'uncertain'].includes(existing.providerSubmitState);
+        if (!canCreateReplacement) {
+          const hash = requestHash({...normalized, idempotencyKey:requestedIdempotencyKey});
+          if (existing.requestHash !== hash) throw jobError('CANVAS_JOB_IDEMPOTENCY_CONFLICT', '该幂等键已经用于另一项生成请求', 409);
+          return {job: existing, created: false};
+        }
       }
+      const idempotencyKey = existing
+        ? requestedIdempotencyKey + '.retry-' + crypto.randomBytes(8).toString('hex')
+        : requestedIdempotencyKey;
+      const hash = requestHash({...normalized, idempotencyKey});
       const timestamp = new Date().toISOString();
       const job = {
         schemaVersion: 'niannian.canvas_generation_job.v1',
