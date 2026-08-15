@@ -48,7 +48,6 @@ const fullSourceStep01Authority = require('./bridge/niannian_full_source_step01_
 const canvasGenerationJobs = require('./bridge/niannian_canvas_generation_jobs');
 const canvasAssets = require('./bridge/niannian_canvas_assets');
 const canvasImage2RuntimeModule = require('./bridge/niannian_canvas_image2_runtime');
-const yunfeiImage2Adapter = require('./bridge/niannian_yunfei_image2_adapter');
 const yunwuAgentVaultImage2Adapter = require('./bridge/niannian_yunwu_agent_vault_image2_adapter');
 const canvasImage2Channels = require('./bridge/niannian_canvas_image2_channels');
 const canvasH3RuntimeModule = require('./bridge/niannian_canvas_h3_runtime');
@@ -160,9 +159,6 @@ const canvasImage2Runtime = canvasImage2RuntimeModule.createCanvasImage2Runtime(
   assetService:canvasAssetService,
   enabled:canvasProviderStatus.imageSubmitEnabled,
   adapters:{
-    runninghub: undefined,
-    'yunfei-1k': yunfeiImage2Adapter.createYunfeiImage2Adapter({baseUrl:canvasProviderStatus.yunfei1kBaseUrl,apiKey:process.env.YUNFEI_IMAGE2_1K_API_KEY}),
-    'yunfei-hd': yunfeiImage2Adapter.createYunfeiImage2Adapter({baseUrl:canvasProviderStatus.yunfeiHdBaseUrl,apiKey:process.env.YUNFEI_IMAGE2_HD_API_KEY}),
     'yunwu-agent-vault': yunwuAgentVaultImage2Adapter.createYunwuAgentVaultImage2Adapter()
   }
 });
