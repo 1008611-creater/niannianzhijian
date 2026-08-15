@@ -67,6 +67,10 @@ async function main() {
     const panel = page.locator('#s1-chain-canvas');
     await panel.waitFor({state:'visible'});
     assert.equal(await panel.evaluate(node => node.parentElement && node.parentElement.getAttribute('aria-label')), 'AI 影像创作画布', 'the S1 chain must mount inside the generation canvas');
+    assert.equal(await panel.getByRole('heading', {name:'原片到关键帧'}).isVisible(), false, 'new projects must not show default S1 cards');
+    assert.ok(await page.getByRole('button', {name:'添加文本节点'}).count() >= 1, 'original text node control must remain');
+    assert.ok(await page.getByRole('button', {name:'添加图片节点'}).count() >= 1, 'original image node control must remain');
+    await page.getByRole('button', {name:'打开原片转绘链'}).click();
     await assert.rejects(panel.getByRole('button', {name:'创建节点链'}).click({timeout:300}), /Timeout|intercepted/, 'create remains disabled until all source gates pass');
     await panel.getByRole('radio', {name:/source\.mp4/}).check();
     await panel.getByRole('checkbox', {name:/我确认拥有/}).check();
