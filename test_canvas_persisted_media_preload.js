@@ -8,9 +8,10 @@ const bundle = fs.readFileSync(path.join(__dirname, 'studio', 'assets', 'BaseGen
 const indexHtml = fs.readFileSync(path.join(__dirname, 'studio', 'index.html'), 'utf8');
 const appEntry = fs.readFileSync(path.join(__dirname, 'studio', 'assets', 'index-M-8MrEH2-r28-19b89ec-r4.js'), 'utf8');
 const appShell = fs.readFileSync(path.join(__dirname, 'studio', 'assets', 'NomiStudioApp-DDB0IgSO-r28-19b89ec-r4.js'), 'utf8');
-const cacheVersion = '20260816-persisted-image-r1';
+const cacheVersion = '20260816-persisted-image-r2';
 
-assert(bundle.includes('t==="image"?(c(e),()=>{}):ss(m,()=>c(e))'));
+assert(bundle.includes('t==="image"?(c(e),()=>{}):m?ss(m,()=>c(e)):void 0'));
+assert(!bundle.includes('&&m)return t==="image"'));
 assert(bundle.includes('ns="1600px"'));
 assert(indexHtml.includes(`index-M-8MrEH2-r28-19b89ec-r4.js?v=${cacheVersion}`));
 assert(appEntry.includes(`NomiStudioApp-DDB0IgSO-r28-19b89ec-r4.js?v=${cacheVersion}`));
