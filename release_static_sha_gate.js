@@ -84,16 +84,32 @@ async function verifyStaticSha256(urlText, expected, options) {
   return { ...result, ok:result.ok && result.sha256 === expectedSha256(expected) };
 }
 
-function removeKnownCloudflareBeacon(body) {
+function knownCloudflareBeaconVariants(body) {
   if (!Buffer.isBuffer(body)) return null;
   const html = body.toString('utf8');
   if (!body.equals(Buffer.from(html, 'utf8'))) return null;
+
+  // Cloudflare can add a second module beacon after an origin-owned defer beacon.
+  // Its injector rewrites the body-closing whitespace. Try only the two observed
+  // origin layouts and require one reconstructed body to match the expected hash.
+  const edgeBeacon = /\r?\r?\n[ \t]*<script type="module" src="https:\/\/static\.cloudflareinsights\.com\/beacon\.min\.js\/v[a-z0-9]+" integrity="sha512-[A-Za-z0-9+/]+={0,2}" data-cf-beacon='(?:[^'\\]|\\.)*' crossorigin="anonymous"><\/script>\r?\n[ \t]*<\/body>(\r?\n)([ \t]*)<\/html>/g;
+  const edgeMatches = [...html.matchAll(edgeBeacon)];
+  if (edgeMatches.length === 1) {
+    return ['\n', '\r\r\n'].map(bodyPrefix => Buffer.from(
+      html.replace(edgeBeacon, (_, trailingNewline, indentation) => bodyPrefix + indentation + '</body>' + trailingNewline + indentation + '</html>'),
+      'utf8'
+    ));
+  }
 
   // Cloudflare replaces the original body-tag indentation while inserting this one standard telemetry beacon.
   const beacon = /\n([ \t]*)<script defer src="https:\/\/static\.cloudflareinsights\.com\/beacon\.min\.js\/v[a-z0-9]+" integrity="sha512-[A-Za-z0-9+/]+={0,2}" data-cf-beacon='(?:[^'\\]|\\.)*' crossorigin="anonymous"><\/script>\n[ \t]*<\/body>/g;
   const matches = [...html.matchAll(beacon)];
   if (matches.length !== 1) return null;
-  return Buffer.from(html.replace(beacon, (_, indentation) => '\n' + indentation + '</body>'), 'utf8');
+  return [Buffer.from(html.replace(beacon, (_, indentation) => '\n' + indentation + '</body>'), 'utf8')];
+}
+
+function removeKnownCloudflareBeacon(body) {
+  return knownCloudflareBeaconVariants(body)?.[0] || null;
 }
 
 async function verifyPublicHtmlSha256(urlText, expected, options) {
@@ -106,7 +122,8 @@ async function verifyPublicHtmlSha256(urlText, expected, options) {
   if (rawSha256 === expectedHash) {
     return { ok:true, statusCode:response.statusCode, bytes:response.bytes, sha256:rawSha256, normalizedSha256:rawSha256, normalization:null, error:null };
   }
-  const normalized = removeKnownCloudflareBeacon(response.body);
+  const normalizedCandidates = knownCloudflareBeaconVariants(response.body) || [];
+  const normalized = normalizedCandidates.find(candidate => crypto.createHash('sha256').update(candidate).digest('hex') === expectedHash) || null;
   const normalizedSha256 = normalized ? crypto.createHash('sha256').update(normalized).digest('hex') : null;
   return {
     ok:normalizedSha256 === expectedHash,
