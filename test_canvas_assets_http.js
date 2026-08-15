@@ -106,6 +106,15 @@ async function run() {
   assert.equal(listResponse.status, 200);
   assert.equal(list.assets.length, 3);
 
+  const localDocumentResponse = await fetch(`${baseUrl}/api/studio/projects/NN-ASSET-A`, {
+    method:'PUT',
+    headers:headers('asset-token-a', {'content-type':'application/json','x-niannian-project-kind':'redraw'}),
+    body:JSON.stringify({document:{generationCanvas:{nodes:[{id:'local-node',kind:'asset',result:{type:'image',url:'data:image/png;base64,AAAA'}}],edges:[]}}})
+  });
+  const localDocument = await localDocumentResponse.json();
+  assert.equal(localDocumentResponse.status, 422);
+  assert.equal(localDocument.code, 'NOMI_LOCAL_MEDIA_NOT_PERSISTABLE');
+
   const downloadResponse = await fetch(baseUrl + first.asset.downloadUrl, {headers:headers('asset-token-a')});
   const download = Buffer.from(await downloadResponse.arrayBuffer());
   assert.equal(downloadResponse.status, 200);

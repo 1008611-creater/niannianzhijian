@@ -20,5 +20,8 @@ assert.doesNotMatch(source, /if\(h\|\|P\.current!==s\.id\)return;const K=N\.bind
 assert.match(source, /window\.dispatchEvent\(new Event\("nomi-canvas-mutated"\)\)/);
 assert.match(source, /window\.addEventListener\("nomi-canvas-mutated",q\)/);
 assert.match(source, /N\.persistProject\(s,ir\(\)\)/);
+assert.match(source, /platform!==\"web\"&&n===\"image\"/);
+assert.match(source, /uploadStatus:c\?\"local-only\":\"failed\"/);
+assert.match(source, /retryableImport:!c/);
 
 console.log('WEB_CANVAS_PERSISTENCE_BINDING_CONTRACT_OK');

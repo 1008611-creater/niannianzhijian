@@ -51,6 +51,47 @@
     return body;
   }
 
+  // 批量拖入时限制并发，避免浏览器同时打开大量上传连接导致中途丢失；
+  // 只对网络错误、限流和服务端暂时性错误重试，客户端校验错误立即返回。
+  var assetUploadActive = 0;
+  var assetUploadQueue = [];
+  function enqueueAssetUpload(task) {
+    return new Promise(function (resolve, reject) {
+      assetUploadQueue.push({task: task, resolve: resolve, reject: reject});
+      drainAssetUploadQueue();
+    });
+  }
+  function drainAssetUploadQueue() {
+    while (assetUploadActive < 2 && assetUploadQueue.length) {
+      var item = assetUploadQueue.shift();
+      assetUploadActive += 1;
+      Promise.resolve().then(item.task).then(item.resolve, item.reject).finally(function () {
+        assetUploadActive -= 1;
+        drainAssetUploadQueue();
+      });
+    }
+  }
+  function isRetryableAssetUploadError(error) {
+    var status = Number(error && error.status);
+    return !status || status === 408 || status === 429 || status >= 500;
+  }
+  function waitBeforeAssetUploadRetry(attempt) {
+    return new Promise(function (resolve) { setTimeout(resolve, attempt === 1 ? 250 : 750); });
+  }
+  async function uploadAssetWithRetry(path, init) {
+    var lastError;
+    for (var attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        return await api(path, init);
+      } catch (error) {
+        lastError = error;
+        if (attempt >= 3 || !isRetryableAssetUploadError(error)) throw error;
+        await waitBeforeAssetUploadRetry(attempt);
+      }
+    }
+    throw lastError || new Error('项目素材上传失败');
+  }
+
   function providerModel(kind, status, imageChannel) {
     if (kind === 'text') {
       var textStatus = status.text || {};
@@ -263,10 +304,12 @@
     if (!fieldName) throw new Error('当前文件类型不能作为画布参考素材');
     var form = new FormData();
     form.append(fieldName, new Blob([input.bytes], {type: contentType}), String(input.fileName || 'reference-media'));
-    var response = await api('/api/projects/' + encodeURIComponent(project) + '/assets', {
-      method: 'POST',
-      headers: {'x-niannian-project-kind': canvasProjectKind()},
-      body: form
+    var response = await enqueueAssetUpload(function () {
+      return uploadAssetWithRetry('/api/projects/' + encodeURIComponent(project) + '/assets', {
+        method: 'POST',
+        headers: {'x-niannian-project-kind': canvasProjectKind()},
+        body: form
+      });
     });
     if (!response.asset || !response.asset.id || !response.asset.downloadUrl) throw new Error('服务器没有返回项目素材');
     return {

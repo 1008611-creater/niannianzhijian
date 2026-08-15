@@ -8113,7 +8113,13 @@ function nomiSafeDocumentValue(value, depth = 0) {
     const text = value.slice(0, 16000);
     // 网页 Nomi 的正式来源是服务端项目资产，不能把浏览器临时地址或内联媒体
     // 带入项目文档；否则刷新后会恢复一个不可读、不可授权的假引用。
-    return /^(?:blob:|data:|nomi-local:)/i.test(text) ? '' : text;
+    if (/^(?:blob:|data:|nomi-local:)/i.test(text)) {
+      throw Object.assign(new Error('项目文档不能保存浏览器临时素材，请先完成上传'), {
+        code: 'NOMI_LOCAL_MEDIA_NOT_PERSISTABLE',
+        httpStatus: 422
+      });
+    }
+    return text;
   }
   if (depth >= 16) return null;
   if (Array.isArray(value)) return value.slice(0, 1000).map(item => nomiSafeDocumentValue(item, depth + 1));

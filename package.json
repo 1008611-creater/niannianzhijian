@@ -53,6 +53,7 @@
     "test:canvas-text-runtime": "node test_canvas_text_runtime.js",
     "test:canvas-text-jobs": "node test_canvas_text_jobs.js",
     "test:web-runtime-adapter": "node test_web_runtime_adapter.js",
+    "test:web-runtime-adapter-upload-resilience": "node test_web_runtime_adapter_upload_resilience.js",
     "test:canvas-generation-http": "node test_canvas_generation_http.js",
     "test:canvas-s1-chain": "node test_canvas_s1_chain_http.js",
     "test:canvas-champion-skill-nodes": "node test_canvas_champion_skill_nodes.js",
