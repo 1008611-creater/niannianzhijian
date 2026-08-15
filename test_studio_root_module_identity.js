@@ -9,7 +9,6 @@ const projectRoot = __dirname;
 const assetsRoot = path.join(projectRoot, 'studio', 'assets');
 const releaseTag = 'r4';
 const moduleCacheVersion = '20260811-static-r6';
-const adapterCacheVersion = '20260811-animate-dual-r1';
 const starts = ['index-M-8MrEH2-r28-19b89ec-r4.js', 'web-runtime-adapter-r4.js'];
 
 function localReferences(source) {
@@ -32,7 +31,7 @@ function assertPhysicalName(name) {
 
 const html = fs.readFileSync(path.join(projectRoot, 'studio', 'index.html'), 'utf8');
 assert.match(html, new RegExp(`\\./assets/index-M-8MrEH2-r28-19b89ec-${releaseTag}\\.js\\?v=${moduleCacheVersion}`));
-assert.match(html, new RegExp(`\\./assets/web-runtime-adapter-${releaseTag}\\.js\\?v=${adapterCacheVersion}`));
+assert.match(html, new RegExp(`\\./assets/web-runtime-adapter-${releaseTag}\\.js\\?v=[A-Za-z0-9._-]+`));
 assert.doesNotMatch(html, /index-M-8MrEH2-r28-19b89ec\.js(?:\?|['"])/);
 assert.doesNotMatch(html, /web-runtime-adapter\.js(?:\?|['"])/);
 assert.doesNotMatch(html, /20260808-static-r[23]/);

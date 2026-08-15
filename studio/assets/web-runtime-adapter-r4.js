@@ -352,7 +352,21 @@
     return 'NN-web-' + suffix.slice(0, 64);
   }
   var webProjects = readWebProjects();
-  function projectSummary(record) {
+  function projectThumbnailUrls(record) {
+    var values = Array.isArray(record && record.thumbnailUrls) ? record.thumbnailUrls.slice() : [];
+    if (!values.length && record && typeof record.thumbnail === 'string') values.push(record.thumbnail);
+    return Array.from(new Set(values.filter(function (value) { return typeof value === 'string' && value.length > 4; }))).slice(0, 4);
+  }
+  function projectSummary(record, previous) {
+    var prior = previous && typeof previous === 'object' ? previous : {};
+    var incomingUrls = projectThumbnailUrls(record);
+    var coverMode = record && ['auto','custom'].includes(record.coverMode) ? record.coverMode : (prior.coverMode || 'auto');
+    var customCoverUrl = String(record && record.customCoverUrl || prior.customCoverUrl || '').trim();
+    var customCoverAssetId = String(record && record.customCoverAssetId || prior.customCoverAssetId || '').trim();
+    var autoThumbnailUrls = incomingUrls.length && !(coverMode === 'custom' && incomingUrls[0] === customCoverUrl)
+      ? incomingUrls
+      : projectThumbnailUrls({thumbnailUrls:prior.autoThumbnailUrls});
+    var visibleUrls = coverMode === 'custom' && customCoverUrl ? [customCoverUrl] : autoThumbnailUrls;
     return {
       id: record.id,
       name: record.name || '未命名项目',
@@ -360,8 +374,35 @@
       updatedAt: record.updatedAt || record.createdAt || Date.now(),
       revision: Number(record.revision || 0),
       savedAt: record.savedAt || record.updatedAt || record.createdAt || Date.now(),
-      canvasOnly: true
+      canvasOnly: true,
+      projectKind: record.projectKind || prior.projectKind || canvasProjectKind(),
+      coverMode: coverMode,
+      customCoverUrl: customCoverUrl || undefined,
+      customCoverAssetId: customCoverAssetId || undefined,
+      autoThumbnailUrls: autoThumbnailUrls,
+      thumbnailUrls: visibleUrls,
+      thumbnail: visibleUrls[0] || undefined,
+      thumbStyle: record.thumbStyle || prior.thumbStyle || undefined,
+      metadataSynced: prior.metadataSynced === true
     };
+  }
+  function projectMetadataPayload(record) {
+    return {
+      name: record.name,
+      coverMode: record.coverMode || 'auto',
+      coverAssetId: record.coverMode === 'custom' ? record.customCoverAssetId : null
+    };
+  }
+  function projectMetadataSignature(record) {
+    return JSON.stringify(projectMetadataPayload(record));
+  }
+  async function persistProjectMetadata(record) {
+    var response = await api('/api/studio/projects/' + encodeURIComponent(record.id), {
+      method: 'PATCH',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify(projectMetadataPayload(record))
+    });
+    return response.project || null;
   }
   var projectsApi = {
     list: function () {
@@ -375,16 +416,54 @@
     create: function (record) {
       var now = Date.now();
       var created = Object.assign({}, record || {}, {id: newWebProjectId(), createdAt: now, updatedAt: now, revision: 0, savedAt: now, canvasOnly: true});
-      webProjects = [projectSummary(created)].concat(webProjects.filter(function (item) { return item.id !== created.id; }));
+      webProjects = [projectSummary(created, null)].concat(webProjects.filter(function (item) { return item.id !== created.id; }));
       writeWebProjects(webProjects);
       return created;
     },
     read: function (id) { return webProjects.find(function (item) { return item.id === id; }) || null; },
     save: function (id, record) {
-      var next = projectSummary(Object.assign({}, record || {}, {id: id, updatedAt: Date.now()}));
+      var previous = webProjects.find(function (item) { return item.id === id; }) || null;
+      var next = projectSummary(Object.assign({}, record || {}, {id: id, updatedAt: Date.now()}), previous);
       webProjects = [next].concat(webProjects.filter(function (item) { return item.id !== id; }));
       writeWebProjects(webProjects);
+      if (!previous || previous.metadataSynced !== true || projectMetadataSignature(previous) !== projectMetadataSignature(next)) {
+        next.metadataSynced = false;
+        writeWebProjects(webProjects);
+        persistProjectMetadata(next).then(function () {
+          var current = webProjects.find(function (item) { return item.id === id; });
+          if (!current || projectMetadataSignature(current) !== projectMetadataSignature(next)) return;
+          current.metadataSynced = true;
+          writeWebProjects(webProjects);
+        }).catch(function (error) {
+          window.dispatchEvent(new CustomEvent('niannian-project-metadata-error', {detail:{projectId:id,message:error.message || '项目信息保存失败'}}));
+        });
+      }
       return record;
+    },
+    updateMetadata: async function (id, metadata) {
+      var previous = webProjects.find(function (item) { return item.id === id; });
+      if (!previous) throw new Error('项目不存在或尚未载入');
+      var requested = metadata && typeof metadata === 'object' ? metadata : {};
+      var candidate = projectSummary(Object.assign({}, previous, {
+        id: id,
+        name: requested.name === undefined ? previous.name : String(requested.name || '').trim(),
+        coverMode: requested.coverMode === undefined ? previous.coverMode : requested.coverMode,
+        customCoverUrl: requested.customCoverUrl === undefined ? previous.customCoverUrl : requested.customCoverUrl,
+        customCoverAssetId: requested.coverAssetId === undefined ? previous.customCoverAssetId : requested.coverAssetId,
+        updatedAt: Date.now()
+      }), previous);
+      var saved = await persistProjectMetadata(candidate);
+      if (saved && saved.cover) {
+        candidate.coverMode = saved.cover.mode || candidate.coverMode;
+        candidate.customCoverAssetId = saved.cover.assetId || undefined;
+        candidate.customCoverUrl = saved.cover.imageUrl || undefined;
+        candidate.thumbnailUrls = candidate.coverMode === 'custom' && candidate.customCoverUrl ? [candidate.customCoverUrl] : candidate.autoThumbnailUrls;
+        candidate.thumbnail = candidate.thumbnailUrls[0] || undefined;
+      }
+      candidate.metadataSynced = true;
+      webProjects = [candidate].concat(webProjects.filter(function (item) { return item.id !== id; }));
+      writeWebProjects(webProjects);
+      return candidate;
     },
     delete: function (id) {
       webProjects = webProjects.filter(function (item) { return item.id !== id; });

@@ -392,6 +392,7 @@ const redrawProjectEventSnapshots = new Map();
 const scriptProjectEventSnapshots = new Map();
 const projectSourceIntegrityCache = new Map();
 let redrawProjectsWriteTail = Promise.resolve();
+let scriptProjectsWriteTail = Promise.resolve();
 let canvasProjectsWriteTail = Promise.resolve();
 let canvasDocumentsWriteTail = Promise.resolve();
 let directorDeskDocumentsWriteTail = Promise.resolve();
@@ -555,10 +556,20 @@ async function readScriptProjects() {
 }
 
 async function writeScriptProjects(projects) {
-  const temp = scriptProjectsPath + '.tmp';
-  await fsp.writeFile(temp, JSON.stringify(projects, null, 2) + '\n');
-  await fsp.rename(temp, scriptProjectsPath);
+  const temp = scriptProjectsPath + '.tmp-' + process.pid + '-' + crypto.randomBytes(6).toString('hex');
+  await fsp.writeFile(temp, JSON.stringify(projects, null, 2) + '\n', {flag:'wx'});
+  try { await fsp.rename(temp, scriptProjectsPath); }
+  catch (error) { await fsp.rm(temp, {force:true}).catch(() => {}); throw error; }
   broadcastProjectEvent('script_project_projection_changed', changedProjectIdsByOwner(projects, scriptProjectEventSnapshots, 'scriptProjectIds'));
+}
+
+async function withScriptProjectsWriteLock(operation) {
+  const previous = scriptProjectsWriteTail;
+  let release;
+  scriptProjectsWriteTail = new Promise(resolve => { release = resolve; });
+  await previous;
+  try { return await operation(); }
+  finally { release(); }
 }
 
 async function readWorkspaceBindings() {
@@ -2380,6 +2391,7 @@ function publicProject(project) {
     quality:project.quality,
     replacementBrief:project.replacementBrief,
     notes:project.notes,
+    studio:publicStudioProjectMetadata(project, 'redraw'),
     source:project.source ? {originalName:source.originalName,mimeType:source.mimeType,bytes:source.bytes,previewUrl:'/api/projects/' + encodeURIComponent(project.id) + '/source'} : null,
     preflight:safePreflight,
     analysis:project.analysis ? {status:project.analysis.status,requestedAt:project.analysis.requestedAt || null,updatedAt:project.analysis.updatedAt || null,completedAt:project.analysis.completedAt || null} : null,
@@ -2474,6 +2486,7 @@ function publicScriptProject(project) {
     aspectRatio:project.aspectRatio,
     createdAt:project.createdAt,
     updatedAt:project.updatedAt || project.createdAt,
+    studio:publicStudioProjectMetadata(project, 'script'),
     source:{
       type:project.source.type,
       originalName:project.source.originalName || null,
@@ -8123,6 +8136,81 @@ function normalizeNomiProjectDocument(value) {
   return document;
 }
 
+function publicStudioProjectMetadata(project, projectKind) {
+  const cover = project?.studioCover && typeof project.studioCover === 'object' ? project.studioCover : {};
+  const mode = cover.mode === 'custom' && /^CAS-[a-f0-9]{24}$/.test(String(cover.assetId || '')) ? 'custom' : 'auto';
+  return {
+    id:project.id,
+    name:canvasText(project.name, 160) || '未命名项目',
+    kind:projectKind,
+    cover:{
+      mode,
+      assetId:mode === 'custom' ? cover.assetId : null,
+      imageUrl:mode === 'custom' ? canvasAssetDownloadUrl(project.id, cover.assetId) : null
+    },
+    updatedAt:project.updatedAt || project.createdAt || null
+  };
+}
+
+function applyStudioProjectMetadata(project, input) {
+  const updatedAt = new Date().toISOString();
+  if (input.name !== undefined) project.name = input.name;
+  if (input.coverMode !== undefined) {
+    project.studioCover = input.coverMode === 'custom'
+      ? {mode:'custom',assetId:input.coverAssetId,updatedAt}
+      : {mode:'auto',assetId:null,updatedAt};
+  }
+  project.updatedAt = updatedAt;
+  return project;
+}
+
+async function updateStudioProjectMetadata(user, owned, body) {
+  const name = body.name === undefined ? undefined : canvasText(body.name, 160);
+  if (body.name !== undefined && (!name || name.length > 80)) throw Object.assign(new Error('项目名称应为 1 到 80 个字符'), {code:'STUDIO_PROJECT_NAME_INVALID',httpStatus:422});
+  const coverMode = body.coverMode === undefined ? undefined : canvasText(body.coverMode, 20);
+  if (coverMode !== undefined && !['auto','custom'].includes(coverMode)) throw Object.assign(new Error('项目封面模式无效'), {code:'STUDIO_PROJECT_COVER_MODE_INVALID',httpStatus:422});
+  const coverAssetId = coverMode === 'custom' ? canvasText(body.coverAssetId, 120) : null;
+  if (coverMode === 'custom') {
+    const asset = await canvasAssetService.getOwned(user.id, owned.project.id, coverAssetId);
+    if (!asset || asset.projectKind !== owned.projectKind || !['reference_image','generated_image'].includes(asset.kind)) {
+      throw Object.assign(new Error('自定义封面必须是当前项目中的图片素材'), {code:'STUDIO_PROJECT_COVER_ASSET_INVALID',httpStatus:422});
+    }
+  }
+  if (name === undefined && coverMode === undefined) throw Object.assign(new Error('没有可更新的项目信息'), {code:'STUDIO_PROJECT_METADATA_EMPTY',httpStatus:422});
+  const input = {name,coverMode,coverAssetId};
+  let saved;
+  if (owned.project.canvasOnly === true) {
+    saved = await withCanvasProjectsWriteLock(async () => {
+      const projects = await readCanvasProjects();
+      const project = projects.find(item => item.id === owned.project.id && item.ownerId === user.id);
+      if (!project) throw Object.assign(new Error('项目不存在'), {code:'PROJECT_NOT_FOUND',httpStatus:404});
+      applyStudioProjectMetadata(project, input);
+      await writeCanvasProjects(projects);
+      return project;
+    });
+  } else if (owned.projectKind === 'script') {
+    saved = await withScriptProjectsWriteLock(async () => {
+      const projects = await readScriptProjects();
+      const project = projects.find(item => item.id === owned.project.id && item.ownerId === user.id);
+      if (!project) throw Object.assign(new Error('项目不存在'), {code:'PROJECT_NOT_FOUND',httpStatus:404});
+      applyStudioProjectMetadata(project, input);
+      await writeScriptProjects(projects);
+      return project;
+    });
+  } else {
+    saved = await withRedrawProjectsWriteLock(async () => {
+      const projects = await readProjects();
+      const project = projects.find(item => item.id === owned.project.id && item.ownerId === user.id);
+      if (!project) throw Object.assign(new Error('项目不存在'), {code:'PROJECT_NOT_FOUND',httpStatus:404});
+      applyStudioProjectMetadata(project, input);
+      await writeProjects(projects);
+      return project;
+    });
+  }
+  await ensureWorkspaceBinding(user, saved.id, {name:saved.name});
+  return saved;
+}
+
 async function handleNomiProjectApi(request, response, pathname, user) {
   const match = pathname.match(/^\/api\/studio\/projects\/([^/]+)$/);
   if (!match) return false;
@@ -8157,11 +8245,19 @@ async function handleNomiProjectApi(request, response, pathname, user) {
     }
     const revision = Number(record?.revision || 0);
     return json(response, 200, {
-      project:{id:owned.project.id,name:canvasText(owned.project.name, 160),kind:owned.projectKind,status:canvasText(owned.project.status, 80)},
+      project:{...publicStudioProjectMetadata(owned.project, owned.projectKind),status:canvasText(owned.project.status, 80)},
       revision,
       document:record?.document || null,
       updatedAt:record?.updatedAt || null
     }, {ETag:nomiEtag(revision),'Cache-Control':'no-store'});
+  }
+  if (request.method === 'PATCH') {
+    try {
+      const saved = await updateStudioProjectMetadata(user, owned, await readBodyJson(request));
+      return json(response, 200, {code:'STUDIO_PROJECT_METADATA_UPDATED',project:publicStudioProjectMetadata(saved, owned.projectKind)}, {'Cache-Control':'no-store'});
+    } catch (error) {
+      return json(response, error.httpStatus || 400, {code:error.code || 'STUDIO_PROJECT_METADATA_INVALID',error:error.message || '项目信息保存失败'});
+    }
   }
   if (request.method !== 'PUT') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
   try {
@@ -9470,7 +9566,7 @@ async function handleApi(request, response, pathname) {
   if (request.method === 'GET' && projectId && !projectId.includes('/')) {
     const project = (await readOwnedProjects(user.id)).find(item => item.id === projectId) || await ensureWebCanvasProject(user, projectId);
     if (!project) return json(response, 404, {error:'项目不存在'});
-    if (project.canvasOnly === true) return json(response, 200, {project:{id:project.id,name:project.name,status:project.status,createdAt:project.createdAt,updatedAt:project.updatedAt,workspaceProjectId:project.id,source:null,runtime:project.runtime || {}}});
+    if (project.canvasOnly === true) return json(response, 200, {project:{id:project.id,name:project.name,status:project.status,createdAt:project.createdAt,updatedAt:project.updatedAt,workspaceProjectId:project.id,source:null,runtime:project.runtime || {},studio:publicStudioProjectMetadata(project, project.projectKind || 'redraw')}});
     return json(response, 200, {project:publicProject(project)});
   }
   return json(response, 404, {error:'API 不存在'});

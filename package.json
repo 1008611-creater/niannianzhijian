@@ -59,6 +59,7 @@
     "test:studio-s1-chain-ui": "node test_studio_s1_chain_ui_contract.js",
     "test:studio-s1-chain-ui-browser": "node test_studio_s1_chain_ui_browser.js",
     "test:web-canvas-persistence-binding": "node test_web_canvas_persistence_binding.js",
+    "test:studio-project-metadata": "node test_studio_project_metadata.js && node test_project_library_management_contract.js",
     "test:canvas-assets-http": "node test_canvas_assets_http.js",
     "test:canvas-image2-runtime": "node test_canvas_image2_runtime.js",
     "test:canvas-yunfei-image2": "node test_yunfei_image2_adapter.js",

@@ -162,3 +162,54 @@ test('Canvas node save survives a refresh without a false concurrent-edit warnin
 
   await context.close();
 });
+
+test('Project library renames a project and persists a custom cover', async ({browser}) => {
+  const context = await browser.newContext({viewport: {width: 1440, height: 900}});
+  await context.addCookies([{name: 'niannian_session', value: sessionToken, url: baseUrl}]);
+  const page = await context.newPage();
+
+  await page.goto(baseUrl + '/studio/', {waitUntil: 'networkidle'});
+  await page.getByRole('button', {name: /新建空白项目/}).click();
+  await page.waitForTimeout(500);
+  const projectId = await page.evaluate(() => window.nomiDesktop.projects.list()[0]?.id || null);
+  expect(projectId).toMatch(/^NN-/);
+
+  await page.goto(baseUrl + '/studio/', {waitUntil: 'networkidle'});
+  const card = page.locator('[data-project-card=true]').first();
+  await expect(card).toBeVisible();
+  await card.locator('[data-project-edit]').click();
+  await expect(page.getByRole('heading', {name: '编辑项目'})).toBeVisible();
+  await page.locator('input[name=projectName]').fill('验收项目封面');
+  await page.getByRole('radio', {name: '自定义封面'}).check();
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+  await page.locator('input[name=coverFile]').setInputFiles({name: 'cover.png', mimeType: 'image/png', buffer: png});
+  await page.getByRole('button', {name: '保存'}).click();
+
+  await expect(page.locator('[data-project-card=true]').filter({hasText: '验收项目封面'})).toHaveCount(1);
+  await expect(page.locator('[data-project-card=true]').filter({hasText: '验收项目封面'}).locator('img')).toHaveAttribute('src', new RegExp('/api/projects/' + projectId + '/assets/'));
+  await page.reload({waitUntil: 'networkidle'});
+  const refreshed = page.locator('[data-project-card=true]').filter({hasText: '验收项目封面'});
+  await expect(refreshed).toHaveCount(1);
+  await expect(refreshed.locator('img')).toHaveAttribute('src', new RegExp('/api/projects/' + projectId + '/assets/'));
+
+  await context.close();
+});
+
+test('Project route gate prevents the library flash while the canvas hydrates', async ({browser}) => {
+  const context = await browser.newContext({viewport: {width: 1440, height: 900}});
+  await context.addCookies([{name: 'niannian_session', value: sessionToken, url: baseUrl}]);
+  const page = await context.newPage();
+
+  await page.goto(baseUrl + '/studio/', {waitUntil: 'networkidle'});
+  await page.getByRole('button', {name: /新建空白项目/}).click();
+  await page.waitForTimeout(500);
+  const projectId = await page.evaluate(() => window.nomiDesktop.projects.list()[0]?.id || null);
+  expect(projectId).toMatch(/^NN-/);
+
+  await page.goto(baseUrl + '/studio/#/studio?projectId=' + encodeURIComponent(projectId), {waitUntil: 'commit'});
+  expect(await page.evaluate(() => document.documentElement.classList.contains('nomi-project-route-pending'))).toBe(true);
+  await expect(page.locator('.nomi-studio-app')).toBeVisible({timeout: 15000});
+  expect(await page.locator('.nomi-library-page').count()).toBe(0);
+
+  await context.close();
+});
