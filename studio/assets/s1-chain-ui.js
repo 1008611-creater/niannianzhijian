@@ -55,7 +55,7 @@
       '#s1-chain-canvas{position:absolute;inset:0;z-index:18;overflow:auto;padding:88px 28px 40px;color:#2a2118;font:13px/1.45 Inter,system-ui,sans-serif;pointer-events:none}',
       '#s1-chain-canvas[hidden]{display:none}#s1-chain-canvas .s1-chain-title{max-width:1360px;margin:0 auto 18px;padding:0 4px;color:#786958;pointer-events:none}#s1-chain-canvas .s1-eyebrow{font-size:10px;letter-spacing:.12em;color:#9a6a3c;font-weight:700}#s1-chain-canvas h2{margin:2px 0 0;color:#2a2118;font-size:18px;font-weight:750}',
       '#s1-chain-canvas .s1-chain-flow{position:relative;min-width:1680px;min-height:610px;margin:0 auto;padding:0 24px 60px;pointer-events:none}#s1-chain-canvas .s1-edge{position:absolute;height:2px;background:rgba(154,106,60,.58);transform-origin:0 50%;pointer-events:none;z-index:0}#s1-chain-canvas .s1-edge.dashed{background:repeating-linear-gradient(90deg,rgba(154,106,60,.58) 0 8px,transparent 8px 14px)}#s1-chain-canvas .s1-typed-edge{height:2px;background:#426f83;z-index:1}',
-      '#s1-chain-canvas .s1-node{position:absolute;width:276px;min-height:212px;padding:15px;border:1px solid rgba(90,64,42,.2);border-radius:6px;background:rgba(255,252,246,.97);box-shadow:0 16px 36px rgba(42,33,24,.13);pointer-events:auto;z-index:1;touch-action:none}#s1-chain-canvas .s1-node[data-node=source]{z-index:4}#s1-chain-canvas .s1-node[data-node=step01]{z-index:3}#s1-chain-canvas .s1-node[data-node=step02]{z-index:2}#s1-chain-canvas .s1-node[data-status=blocked]{border-color:rgba(154,106,60,.26)}#s1-chain-canvas .s1-node[data-status=ready]{border-color:#5b8d6b}#s1-chain-canvas .s1-node h3{margin:4px 0 5px;font-size:15px;cursor:grab}#s1-chain-canvas .s1-node.s1-dragging h3{cursor:grabbing}#s1-chain-canvas .s1-node p{margin:0 0 12px;color:#786958;font-size:12px}',
+      '#s1-chain-canvas .s1-node{position:absolute;width:276px;min-height:212px;padding:15px;border:1px solid rgba(90,64,42,.2);border-radius:6px;background:rgba(255,252,246,.97);box-shadow:0 16px 36px rgba(42,33,24,.13);pointer-events:auto;z-index:1;touch-action:none}#s1-chain-canvas .s1-node[data-node=source]{z-index:4}#s1-chain-canvas .s1-node[data-node=step01]{z-index:3}#s1-chain-canvas .s1-node[data-node=step02]{z-index:2}#s1-chain-canvas .s1-node[data-status=blocked]{border-color:rgba(154,106,60,.26)}#s1-chain-canvas .s1-node[data-status=ready]{border-color:#5b8d6b}#s1-chain-canvas .s1-node.s1-selected{outline:2px solid #426f83;outline-offset:3px;box-shadow:0 0 0 4px rgba(66,111,131,.16),0 16px 36px rgba(42,33,24,.18)}#s1-chain-canvas .s1-node h3{margin:4px 0 5px;font-size:15px;cursor:grab}#s1-chain-canvas .s1-node.s1-dragging h3{cursor:grabbing}#s1-chain-canvas .s1-node p{margin:0 0 12px;color:#786958;font-size:12px}#s1-chain-canvas .s1-node [data-s1-delete]{position:absolute;top:8px;right:8px;width:24px;height:24px;padding:0;border:1px solid rgba(90,64,42,.16);border-radius:50%;background:#fff8ef;color:#8a5a45;font-size:16px;line-height:20px;opacity:.72}#s1-chain-canvas .s1-node [data-s1-delete]:hover,#s1-chain-canvas .s1-node.s1-selected [data-s1-delete]{opacity:1;background:#8a5a45;color:#fff}',
       '#s1-chain-canvas .s1-meta{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px;color:#8b7764;font-size:11px}#s1-chain-canvas .s1-status{margin-top:10px;padding:8px;border-radius:6px;background:#f4eee6;color:#5d4d3d;white-space:pre-wrap}#s1-chain-canvas .s1-status.error{background:#fff0ee;color:#a33b2d}#s1-chain-canvas .s1-assets{display:grid;gap:5px;margin:8px 0 10px}#s1-chain-canvas label.s1-asset{display:flex;gap:7px;align-items:center;padding:7px;border:1px solid rgba(90,64,42,.12);border-radius:6px;background:#fffaf3;cursor:pointer}#s1-chain-canvas .s1-asset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#s1-chain-canvas .s1-row{display:flex;gap:7px;align-items:center;margin:7px 0}#s1-chain-canvas select{flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:6px;background:#fff}#s1-chain-canvas button{border:0;border-radius:6px;padding:7px 9px;background:#2a2118;color:#fff;cursor:pointer;font-weight:650;font-size:12px}#s1-chain-canvas button[disabled]{opacity:.45;cursor:default}#s1-chain-canvas .s1-secondary{background:#efe5d8;color:#4c3828}#s1-chain-canvas .s1-node small{color:#8b7764}#s1-chain-canvas .s1-contract{display:grid;gap:4px;margin:8px 0;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-contract span{display:block;padding:5px 7px;border-radius:6px;background:#faf5ef}#s1-chain-canvas .s1-port-state{margin:7px 0 0;padding:6px 7px;border-radius:6px;background:#f4eee6;color:#5d4d3d;font-size:11px;line-height:1.35}#s1-chain-canvas .s1-port-state[data-state=ready]{background:#edf6ee;color:#376745}#s1-chain-canvas .s1-port-state[data-state=blocked]{background:#f8efe5;color:#785330}#s1-chain-canvas .s1-context-menu{position:absolute;z-index:20;display:grid;gap:4px;min-width:206px;padding:7px;border:1px solid rgba(90,64,42,.22);border-radius:6px;background:#fffdf9;box-shadow:0 14px 34px rgba(42,33,24,.2);pointer-events:auto}#s1-chain-canvas .s1-context-menu[hidden]{display:none}#s1-chain-canvas .s1-context-menu strong{padding:5px 7px;color:#8b6040;font-size:10px;letter-spacing:.08em}#s1-chain-canvas .s1-context-menu button{width:100%;text-align:left;background:transparent;color:#2a2118;font-weight:600}#s1-chain-canvas .s1-context-menu button:hover{background:#f3e9dc}#s1-chain-canvas .s1-skill-node{border-top:3px solid #9a6a3c}#s1-chain-canvas .s1-port-list{display:grid;gap:4px;margin:8px 0}#s1-chain-canvas .s1-port-list span{display:block;padding:5px 7px;border-radius:5px;background:#faf5ef;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-ports{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}#s1-chain-canvas .s1-port-group{display:grid;gap:4px;color:#8b7764;font-size:10px}#s1-chain-canvas .s1-port-group.output{text-align:right}#s1-chain-canvas .s1-port-handle{display:block;width:100%;padding:5px 7px;border:1px solid #cdbca8;border-radius:5px;background:#fff8ef;color:#4b3829;text-align:left;cursor:crosshair}#s1-chain-canvas .s1-port-group.output .s1-port-handle{text-align:right}#s1-chain-canvas .s1-input-port{border-color:#89a8b5}#s1-chain-canvas .s1-output-port{border-color:#b68d63}#s1-chain-canvas .s1-port-handle.s1-connecting{background:#dcecf1;border-color:#426f83}',
       '#s1-chain-canvas[data-s1-empty=true]>.s1-chain-title,#s1-chain-canvas[data-s1-empty=true]>.s1-chain-flow>.s1-edge,#s1-chain-canvas[data-s1-empty=true]>.s1-chain-flow>.s1-node{display:none!important}@media (max-width:900px){#s1-chain-canvas{padding:72px 14px 30px}#s1-chain-canvas .s1-chain-flow{min-width:1680px}}@media (max-width:600px){#s1-chain-canvas{padding-top:62px}#s1-chain-canvas .s1-chain-title{margin-bottom:12px}}'
     ].join('');
@@ -180,6 +180,7 @@
     var assets = [];
     var chainReady = false;
     var nodeById = Object.create(null);
+    var selectedNodeId = null;
     var canvasDocument = {nodes:[], edges:[], viewport:{x:0,y:0,zoom:1}};
     var step01PollTimer = null;
     var nodeIds = {source:'s1-source-input',step01:'s1-step01-analysis',step02:'s1-step02-timeline',image2:'s2-image2-keyframe',h3:'s3-h3-video'};
@@ -189,6 +190,57 @@
       'shotlist-builder': {type:'shot', version:'1.0.0', title:'分镜规划', note:'把剧本、资产清单和风格参考编排为分镜与视频提示。', inputs:['screenplay','asset_manifest','style_reference'], outputs:['shotlist',{id:'video_prompt',type:'prompt'},'spatial_blocking']},
       'hell-grind': {type:'shot', version:'1.0.0', title:'镜头提示编译', note:'把分镜、参考资产和连续性约束编译为图像/视频提示词。', inputs:['shotlist','reference_assets','continuity_state'], outputs:[{id:'image_prompt',type:'prompt'},{id:'video_prompt',type:'prompt'},'continuity_locks']}
     };
+
+    function clearNodeSelection() {
+      selectedNodeId = null;
+      panel.querySelectorAll('.s1-node.s1-selected').forEach(function (card) {
+        card.classList.remove('s1-selected');
+        card.removeAttribute('aria-selected');
+      });
+    }
+    function selectNode(card) {
+      if (!card) return;
+      clearNodeSelection();
+      selectedNodeId = card.dataset.nodeId || null;
+      if (!selectedNodeId) return;
+      card.classList.add('s1-selected');
+      card.setAttribute('aria-selected', 'true');
+    }
+    function ensureDeleteControl(card) {
+      if (!card || card.querySelector('[data-s1-delete]')) return;
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.s1Delete = 'true';
+      button.setAttribute('aria-label', '删除节点');
+      button.title = '删除节点';
+      button.textContent = '×';
+      card.insertBefore(button, card.firstChild);
+    }
+    async function deleteSelectedNode() {
+      var id = selectedNodeId;
+      var node = id && nodeById[id];
+      if (!node) { clearNodeSelection(); return; }
+      var title = node.data && node.data.title || node.skillKey || id;
+      var previousNodes = canvasDocument.nodes;
+      var previousEdges = canvasDocument.edges || [];
+      var previousDeletedNodeIds = canvasDocument.deletedNodeIds || [];
+      clearNodeSelection();
+      delete nodeById[id];
+      canvasDocument.nodes = previousNodes.filter(function (item) { return item && item.id !== id; });
+      canvasDocument.edges = previousEdges.filter(function (edge) { return edge.source !== id && edge.target !== id; });
+      canvasDocument.deletedNodeIds = Array.from(new Set(previousDeletedNodeIds.concat([id])));
+      try {
+        await persistRuntimeProjection();
+        setStatus('已删除「' + title + '」，并从画布文档移除相关连接。');
+      } catch (error) {
+        canvasDocument.nodes = previousNodes;
+        canvasDocument.edges = previousEdges;
+        canvasDocument.deletedNodeIds = previousDeletedNodeIds;
+        nodeById[id] = node;
+        renderNodes(canvasDocument.nodes);
+        setStatus(error.message || '删除节点失败，已恢复原节点。', true);
+      }
+    }
 
     function installImage2PromptPort() {
       var row = image2Prompt.closest('.s1-row');
@@ -258,6 +310,7 @@
         if (!spec) return;
         nodesEl.insertAdjacentHTML('beforeend', championNodeMarkup(node, spec));
       });
+      panel.querySelectorAll('[data-champion-node]').forEach(ensureDeleteControl);
     }
     function portDefinitionFor(nodeId, direction, portId) {
       var node = nodeById[nodeId];
@@ -380,6 +433,7 @@
         if (!handle || !panel.contains(handle)) return;
         var card = handle.closest('.s1-node'); var key = card.getAttribute('data-node'); var id = card.dataset.nodeId || nodeIds[key];
         if (!id) return;
+        selectNode(card);
         var current = nodeById[id] && nodeById[id].position;
         var start = current || positionOf(key); var baseX = event.clientX; var baseY = event.clientY;
         event.preventDefault(); card.classList.add('s1-dragging'); card.setPointerCapture && card.setPointerCapture(event.pointerId);
@@ -558,7 +612,13 @@
       canvasDocument.nodes = Array.isArray(nodes) ? nodes : [];
       nodeById = Object.fromEntries(canvasDocument.nodes.map(function (node) { return [node.id,node]; }));
       panel.dataset.s1Empty = canvasDocument.nodes.some(function (node) { return /^s1-|^s2-|^s3-|^skill-/.test(String(node && node.id || '')); }) ? 'false' : 'true';
-      Object.keys(nodeIds).forEach(function (key) { var card = panel.querySelector('[data-node="' + key + '"]'); if (card) card.dataset.nodeId = nodeIds[key]; });
+      Object.keys(nodeIds).forEach(function (key) {
+        var card = panel.querySelector('[data-node="' + key + '"]');
+        if (!card) return;
+        card.dataset.nodeId = nodeIds[key];
+        card.hidden = (canvasDocument.deletedNodeIds || []).includes(nodeIds[key]);
+        ensureDeleteControl(card);
+      });
       var chainNodes = (Array.isArray(nodes) ? nodes : []).filter(function (node) { return /^s1-/.test(node.id); });
       chainReady = chainNodes.some(function (node) { return node.id === 's1-source-input' && node.status === 'ready'; });
       chainNodes.forEach(function (node) { var key = node.id === 's1-source-input' ? 'source' : node.id === 's1-step01-analysis' ? 'step01' : 'step02'; var card = panel.querySelector('[data-node="' + key + '"]'); if (!card) return; card.dataset.status = node.status; var status = card.querySelector('[data-node-status]'); if (status) status.textContent = node.status; });
@@ -577,6 +637,11 @@
       if (h3) { h3Card.dataset.status = h3.status; h3Card.querySelector('[data-node-status]').textContent = h3.status; h3Prompt.value = h3.data && h3.data.prompt || ''; h3Aspect.value = h3.data && h3.data.aspectRatio || h3Aspect.value; h3Duration.value = String(h3.data && h3.data.durationSeconds || h3Duration.value); h3Status.textContent = '节点合同已保存；任务会先进入等待授权状态。'; }
       syncH3Spec();
       renderChampionNodes(nodes);
+      if (selectedNodeId && nodeById[selectedNodeId]) {
+        selectNode(panel.querySelector('[data-node-id="' + CSS.escape(selectedNodeId) + '"]'));
+      } else if (selectedNodeId) {
+        clearNodeSelection();
+      }
       renderPortStates();
       applyNodePositions();
       syncButton();
@@ -719,12 +784,30 @@
     });
     panel.addEventListener('pointerdown', function (event) { if (!event.target.closest('[data-s1-context]')) hideContextMenu(); });
     panel.addEventListener('click', function (event) {
-      var card = event.target.closest('[data-champion-node]');
-      if (!card) return;
+      var card = event.target.closest('.s1-node');
+      if (!card || !panel.contains(card)) return;
+      selectNode(card);
+      if (event.target.closest('[data-s1-delete]')) {
+        event.preventDefault();
+        deleteSelectedNode().catch(function (error) { setStatus(error.message || '删除节点失败', true); });
+        return;
+      }
+      if (!event.target.closest('[data-champion-node]')) return;
       if (event.target.closest('[data-champion-save]')) saveChampionInput(card).catch(function (error) { setStatus(error.message || '参数保存失败', true); });
       if (event.target.closest('[data-champion-check]')) checkChampionReadiness(card);
       if (event.target.closest('[data-champion-run]')) runChampionNode(card);
     });
+    var previousSelectionKeydown = window.__s1SelectionKeydownHandler;
+    if (previousSelectionKeydown) document.removeEventListener('keydown', previousSelectionKeydown);
+    var selectionKeydown = function (event) {
+      if (!panel.isConnected || !selectedNodeId || (event.key !== 'Delete' && event.key !== 'Backspace')) return;
+      var active = document.activeElement;
+      if (active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) return;
+      event.preventDefault();
+      deleteSelectedNode().catch(function (error) { setStatus(error.message || '删除节点失败', true); });
+    };
+    window.__s1SelectionKeydownHandler = selectionKeydown;
+    document.addEventListener('keydown', selectionKeydown);
     function installSkillToolbar() {
       var toolbar = document.querySelector('[aria-label="生成画布工具栏"]');
       if (!toolbar || toolbar.querySelector('[data-s1-skill-toolbar]')) return;

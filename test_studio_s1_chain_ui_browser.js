@@ -153,6 +153,16 @@ async function main() {
     const reloadedDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
     const persistedChampion = reloadedDocument.document.nodes.find(node => node.id === championNodeId);
     assert.ok(persistedChampion && persistedChampion.position.x >= beforeDragPosition.x + 100, 'champion node position must persist after a reload: ' + JSON.stringify(persistedChampion && persistedChampion.position));
+    const selectedChampion = panel.locator('[data-champion-node]').filter({hasText:'剧本编排'});
+    await selectedChampion.click({position:{x:30,y:30}});
+    assert.equal(await selectedChampion.getAttribute('aria-selected'), 'true', 'clicking a node must select it');
+    assert.match(await selectedChampion.getAttribute('class'), /s1-selected/, 'selected node must have visible selected styling');
+    await page.keyboard.press('Delete');
+    await page.waitForTimeout(180);
+    assert.equal(await panel.locator('[data-champion-node]').count(), 3, 'Delete must remove the selected node from the canvas');
+    const afterDeleteDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
+    assert.equal(afterDeleteDocument.document.nodes.some(node => node.id === championNodeId), false, 'Delete must persist node removal');
+    assert.equal(afterDeleteDocument.document.edges.some(edge => edge.source === championNodeId || edge.target === championNodeId), false, 'Delete must remove incident edges');
     assert.equal(await panel.locator('[data-s2-dry]').isDisabled(), true, 'Image2 preparation stays disabled before the node is saved');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'desktop must not overflow');
     await page.setViewportSize({width:390,height:844});
