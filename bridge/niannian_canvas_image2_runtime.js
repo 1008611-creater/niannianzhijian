@@ -56,6 +56,7 @@ function createCanvasImage2Runtime(options = {}) {
       resolution: job.resolution || '2k',
       aspect_ratio: job.aspectRatio || '1:1',
       output_size: job.outputSize || null,
+      image_channel: job.imageChannel || null,
       prompt_sha256: crypto.createHash('sha256').update(job.prompt || '', 'utf8').digest('hex')
     };
   }

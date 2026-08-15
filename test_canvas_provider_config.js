@@ -47,7 +47,8 @@ function run() {
     ['runninghub-gpt-image-2', true, {}],
     ['yunfei-gpt-image-2-1k', false, {'1k':'1024x1024'}],
     ['yunfei-gpt-image-2-hd', false, {'2k':'2048x1152','4k':'3840x2160'}],
-    ['yunwu-gpt-image-2-c', false, {'4k':'2160x3840'}]
+    ['yunwu-gpt-image-2-c', false, {'4k':'2160x3840'}],
+    ['yunwu-gpt-image-2-c-edit', false, {'4k':'3840x2160'}]
   ]);
   const yunfei = readCanvasProviderConfig({
     YUNFEI_IMAGE2_1K_API_KEY:'configured-only-in-test',
