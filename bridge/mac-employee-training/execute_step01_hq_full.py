@@ -316,7 +316,8 @@ def build_command_plan(
         ("paddle_smart_ocr_helper", step02_scripts / "smart_selective_ocr.py", [
             "--episode-id", episode_id, "--step01-dir", str(output), "--step02-dir", str(step02_support),
             "--dialogue-ledger", str(output / f"{episode_id}_dialogue_ledger.csv"), "--out-dir", str(smart_ocr_dir),
-            "--engine", "paddle-api", "--paddle-model", "auto", "--paddle-concurrency", "8",
+            "--engine", "paddle-api", "--paddle-model", "auto", "--paddle-submit-retries", "5",
+            "--paddle-concurrency", "1",
         ]),
         ("strict_episode_validation", step01_scripts / "validate_episode_evidence.py", [
             "--video", str(source), "--episode-id", episode_id, "--out-dir", str(output),
