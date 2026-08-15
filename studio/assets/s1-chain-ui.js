@@ -75,6 +75,18 @@
     appbarLeft.insertBefore(backButton, appbarLeft.firstChild);
   }
 
+  function installStudioLibraryNavigation() {
+    if (window.__s1StudioLibraryNavigationInstalled) return;
+    window.__s1StudioLibraryNavigationInstalled = true;
+    document.addEventListener('click', function (event) {
+      var target = event.target && event.target.closest ? event.target.closest('.nomi-appbar__breadcrumb-seg--lib') : null;
+      if (!target) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      window.location.assign('/studio/#/studio');
+    }, true);
+  }
+
   function mount(host) {
     if (!host || document.getElementById('s1-chain-canvas')) return false;
     if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
@@ -709,6 +721,7 @@
   }
 
   function observeGenerationCanvas() {
+    installStudioLibraryNavigation();
     installBackButton();
     mountIntoGenerationCanvas();
     var observer = new MutationObserver(function () { installBackButton(); mountIntoGenerationCanvas(); });
