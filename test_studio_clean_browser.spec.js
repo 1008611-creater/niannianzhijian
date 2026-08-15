@@ -127,13 +127,13 @@ test('Studio project library keeps text readiness readable on mobile', async ({b
   await context.close();
 });
 
-test('Project library renders only the workbench back control', async ({browser}) => {
+test('Studio omits legacy S1 overlay controls', async ({browser}) => {
   const context = await browser.newContext({viewport: {width: 1440, height: 900}});
   await context.addCookies([{name: 'niannian_session', value: sessionToken, url: baseUrl}]);
   const page = await context.newPage();
 
   await page.goto(baseUrl + '/studio/#/studio', {waitUntil: 'networkidle'});
-  await expect(page.locator('#s1-library-workbench-back')).toBeVisible();
+  await expect(page.locator('#s1-library-workbench-back')).toHaveCount(0);
   await expect(page.locator('#s1-chain-back')).toHaveCount(0);
 
   await context.close();
