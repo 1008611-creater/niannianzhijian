@@ -1,0 +1,27 @@
+{
+  "schema_version": "niannian_shared_file_baseline_evidence_v1",
+  "review_id": "release-baseline-20260816-canonical-main-server-refresh",
+  "captured_at": "2026-08-16T03:45:54+08:00",
+  "source_root": "E:\\codex\\niannianai\\niannianai",
+  "source_git_revision": "0ddd8b09113373510334865acacd5f5ee9923db4",
+  "scope": "Canonical source protected shared-file baseline refreshed after the merged browser asset import durability fix changed server.js.",
+  "online_parity_claimed": false,
+  "deployment_authorized": false,
+  "files": {
+    "server.js": "7339008a09e0f45e2f387ecc9649fcc176a6eedadf9c30def81718826986d0e2",
+    "index.html": "47d426e2c16455de9faaa8d0e7da29fd426c16746fc83216fe2f1a597fab54c0",
+    "app.js": "4a8ac9a9952f20fdc0363f2144c53977578a71b25ae09fdb855887f85dea4b51",
+    "product.css": "fafa35df7cea0d8abbc6f9cf7a6590a9f80ef63657bcaab9e1390ce4da02f028",
+    "styles.css": "d8254de1de1b0cddeee13301ee64a0e5605294980a9c8de384ea76625822a489",
+    "product-system.css": "e571291eab9acd8f808b7fc39e5585f630802862e6805f9872f6334441a9630a",
+    "hero-oil-paint.css": "0fcba9536da02a0f8843331f986f01dbb670e0d2c1b1ccd2226046ffc0f60cdd",
+    "sw.js": "292159030702c25198b9dadd6ac31b7f9981a858d4bb5ab23fde6de5e83396f2",
+    "bridge/niannian_controller_bridge.js": "64157f96db7f48c33dfe028263cd15138a109e15a194e0375a18ee0f89e427cc"
+  },
+  "checks": [
+    "Hashes were recomputed from canonical main at 0ddd8b0.",
+    "The protected files were read only for SHA-256 calculation.",
+    "No production files, user data, credentials, cookies, or provider responses were read.",
+    "This evidence does not claim online parity and does not authorize deployment."
+  ]
+}
