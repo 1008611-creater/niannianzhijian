@@ -8,8 +8,10 @@ origin_url="http://127.0.0.1:18083"
 
 old_app="$(readlink -f /opt/niannian-ai)"
 old_static="$(readlink -f /var/www/niannian-ai)"
+old_current="$(readlink -f /opt/niannian-ai-current)"
 test -d "$old_app"
 test -d "$old_static"
+test -d "$old_current"
 test -d "$stage_root/package"
 test ! -e "$rollback_root"
 systemctl is-active --quiet niannian-ai.service
@@ -20,6 +22,8 @@ rollback() {
   mv -Tf /opt/niannian-ai.next /opt/niannian-ai
   ln -s "$old_static" /var/www/niannian-ai.next
   mv -Tf /var/www/niannian-ai.next /var/www/niannian-ai
+  ln -s "$old_current" /opt/niannian-ai-current.next
+  mv -Tf /opt/niannian-ai-current.next /opt/niannian-ai-current
   systemctl restart niannian-ai.service
   for attempt in 1 2 3 4 5 6 7 8; do
     if curl --connect-timeout 3 --max-time 5 -fsS "$origin_url/api/health" >/dev/null; then return 0; fi
@@ -41,11 +45,14 @@ cp -aL /var/www/niannian-ai "$rollback_root/static"
 cp -a /etc/systemd/system/niannian-ai.service "$rollback_root/niannian-ai.service"
 printf '%s\n' "$old_app" >"$rollback_root/old-app-target.txt"
 printf '%s\n' "$old_static" >"$rollback_root/old-static-target.txt"
+printf '%s\n' "$old_current" >"$rollback_root/old-current-target.txt"
 
 ln -s "$stage_root/package" /opt/niannian-ai.next
 mv -Tf /opt/niannian-ai.next /opt/niannian-ai
 ln -s "$stage_root/package" /var/www/niannian-ai.next
 mv -Tf /var/www/niannian-ai.next /var/www/niannian-ai
+ln -s "$stage_root/package" /opt/niannian-ai-current.next
+mv -Tf /opt/niannian-ai-current.next /opt/niannian-ai-current
 systemctl restart niannian-ai.service
 
 ready=0
