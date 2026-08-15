@@ -126,7 +126,7 @@ async function run() {
   const invalidSkill = await invalidSkillSave.json();
   assert.equal(invalidSkillSave.status, 422);
   assert.equal(invalidSkill.code, 'CANVAS_SKILL_NODE_UNKNOWN_SKILL');
-  const body = {projectKind:'redraw',nodeId:'image-node-001',model:'image2',prompt:'白色背景产品主视觉',inputAssetIds:['asset-001']};
+  const body = {projectKind:'redraw',nodeId:'image-node-001',model:'yunwu-gpt-image-2-c',prompt:'白色背景产品主视觉',inputAssetIds:['asset-001'],resolution:'4k',aspectRatio:'9:16'};
   const first = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-job-0001'}),body:JSON.stringify(body)});
   assert.equal(first.response.status, 201);
   assert.equal(first.body.job.status, 'awaiting_authorization');
@@ -145,13 +145,13 @@ async function run() {
   assert.equal(repeat.body.idempotent, true);
   assert.equal(repeat.body.job.id, first.body.job.id);
 
-  const yunfeiHd = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-yunfei-hd-0001'}),body:JSON.stringify({...body, model:'yunfei-gpt-image-2-hd',resolution:'4k',aspectRatio:'16:9'})});
-  assert.equal(yunfeiHd.response.status, 201);
-  assert.equal(yunfeiHd.body.job.imageChannel, 'yunfei-gpt-image-2-hd');
-  assert.equal(yunfeiHd.body.job.outputSize, '3840x2160');
-  const invalidYunfei1k = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-yunfei-1k-invalid-0001'}),body:JSON.stringify({...body, model:'yunfei-gpt-image-2-1k',resolution:'2k',aspectRatio:'1:1'})});
-  assert.equal(invalidYunfei1k.response.status, 422);
-  assert.equal(invalidYunfei1k.body.code, 'CANVAS_IMAGE2_RESOLUTION_UNSUPPORTED');
+  const yunwuEdit = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-yunwu-edit-0001'}),body:JSON.stringify({...body, model:'yunwu-gpt-image-2-c-edit',resolution:'4k',aspectRatio:'16:9'})});
+  assert.equal(yunwuEdit.response.status, 201);
+  assert.equal(yunwuEdit.body.job.imageChannel, 'yunwu-gpt-image-2-c-edit');
+  assert.equal(yunwuEdit.body.job.outputSize, '3840x2160');
+  const retiredYunfei = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-yunfei-retired-0001'}),body:JSON.stringify({...body, model:'yunfei-gpt-image-2-1k',resolution:'1k',aspectRatio:'1:1'})});
+  assert.equal(retiredYunfei.response.status, 422);
+  assert.equal(retiredYunfei.body.code, 'CANVAS_JOB_MODEL_INVALID');
 
   const dryRun = await request(`/api/projects/NN-CANVAS-A/canvas/jobs/${encodeURIComponent(first.body.job.id)}/dry-run`, {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json'}),body:JSON.stringify({projectKind:'redraw'})});
   assert.equal(dryRun.response.status, 200);
@@ -191,7 +191,7 @@ async function run() {
   assert.equal(h3AuthorizationDisabled.response.status, 409);
   assert.equal(h3AuthorizationDisabled.body.code, 'CANVAS_PROVIDER_SUBMIT_DISABLED');
 
-  const webCanvasJob = await request('/api/projects/NN-WEB-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-web-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'web-image-node-001',model:'image2',prompt:'网页画布节点'})});
+  const webCanvasJob = await request('/api/projects/NN-WEB-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-web-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'web-image-node-001',model:'yunwu-gpt-image-2-c',prompt:'网页画布节点',resolution:'4k',aspectRatio:'9:16'})});
   assert.equal(webCanvasJob.response.status, 201);
   assert.equal(webCanvasJob.body.job.nodeId, 'web-image-node-001');
   assert.equal(webCanvasJob.body.job.status, 'awaiting_authorization');
