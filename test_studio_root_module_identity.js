@@ -8,7 +8,7 @@ const path = require('path');
 const projectRoot = __dirname;
 const assetsRoot = path.join(projectRoot, 'studio', 'assets');
 const releaseTag = 'r4';
-const moduleCacheVersion = '20260811-static-r6';
+const moduleCacheVersion = '20260816-batch-group-r7';
 const starts = ['index-M-8MrEH2-r28-19b89ec-r4.js', 'web-runtime-adapter-r4.js'];
 
 function localReferences(source) {
