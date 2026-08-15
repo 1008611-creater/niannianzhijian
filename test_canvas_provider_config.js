@@ -14,6 +14,7 @@ function run() {
     RUNNINGHUB_BASE_URL: 'https://www.runninghub.cn/',
     NIANNIAN_CANVAS_PROVIDER_SUBMIT: 'on',
     NIANNIAN_CANVAS_H3_SUBMIT: 'on',
+    NOMI_RUNNINGHUB_H3_API_KEY:'configured-consumer-key-only-in-test',
     NIANNIAN_RUNNINGHUB_ANIMATE_API_KEY:'configured-consumer-key-only-in-test',
     NIANNIAN_CANVAS_ANIMATE_SUBMIT:'on'
   });
@@ -26,8 +27,10 @@ function run() {
 
   const noConsumerFallback = readCanvasProviderConfig({
     RUNNINGHUB_API_KEY:'enterprise-key-only-in-test',
+    NIANNIAN_CANVAS_H3_SUBMIT:'on',
     NIANNIAN_CANVAS_ANIMATE_SUBMIT:'on'
   });
+  assert.equal(noConsumerFallback.videoSubmitEnabled, false);
   assert.equal(noConsumerFallback.animateSubmitEnabled, false);
 
   const publicStatus = publicCanvasProviderStatus({
@@ -43,6 +46,7 @@ function run() {
   assert.equal(publicStatus.videoSubmitEnabled, false);
   assert.equal(publicStatus.animateSubmitEnabled, false);
   assert.equal(Object.hasOwn(publicStatus, 'animateCredentialConfigured'), false);
+  assert.equal(Object.hasOwn(publicStatus, 'h3CredentialConfigured'), false);
   assert.deepEqual(publicStatus.imageChannels.map(channel => [channel.id, channel.submitEnabled, channel.outputSizes]), [
     ['runninghub-gpt-image-2', true, {}],
     ['yunfei-gpt-image-2-1k', false, {'1k':'1024x1024'}],
