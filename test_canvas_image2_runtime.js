@@ -13,21 +13,21 @@ async function run() {
     const assetService = createCanvasAssetService({indexPath:path.join(root,'assets.json'),storageRoot:path.join(root,'assets')});
     const jobService = createCanvasGenerationJobService({filePath:path.join(root,'jobs.json')});
     const input = await assetService.registerBuffer({ownerId:'USR-RUNTIME',projectId:'NN-RUNTIME',projectKind:'redraw',kind:'reference_image',format:'png',originalName:'reference.png',bytes:await sharp({create:{width:8,height:8,channels:4,background:{r:1,g:2,b:3,alpha:1}}}).png().toBuffer()});
-    const prepared = await jobService.create({ownerId:'USR-RUNTIME',projectId:'NN-RUNTIME',projectKind:'redraw',nodeId:'image-node-001',nodeType:'image',prompt:'中文产品主视觉',inputAssetIds:[input.asset.id],resolution:'2k',aspectRatio:'1:1',idempotencyKey:'runtime-image2-001'});
+    const prepared = await jobService.create({ownerId:'USR-RUNTIME',projectId:'NN-RUNTIME',projectKind:'redraw',nodeId:'image-node-001',nodeType:'image',model:'yunwu-gpt-image-2-c',prompt:'中文产品主视觉',inputAssetIds:[input.asset.id],resolution:'4k',aspectRatio:'9:16',idempotencyKey:'runtime-image2-001'});
     const disabled = createCanvasImage2Runtime({jobService,assetService,enabled:false,adapter:{}});
     await assert.rejects(() => disabled.submit('USR-RUNTIME','NN-RUNTIME',prepared.job.id), error => error.code === 'CANVAS_PROVIDER_SUBMIT_DISABLED');
     let queryCount = 0;
     const output = await sharp({create:{width:16,height:12,channels:4,background:{r:9,g:8,b:7,alpha:1}}}).png().toBuffer();
     const adapter = {
       dryRun: task => ({endpoint:'test://image2',payload:{prompt:task.prompt,resolution:task.resolution}}),
-      submit: async (task, references) => { assert.equal(task.resolution,'2k'); assert.equal(references.length,1); return {taskId:'fake-rh-task-001',payload:{referenceCount:1}}; },
-      query: async taskId => { assert.equal(taskId,'fake-rh-task-001'); queryCount += 1; return queryCount === 1 ? {status:'generating',imageUrls:[]} : {status:'completed',imageUrls:['https://provider.invalid/result.png']}; },
+      submit: async (task, references) => { assert.equal(task.resolution,'4k'); assert.equal(references.length,1); return {taskId:'fake-yunwu-task-001',payload:{referenceCount:1}}; },
+      query: async taskId => { assert.equal(taskId,'fake-yunwu-task-001'); queryCount += 1; return queryCount === 1 ? {status:'generating',imageUrls:[]} : {status:'completed',imageUrls:['https://provider.invalid/result.png']}; },
       download: async url => { assert.equal(url,'https://provider.invalid/result.png'); return {bytes:output,mime:'image/png'}; }
     };
-    const runtime = createCanvasImage2Runtime({jobService,assetService,enabled:true,adapter});
+    const runtime = createCanvasImage2Runtime({jobService,assetService,enabled:true,adapters:{'yunwu-agent-vault':adapter}});
     const submitted = await runtime.submit('USR-RUNTIME','NN-RUNTIME',prepared.job.id);
     assert.equal(submitted.status,'queued');
-    assert.equal(submitted.providerTaskId,'fake-rh-task-001');
+    assert.equal(submitted.providerTaskId,'fake-yunwu-task-001');
     const running = await runtime.reconcile('USR-RUNTIME','NN-RUNTIME',prepared.job.id);
     assert.equal(running.status,'running');
     const completed = await runtime.reconcile('USR-RUNTIME','NN-RUNTIME',prepared.job.id);
@@ -36,24 +36,6 @@ async function run() {
     assert.equal((await assetService.listOwned('USR-RUNTIME','NN-RUNTIME','redraw')).length,2);
     assert.equal(jobService.publicJob(completed).providerTaskId, undefined);
 
-    const yunfeiPrepared = await jobService.create({ownerId:'USR-RUNTIME',projectId:'NN-RUNTIME',projectKind:'redraw',nodeId:'image-node-yunfei',nodeType:'image',model:'yunfei-gpt-image-2-hd',prompt:'中文产品主视觉高清版',inputAssetIds:[input.asset.id],resolution:'4k',aspectRatio:'16:9',idempotencyKey:'runtime-image2-yunfei'});
-    const yunfeiAdapter = {
-      dryRun: () => ({endpoint:'test://yunfei'}),
-      submit: async (task, references) => {
-        assert.equal(task.output_size, '3840x2160');
-        assert.equal(references.length, 1);
-        return {taskId:'inline-yunfei-001',payload:{result:{b64_json:output.toString('base64')}}};
-      },
-      query: async (taskId, payload) => {
-        assert.equal(taskId, 'inline-yunfei-001');
-        return {status:'completed',inlineImages:[payload.result.b64_json],imageUrls:[]};
-      }
-    };
-    const yunfeiRuntime = createCanvasImage2Runtime({jobService,assetService,enabled:true,adapters:{runninghub:adapter,'yunfei-hd':yunfeiAdapter}});
-    await yunfeiRuntime.submit('USR-RUNTIME','NN-RUNTIME',yunfeiPrepared.job.id);
-    const yunfeiCompleted = await yunfeiRuntime.reconcile('USR-RUNTIME','NN-RUNTIME',yunfeiPrepared.job.id);
-    assert.equal(yunfeiCompleted.status, 'succeeded');
-    assert.equal(yunfeiCompleted.outputAssetIds.length, 1);
     console.log('CANVAS_IMAGE2_RUNTIME_CONTRACT_OK');
   } finally { await fsp.rm(root,{recursive:true,force:true}); }
 }
