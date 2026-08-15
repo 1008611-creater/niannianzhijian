@@ -71,7 +71,7 @@
     backButton.textContent = '返回项目库';
     backButton.setAttribute('aria-label', '返回项目库');
     backButton.title = '返回项目库';
-    backButton.addEventListener('click', function () { window.location.assign('/#projects'); });
+    backButton.addEventListener('click', function () { window.location.assign('/studio/#/studio'); });
     appbarLeft.insertBefore(backButton, appbarLeft.firstChild);
   }
 
