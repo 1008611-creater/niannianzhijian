@@ -87,7 +87,13 @@ def main(argv=None) -> None:
     # Finalization requires these durable state objects and rejects empty shells.
     write_json(work / "checkpoint.json", {"node_id":"step01_evidence","job_id":args.project_id,"profile":"hq_full","status":"collecting","downstream_consumable":False})
     write_json(work / "artifact_ledger.json", {"node_id":"step01_evidence","job_id":args.project_id,"profile":"hq_full","status":"collecting","artifacts":[],"downstream_consumable":False})
-    plan = legacy.build_command_plan(Path(sys.executable), source, work, args.episode_id, step01_root, step02_root)
+    # Keep every evidence tool in the locked Haika runtime. The runner itself
+    # may be launched by a system Python, but child commands need the configured
+    # virtualenv so numpy/OpenCV and the other Step01 dependencies resolve.
+    tool_python = Path(os.environ.get("NIANNIAN_STEP01_HQ_PYTHON", sys.executable)).resolve()
+    if not tool_python.is_file():
+        raise RuntimeError("STEP01_HQ_PYTHON_MISSING")
+    plan = legacy.build_command_plan(tool_python, source, work, args.episode_id, step01_root, step02_root)
     legacy.execute_commands(plan, environment=os.environ.copy(), timeout_seconds=max(900, int(os.environ.get("NIANNIAN_STEP01_HQ_COMMAND_TIMEOUT_SEC", "7200"))))
     manifest_path = legacy.canonicalize_manifest(root, work, source, args.episode_id, dispatch)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
