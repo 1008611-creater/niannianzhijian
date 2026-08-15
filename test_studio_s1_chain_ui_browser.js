@@ -62,6 +62,7 @@ async function main() {
     page.on('pageerror', error => consoleErrors.push(error.message));
     await page.goto(baseUrl + '/studio/?projectId=' + project.id + '&projectKind=redraw&step=generate#/studio', {waitUntil:'networkidle'});
     await page.locator('#s1-chain-back').waitFor({state:'visible'});
+    assert.equal(await page.locator('#s1-library-workbench-back').count(), 0, 'project detail must not retain the project-library workbench control');
     await openGenerationCanvas(page);
     const canvas = page.getByRole('region', {name:'AI 影像创作画布'});
     const panel = page.locator('#s1-chain-canvas');

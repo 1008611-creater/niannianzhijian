@@ -8,7 +8,7 @@ const root = __dirname;
 const html = fs.readFileSync(path.join(root, 'studio', 'index.html'), 'utf8');
 const source = fs.readFileSync(path.join(root, 'studio', 'assets', 's1-chain-ui.js'), 'utf8');
 
-assert.match(html, /assets\/s1-chain-ui\.js\?v=20260815-node-selection-r26/);
+assert.match(html, /assets\/s1-chain-ui\.js\?v=20260816-navigation-r27/);
 assert.match(source, /\/api\/canvas\/documents\//);
 assert.match(source, /\/api\/projects\//);
 assert.match(source, /step01Projection/);
@@ -87,6 +87,8 @@ assert.match(source, /点击兼容输入端完成连接/);
 assert.match(source, /返回项目库/);
 assert.match(source, /window\.location\.assign\('\/studio\/#\/studio'\)/);
 assert.match(source, /isStudioLibraryRoute/);
+assert.match(source, /removeProjectLibraryBack/);
+assert.match(source, /removeWorkbenchBack/);
 assert.match(source, /s1-library-workbench-back/);
 assert.match(source, /返回主站工作台/);
 assert.match(source, /window\.location\.assign\('\/#workbench'\)/);
