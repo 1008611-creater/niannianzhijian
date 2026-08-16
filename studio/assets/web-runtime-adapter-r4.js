@@ -180,7 +180,33 @@
             transportTaskKind: item.kind === 'video' ? 'text_to_video' : 'image_edit',
             supportedResolutions: item.resolutions || [],
             supportedAspectRatios: item.aspectRatios || [],
-            outputSizes: item.outputSizes || {}
+            outputSizes: item.outputSizes || {},
+            ...(item.kind === 'video' ? {
+              videoOptions: {
+                sizeOptions: (item.aspectRatios || []).map(function (value) { return {value: String(value), label: String(value)}; }),
+                resolutionOptions: (item.resolutions || []).map(function (value) { return {value: String(value), label: String(value).toUpperCase()}; }),
+                defaultSize: item.aspectRatios?.[0],
+                defaultResolution: item.resolutions?.[0],
+                controls: [
+                  {key: 'aspect_ratio', label: '比例', binding: 'size', optionSource: 'sizeOptions'},
+                  {key: 'resolution', label: '大小', binding: 'resolution', optionSource: 'resolutionOptions'}
+                ]
+              }
+            } : {
+              imageOptions: {
+                aspectRatioOptions: (item.aspectRatios || []).map(function (value) { return {value: String(value), label: String(value)}; }),
+                imageSizeOptions: Object.entries(item.outputSizes || {}).map(function (entry) { return {value: String(entry[1]), label: String(entry[1]) + '（' + String(entry[0]).toUpperCase() + '）'}; }),
+                resolutionOptions: (item.resolutions || []).map(function (value) { return {value: String(value), label: String(value).toUpperCase()}; }),
+                defaultAspectRatio: item.aspectRatios?.[0],
+                defaultImageSize: Object.values(item.outputSizes || {})[0],
+                defaultResolution: item.resolutions?.[0],
+                controls: [
+                  {key: 'aspect_ratio', label: '比例', binding: 'aspectRatio', optionSource: 'aspectRatioOptions'},
+                  {key: 'outputSize', label: '大小', binding: 'imageSize', optionSource: 'imageSizeOptions'},
+                  {key: 'resolution', label: '清晰度', binding: 'resolution', optionSource: 'resolutionOptions'}
+                ]
+              }
+            })
           }
         };
       });
@@ -774,6 +800,7 @@
         prompt: request.prompt || '',
         inputAssetIds: animateTransfer ? animateAssetIds(extras) : assetIds(extras),
         resolution: extras.resolution || '2k',
+        outputSize: extras.outputSize || extras.imageSize || null,
         aspectRatio: video
           ? (extras.aspectRatio && extras.aspectRatio !== '1:1' ? extras.aspectRatio : '9:16')
           : (extras.aspectRatio || '1:1'),

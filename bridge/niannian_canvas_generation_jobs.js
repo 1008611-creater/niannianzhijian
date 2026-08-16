@@ -170,7 +170,7 @@ function createCanvasGenerationJobService(options = {}) {
     if (nodeType === 'video' && !videoSpec) throw jobError('CANVAS_JOB_MODEL_INVALID', '视频模型尚未接入', 422);
     if (!prompt && nodeType === 'video' && videoSpec.id === 'h3') throw jobError('CANVAS_JOB_PROMPT_REQUIRED', '视频节点需要填写提示词', 422);
     const imageSpec = nodeType === 'image'
-      ? normalizeImage2Spec({model: input.imageChannel || input.model, resolution, aspectRatio})
+      ? normalizeImage2Spec({model: input.imageChannel || input.model, resolution, aspectRatio, outputSize: input.outputSize || input.imageSize})
       : null;
     return {
       projectId, projectKind, nodeId, nodeType, prompt, inputAssetIds,
