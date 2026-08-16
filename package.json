@@ -63,7 +63,7 @@
     "test:studio-project-metadata": "node test_studio_project_metadata.js && node test_project_library_management_contract.js",
     "test:canvas-assets-http": "node test_canvas_assets_http.js",
     "test:canvas-image2-runtime": "node test_canvas_image2_runtime.js",
-    "test:canvas-yunfei-image2": "node test_yunfei_image2_adapter.js",
+    "test:canvas-shot-frame-preview": "node test_canvas_shot_frame_preview_contract.js",
     "test:canvas-h3-runtime": "node test_canvas_h3_runtime.js",
     "test:canvas-animate-runtime": "node test_canvas_animate_runtime.js",
     "test:nomi-h3-multiref": "node test_nomi_h3_multiref_contract.js",
