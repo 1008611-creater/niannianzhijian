@@ -69,7 +69,7 @@
     });
   }
 
-  function applyThumbnailPresentation(card) {
+  function applyThumbnailPresentation(card, index) {
     var preview = card.querySelector(':scope > .aspect-video');
     if (!preview) return;
     preview.dataset.niannianCoverPresentation = 'thumbnail';
@@ -83,9 +83,9 @@
     }
     var image = preview.querySelector(':scope > img');
     if (!image) return;
-    image.loading = 'lazy';
+    image.loading = index < 6 ? 'eager' : 'lazy';
     image.decoding = 'async';
-    image.setAttribute('fetchpriority', 'low');
+    image.setAttribute('fetchpriority', index < 6 ? 'high' : 'low');
     image.alt = '项目封面缩略图';
   }
 
@@ -175,8 +175,8 @@
       if (!queues.has(key)) queues.set(key, []);
       queues.get(key).push(project);
     });
-    page.querySelectorAll('[data-project-card=true]').forEach(function (card) {
-      applyThumbnailPresentation(card);
+    page.querySelectorAll('[data-project-card=true]').forEach(function (card, index) {
+      applyThumbnailPresentation(card, index);
       if (card.querySelector('.niannian-project-edit')) return;
       var queue = queues.get(projectName(card)) || [];
       var project = queue.shift();

@@ -141,6 +141,7 @@ const smartCutJobsPath = path.join(dataRoot, 'smart-cut-jobs.json');
 const canvasAssetsPath = path.join(dataRoot, 'canvas-assets.json');
 const nomiWebTasksPath = path.join(dataRoot, 'nomi-web-tasks.json');
 const canvasAssetsRoot = path.join(dataRoot, 'canvas-assets');
+const canvasAssetThumbnailRoot = path.join(dataRoot, 'canvas-asset-thumbnails');
 const usersPath = path.join(dataRoot, 'users.json');
 const sessionsPath = path.join(dataRoot, 'sessions.json');
 const authAuditPath = path.join(dataRoot, 'auth_audit.jsonl');
@@ -7028,9 +7029,58 @@ function canvasAssetDownloadUrl(projectId, assetId) {
   return '/api/projects/' + encodeURIComponent(projectId) + '/assets/' + encodeURIComponent(assetId) + '/download';
 }
 
+function canvasAssetThumbnailUrl(projectId, assetId) {
+  return '/api/projects/' + encodeURIComponent(projectId) + '/assets/' + encodeURIComponent(assetId) + '/thumbnail';
+}
+
+const canvasAssetThumbnailLocks = new Map();
+
+function canvasAssetThumbnailPath(asset) {
+  return path.join(canvasAssetThumbnailRoot, asset.id + '.webp');
+}
+
+function canvasAssetThumbnailPlaceholder() {
+  return Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180"><rect width="320" height="180" fill="#f4f1ec"/><rect x="112" y="48" width="96" height="84" rx="8" fill="#ebe7e0" stroke="#d7cec2"/><path d="M151 74l35 16-35 16z" fill="#796c5d"/><text x="160" y="151" text-anchor="middle" fill="#796c5d" font-family="system-ui,sans-serif" font-size="13">视频素材</text></svg>');
+}
+
+async function ensureCanvasImageThumbnail(asset) {
+  if (!String(asset.mimeType || '').startsWith('image/')) return null;
+  const target = canvasAssetThumbnailPath(asset);
+  const existing = await fsp.stat(target).catch(() => null);
+  if (existing && existing.size > 0) return target;
+  const pending = canvasAssetThumbnailLocks.get(asset.id);
+  if (pending) return pending;
+  const operation = (async () => {
+    await fsp.mkdir(canvasAssetThumbnailRoot, {recursive:true});
+    const ready = await fsp.stat(target).catch(() => null);
+    if (ready && ready.size > 0) return target;
+    const temporary = target + '.tmp-' + process.pid + '-' + crypto.randomBytes(6).toString('hex');
+    try {
+      await sharp(asset.storedPath, {failOn:'error'})
+        .rotate()
+        .resize(320, 180, {fit:'inside', withoutEnlargement:true, background:{r:244,g:241,b:236,alpha:1}})
+        .webp({quality:76, effort:3})
+        .toFile(temporary);
+      await fsp.rename(temporary, target);
+      return target;
+    } catch (error) {
+      await fsp.rm(temporary, {force:true}).catch(() => {});
+      return null;
+    } finally {
+      canvasAssetThumbnailLocks.delete(asset.id);
+    }
+  })();
+  canvasAssetThumbnailLocks.set(asset.id, operation);
+  return operation;
+}
+
+function prewarmCanvasAssetThumbnail(asset) {
+  void ensureCanvasImageThumbnail(asset);
+}
+
 function publicCanvasAsset(asset) {
   const {sha256,...publicAsset} = canvasAssetService.publicAsset(asset);
-  return {...publicAsset,downloadUrl:canvasAssetDownloadUrl(asset.projectId, asset.id)};
+  return {...publicAsset,downloadUrl:canvasAssetDownloadUrl(asset.projectId, asset.id),thumbnailUrl:canvasAssetThumbnailUrl(asset.projectId, asset.id)};
 }
 
 const canvasAssetMimeAliases = Object.freeze({
@@ -7100,7 +7150,7 @@ function canvasAssetDeclaredMimeMatches(format, incomingMime) {
 }
 
 async function handleCanvasAssetsApi(request, response, pathname, user) {
-  const match = pathname.match(/^\/api\/projects\/([^/]+)\/assets(?:\/([^/]+))?(?:\/(download))?$/);
+  const match = pathname.match(/^\/api\/projects\/([^/]+)\/assets(?:\/([^/]+))?(?:\/(download|thumbnail))?$/);
   if (!match) return false;
   const projectId = decodeURIComponent(match[1]);
   const assetId = match[2] ? decodeURIComponent(match[2]) : null;
@@ -7171,6 +7221,7 @@ async function handleCanvasAssetsApi(request, response, pathname, user) {
           throw error;
         }
         if (!registered.created) await fsp.rm(storedPath, {force:true});
+        if (registered.created) prewarmCanvasAssetThumbnail(registered.asset);
         return json(response, registered.created ? 201 : 200, {code:registered.created ? 'CANVAS_ASSET_CREATED' : 'CANVAS_ASSET_REUSED',idempotent:!registered.created,asset:publicCanvasAsset(registered.asset)});
       } catch (error) {
         await fsp.rm(pendingPath, {force:true}).catch(() => {});
@@ -7179,6 +7230,22 @@ async function handleCanvasAssetsApi(request, response, pathname, user) {
     });
     request.pipe(busboy);
     return true;
+  }
+  if (assetId && action === 'thumbnail' && ['GET','HEAD'].includes(request.method)) {
+    const asset = await canvasAssetService.getOwned(user.id, projectId, assetId);
+    if (!asset) return json(response, 404, {code:'CANVAS_ASSET_NOT_FOUND',error:'素材不存在'});
+    const thumbnail = await ensureCanvasImageThumbnail(asset);
+    if (thumbnail) {
+      const stat = await fsp.stat(thumbnail).catch(() => null);
+      if (stat && stat.size > 0) {
+        response.writeHead(200, {'Content-Type':'image/webp','Content-Length':stat.size,'Cache-Control':'private, max-age=604800','ETag':'"' + asset.sha256 + '-thumbnail-v1"','X-Content-Type-Options':'nosniff','Content-Disposition':'inline; filename="project-cover.webp"'});
+        if (request.method === 'HEAD') return response.end();
+        return fs.createReadStream(thumbnail).pipe(response);
+      }
+    }
+    const placeholder = canvasAssetThumbnailPlaceholder();
+    response.writeHead(200, {'Content-Type':'image/svg+xml; charset=utf-8','Content-Length':placeholder.length,'Cache-Control':'private, max-age=604800','ETag':'"' + asset.sha256 + '-thumbnail-placeholder-v1"','X-Content-Type-Options':'nosniff','Content-Disposition':'inline; filename="project-cover.svg"'});
+    return response.end(request.method === 'HEAD' ? undefined : placeholder);
   }
   if (assetId && action === 'download' && ['GET','HEAD'].includes(request.method)) {
     const asset = await canvasAssetService.getOwned(user.id, projectId, assetId);
@@ -8960,7 +9027,7 @@ async function handleApi(request, response, pathname) {
     const handled = await handleSmartCutApi(request, response, pathname, user);
     if (handled) return;
   }
-  if (pathname.match(/^\/api\/projects\/[^/]+\/assets(?:\/[^/]+)?(?:\/download)?$/)) {
+  if (pathname.match(/^\/api\/projects\/[^/]+\/assets(?:\/[^/]+)?(?:\/(?:download|thumbnail))?$/)) {
     const handled = await handleCanvasAssetsApi(request, response, pathname, user);
     if (handled) return;
   }

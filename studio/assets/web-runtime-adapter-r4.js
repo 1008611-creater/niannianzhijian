@@ -455,10 +455,13 @@
     return 'NN-web-' + suffix.slice(0, 64);
   }
   var webProjects = readWebProjects();
+  function projectThumbnailUrl(value) {
+    return String(value || '').replace(/(\/api\/projects\/[^/]+\/assets\/CAS-[A-Za-z0-9-]+)\/download(?:\?[^#]*)?$/, '$1/thumbnail');
+  }
   function projectThumbnailUrls(record) {
     var values = Array.isArray(record && record.thumbnailUrls) ? record.thumbnailUrls.slice() : [];
     if (!values.length && record && typeof record.thumbnail === 'string') values.push(record.thumbnail);
-    return Array.from(new Set(values.filter(function (value) { return typeof value === 'string' && value.length > 4; }))).slice(0, 4);
+    return Array.from(new Set(values.filter(function (value) { return typeof value === 'string' && value.length > 4; }).map(projectThumbnailUrl))).slice(0, 4);
   }
   function projectSummary(record, previous) {
     var prior = previous && typeof previous === 'object' ? previous : {};

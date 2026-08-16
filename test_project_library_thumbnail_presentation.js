@@ -8,9 +8,10 @@ const source = fs.readFileSync(path.join(__dirname, 'studio/assets/project-libra
 const studioHtml = fs.readFileSync(path.join(__dirname, 'studio/index.html'), 'utf8');
 
 [
-  'applyThumbnailPresentation(card);',
+  'applyThumbnailPresentation(card, index);',
   "preview.dataset.niannianCoverPresentation = 'thumbnail';",
-  "image.setAttribute('fetchpriority', 'low');",
+  "image.loading = index < 6 ? 'eager' : 'lazy';",
+  "image.setAttribute('fetchpriority', index < 6 ? 'high' : 'low');",
   "image.alt = '项目封面缩略图';",
   'object-fit:contain!important',
   'data-niannian-cover-presentation=thumbnail',
@@ -22,6 +23,6 @@ const studioHtml = fs.readFileSync(path.join(__dirname, 'studio/index.html'), 'u
   'content:"视频素材"'
 ].forEach((contract) => assert.ok(source.includes(contract), `missing project thumbnail contract: ${contract}`));
 
-assert.match(studioHtml, /project-library-management\.js\?v=20260816-r3/);
+assert.match(studioHtml, /project-library-management\.js\?v=20260816-r4/);
 
 console.log('PROJECT_LIBRARY_THUMBNAIL_PRESENTATION_CONTRACT_OK');

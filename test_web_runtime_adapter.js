@@ -20,6 +20,8 @@ assert.match(source, /!isWebOrigin\s*&&\s*existingBridge/);
 assert.match(source, /runninghub-animate-motion-transfer/);
 assert.match(source, /runninghub-animate-ai-app/);
 assert.match(source, /archetype:\s*\{id: 'happyhorse', modeId: 'edit'\}/);
+assert.match(source, /function projectThumbnailUrl\(value\)/);
+assert.match(source, /\/thumbnail/);
 
 const calls = [];
 const requestBodies = [];
@@ -88,6 +90,9 @@ assert.equal(typeof context.window.nomiDesktop.assets.importFile, 'function');
 assert.equal(typeof context.window.nomiDesktop.assets.list, 'function');
 assert.equal(typeof context.window.nomiDesktop.assets.download, 'function');
 assert.deepEqual(Array.from(context.window.nomiDesktop.projects.list(), (project) => project.id), ['NN-LOCAL-0001']);
+assert.equal(context.window.nomiDesktop.projects.list()[0].thumbnail, undefined);
+const coverProject = context.window.nomiDesktop.projects.create({name:'缩略图项目',thumbnailUrls:['/api/projects/NN-LOCAL-0001/assets/CAS-111111111111111111111111/download']});
+assert.equal(context.window.nomiDesktop.projects.read(coverProject.id).thumbnail, '/api/projects/NN-LOCAL-0001/assets/CAS-111111111111111111111111/thumbnail');
 const imported = await context.window.nomiDesktop.assets.importFile({projectId:'NN-LOCAL-0001',fileName:'reference.png',contentType:'image/png',bytes:new Uint8Array([137,80,78,71])});
 assert.equal(imported.id, 'CAS-1234567890abcdef12345678');
 assert.equal(imported.data.url, '/api/projects/NN-LOCAL-0001/assets/CAS-1234567890abcdef12345678/download');

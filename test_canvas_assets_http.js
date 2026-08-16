@@ -61,6 +61,7 @@ async function run() {
   assert.equal(first.asset.projectId, 'NN-ASSET-A');
   assert.equal(first.asset.mimeType, 'image/png');
   assert.equal(first.asset.downloadUrl, `/api/projects/NN-ASSET-A/assets/${first.asset.id}/download`);
+  assert.equal(first.asset.thumbnailUrl, `/api/projects/NN-ASSET-A/assets/${first.asset.id}/thumbnail`);
 
   const repeatForm = new FormData();
   repeatForm.append('referenceImage', new Blob([image], {type:'image/png'}), 'same.png');
@@ -121,10 +122,29 @@ async function run() {
   assert.equal(downloadResponse.headers.get('content-type'), 'image/png');
   assert.deepEqual(download, image);
 
+  const thumbnailResponse = await fetch(baseUrl + first.asset.thumbnailUrl, {headers:headers('asset-token-a')});
+  const thumbnail = Buffer.from(await thumbnailResponse.arrayBuffer());
+  assert.equal(thumbnailResponse.status, 200);
+  assert.equal(thumbnailResponse.headers.get('content-type'), 'image/webp');
+  assert.match(thumbnailResponse.headers.get('cache-control'), /private, max-age=604800/);
+  const thumbnailMetadata = await sharp(thumbnail).metadata();
+  assert.equal(thumbnailMetadata.format, 'webp');
+  assert.ok(thumbnailMetadata.width <= 320 && thumbnailMetadata.height <= 180);
+
+  const videoThumbnailResponse = await fetch(baseUrl + videoAsset.asset.thumbnailUrl, {headers:headers('asset-token-a')});
+  const videoThumbnail = await videoThumbnailResponse.text();
+  assert.equal(videoThumbnailResponse.status, 200);
+  assert.match(videoThumbnailResponse.headers.get('content-type'), /^image\/svg\+xml/);
+  assert.match(videoThumbnail, /视频素材/);
+
   const foreignResponse = await fetch(baseUrl + first.asset.downloadUrl, {headers:headers('asset-token-b')});
   assert.equal(foreignResponse.status, 404);
   const crossProjectResponse = await fetch(`${baseUrl}/api/projects/NN-ASSET-B/assets/${first.asset.id}/download`, {headers:headers('asset-token-a')});
   assert.equal(crossProjectResponse.status, 404);
+  const foreignThumbnailResponse = await fetch(baseUrl + first.asset.thumbnailUrl, {headers:headers('asset-token-b')});
+  assert.equal(foreignThumbnailResponse.status, 404);
+  const crossProjectThumbnailResponse = await fetch(`${baseUrl}/api/projects/NN-ASSET-B/assets/${first.asset.id}/thumbnail`, {headers:headers('asset-token-a')});
+  assert.equal(crossProjectThumbnailResponse.status, 404);
   console.log('CANVAS_ASSETS_HTTP_CONTRACT_OK');
 }
 
