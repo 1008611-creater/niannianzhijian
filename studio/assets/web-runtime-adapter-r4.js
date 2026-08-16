@@ -232,11 +232,36 @@
     return {vendors: vendors, models: models};
   }
 
+  var catalogRefreshPromise = null;
+
+  function waitForCatalogRetry(delay) {
+    return new Promise(function (resolve) { setTimeout(resolve, delay); });
+  }
+
   async function refreshCatalog() {
-    var next = catalogForStatus(await providerStatus());
-    catalogState = next;
-    if (typeof window.dispatchEvent === 'function') window.dispatchEvent(new CustomEvent('nomi-model-catalog-changed'));
-    return next;
+    if (catalogRefreshPromise) return catalogRefreshPromise;
+    catalogRefreshPromise = (async function () {
+      var lastError = null;
+      for (var attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          var next = catalogForStatus(await providerStatus());
+          if (next.models.length > 0 || attempt === 2) {
+            catalogState = next;
+            if (typeof window.dispatchEvent === 'function') {
+              window.dispatchEvent(new CustomEvent('nomi-model-catalog-changed'));
+              window.dispatchEvent(new CustomEvent('nomi-models-refresh'));
+            }
+            return next;
+          }
+        } catch (error) {
+          lastError = error;
+          if (attempt === 2) throw error;
+        }
+        await waitForCatalogRetry(300 * (attempt + 1));
+      }
+      throw lastError || new Error('model_catalog_refresh_failed');
+    }()).finally(function () { catalogRefreshPromise = null; });
+    return catalogRefreshPromise;
   }
 
   async function health() {
@@ -795,4 +820,13 @@
   refreshCatalog().catch(function () {
     catalogState = {vendors: [], models: []};
   });
+  if (typeof window.addEventListener === 'function') {
+    var refreshOnActivation = function () { refreshCatalog().catch(function () {}); };
+    window.addEventListener('focus', refreshOnActivation);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') refreshOnActivation();
+      });
+    }
+  }
 }());
