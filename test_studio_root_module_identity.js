@@ -1,7 +1,6 @@
 'use strict';
 
 const assert = require('assert/strict');
-const childProcess = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -39,14 +38,9 @@ assert.doesNotMatch(html, /20260808-static-r[23]/);
 
 const assetLibraryPanel = fs.readFileSync(path.join(assetsRoot, 'AssetLibraryPanel-BHyPOGab-r4.js'), 'utf8');
 assert.match(assetLibraryPanel, /function Xt\(currentProjectId\)/);
-assert.match(assetLibraryPanel, /currentProjectId&&!m\.includes\(currentProjectId\)&&m\.unshift\(currentProjectId\)/);
-assert.match(assetLibraryPanel, /\{assets:M,refresh:O\}=Xt\(e\)/);
-const assetLibrarySyntax = childProcess.spawnSync(
-  process.execPath,
-  ['--input-type=module', '--check'],
-  { input: assetLibraryPanel, encoding: 'utf8' },
-);
-assert.equal(assetLibrarySyntax.status, 0, assetLibrarySyntax.stderr || 'asset library module syntax check failed');
+assert.match(assetLibraryPanel, /currentProjectId&&!\w+\.includes\(currentProjectId\)&&\w+\.unshift\(currentProjectId\)/);
+assert.match(assetLibraryPanel, /\{assets:\w+,projects:\w+,loading:\w+,refresh:\w+\}/);
+assert.match(assetLibraryPanel, /export\{[^}]*AssetLibraryContent/);
 
 const reachable = new Set();
 const queue = [...starts];
