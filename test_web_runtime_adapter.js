@@ -24,8 +24,15 @@ assert.match(source, /archetype:\s*\{id: 'happyhorse', modeId: 'edit'\}/);
 const calls = [];
 const requestBodies = [];
 const uploadRequests = [];
+const downloadedLinks = [];
+let downloadClicks = 0;
+const documentBody = {
+  appendChild: (node) => { node.parentNode = documentBody; downloadedLinks.push(node); },
+  removeChild: (node) => { if (node.parentNode !== documentBody) throw new Error('unexpected detached download link'); node.parentNode = null; }
+};
 const context = {
-  window: {location: {search: '?step=generate', hash: '#/studio?projectId=NN-LOCAL-0001'}},
+  window: {location: {href: 'https://studio.invalid/studio/?step=generate#/studio?projectId=NN-LOCAL-0001', search: '?step=generate', hash: '#/studio?projectId=NN-LOCAL-0001'}},
+  document: {body: documentBody, createElement: () => ({style: {}, parentNode: null, click: () => { downloadClicks += 1; }})},
   URLSearchParams,
   URL,
   Set,
@@ -79,6 +86,7 @@ assert.equal(typeof context.window.nomiDesktop.tasks.onTextEvent, 'function');
 assert.equal(typeof context.window.nomiDesktop.tasks.cancelTextStream, 'function');
 assert.equal(typeof context.window.nomiDesktop.assets.importFile, 'function');
 assert.equal(typeof context.window.nomiDesktop.assets.list, 'function');
+assert.equal(typeof context.window.nomiDesktop.assets.download, 'function');
 assert.deepEqual(Array.from(context.window.nomiDesktop.projects.list(), (project) => project.id), ['NN-LOCAL-0001']);
 const imported = await context.window.nomiDesktop.assets.importFile({projectId:'NN-LOCAL-0001',fileName:'reference.png',contentType:'image/png',bytes:new Uint8Array([137,80,78,71])});
 assert.equal(imported.id, 'CAS-1234567890abcdef12345678');
@@ -95,6 +103,13 @@ assert.deepEqual(Array.from(listed.items, (asset) => [asset.id, asset.projectId,
   ['CAS-222222222222222222222222', 'NN-LOCAL-0001', 'result.mp4', 'video', 'project-assets/CAS-222222222222222222222222', '/api/projects/NN-LOCAL-0001/assets/CAS-222222222222222222222222/download'],
   ['CAS-333333333333333333333333', 'NN-LOCAL-0001', 'voice.mp3', 'audio', 'project-assets/CAS-333333333333333333333333', '/api/projects/NN-LOCAL-0001/assets/CAS-333333333333333333333333/download']
 ]);
+const download = await context.window.nomiDesktop.assets.download({url: '/api/projects/NN-LOCAL-0001/assets/CAS-222222222222222222222222/download', suggestedName: 'result.mp4'});
+assert.equal(download.ok, true);
+assert.equal(download.canceled, false);
+assert.equal(downloadClicks, 1);
+assert.equal(downloadedLinks[0].href, 'https://studio.invalid/api/projects/NN-LOCAL-0001/assets/CAS-222222222222222222222222/download');
+assert.equal(downloadedLinks[0].download, 'result.mp4');
+assert.equal(downloadedLinks[0].parentNode, null);
 await new Promise((resolve) => setTimeout(resolve, 10));
 const imageModels = await context.window.nomiDesktop.modelCatalog.listModels({kind:'image'});
 assert.deepEqual(Array.from(imageModels, (model) => [model.modelKey, model.meta.outputSizes]), [

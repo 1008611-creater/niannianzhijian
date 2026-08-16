@@ -56,7 +56,7 @@ async function run() {
       () => service.create({...request, prompt:'另一项请求'}),
       error => error.code === 'CANVAS_JOB_IDEMPOTENCY_CONFLICT'
     );
-    await service.updateOwned('USR-A', 'NN-PROJECT-A', first.job.id, {status:'review', providerSubmitState:'uncertain'});
+    await service.updateOwned('USR-A', 'NN-PROJECT-A', first.job.id, {status:'failed', providerSubmitState:'failed', providerTaskId:'provider-task-failed'});
     const replacement = await service.create(request);
     assert.equal(replacement.created, true);
     assert.notEqual(replacement.job.id, first.job.id);

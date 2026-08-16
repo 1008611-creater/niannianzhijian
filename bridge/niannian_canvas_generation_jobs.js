@@ -193,9 +193,10 @@ function createCanvasGenerationJobService(options = {}) {
       const jobs = await readAll();
       const existing = jobs.find(item => item.ownerId === input.ownerId && item.projectId === normalized.projectId && item.idempotencyKey === requestedIdempotencyKey);
       if (existing) {
-        const canCreateReplacement = !existing.providerTaskId
-          && ['failed', 'review'].includes(existing.status)
-          && ['failed', 'uncertain'].includes(existing.providerSubmitState);
+        // A provider-confirmed failure is terminal for this attempt. Keep it for
+        // auditability and create a new attempt instead of reusing its task id.
+        const canCreateReplacement = existing.status === 'failed'
+          && existing.providerSubmitState === 'failed';
         if (!canCreateReplacement) {
           const hash = requestHash({...normalized, idempotencyKey:requestedIdempotencyKey});
           if (existing.requestHash !== hash) throw jobError('CANVAS_JOB_IDEMPOTENCY_CONFLICT', '该幂等键已经用于另一项生成请求', 409);
