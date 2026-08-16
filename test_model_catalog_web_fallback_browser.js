@@ -47,6 +47,17 @@ async function main() {
           resolutions: ['4096x4096'],
           aspectRatios: ['1:1'],
           outputSizes: {'4096x4096': '4096x4096'}
+        }, {
+          id: 'minimax-h3',
+          alias: 'minimax-h3',
+          label: 'H3 生视频',
+          kind: 'video',
+          providerKey: 'runninghub-consumer',
+          providerLabel: 'RunningHub',
+          enabled: true,
+          priceCredits: 20,
+          resolutions: ['2k'],
+          aspectRatios: ['9:16', '16:9', '1:1']
         }]
       }
     };
@@ -56,6 +67,7 @@ async function main() {
       const fallback = await import('/studio/assets/modelCatalogWebFallback-r4.js');
       return {
         models: await fallback.webCatalogModels('image'),
+        videoModels: await fallback.webCatalogModels('video'),
         health: await fallback.webCatalogHealth(),
         vendors: await fallback.webCatalogVendors()
       };
@@ -65,8 +77,17 @@ async function main() {
     assert.deepEqual(result.models[0].meta.imageOptions.aspectRatioOptions, [{value: '1:1', label: '1:1'}]);
     assert.deepEqual(result.models[0].meta.imageOptions.imageSizeOptions, [{value: '4096x4096', label: '4096x4096（4096X4096）'}]);
     assert.deepEqual(result.models[0].meta.imageOptions.resolutionOptions, [{value: '4096x4096', label: '4096X4096'}]);
+    assert.deepEqual(result.videoModels[0].meta.videoOptions.sizeOptions, [
+      {value: '9:16', label: '9:16'},
+      {value: '16:9', label: '16:9'},
+      {value: '1:1', label: '1:1'}
+    ]);
+    assert.deepEqual(result.videoModels[0].meta.videoOptions.resolutionOptions, [{value: '2k', label: '2K'}]);
     assert.equal(result.health.byKind.find(item => item.kind === 'image').enabledModels, 1);
-    assert.deepEqual(result.vendors, [{key: 'yunwu-image', name: '云雾', enabled: true, authType: 'none', hasApiKey: true}]);
+    assert.deepEqual(result.vendors, [
+      {key: 'yunwu-image', name: '云雾', enabled: true, authType: 'none', hasApiKey: true},
+      {key: 'runninghub-consumer', name: 'RunningHub', enabled: true, authType: 'none', hasApiKey: true}
+    ]);
     console.log('MODEL_CATALOG_WEB_FALLBACK_BROWSER_OK');
   } finally {
     if (browser) await browser.close();
