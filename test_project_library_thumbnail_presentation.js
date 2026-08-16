@@ -20,9 +20,15 @@ const studioHtml = fs.readFileSync(path.join(__dirname, 'studio/index.html'), 'u
   "failedCover.dataset.niannianCoverFallback = 'video';",
   "failedCover.setAttribute('aria-label', '视频素材封面');",
   'data-niannian-cover-fallback=video',
-  'content:"视频素材"'
+  'content:"视频素材"',
+  'data-card-cover-navigator',
+  'data-card-cover-direction',
+  'data-cover-navigator',
+  'data-cover-direction',
+  'shiftDialogCover',
+  'autoCoverUrl(project)'
 ].forEach((contract) => assert.ok(source.includes(contract), `missing project thumbnail contract: ${contract}`));
 
-assert.match(studioHtml, /project-library-management\.js\?v=20260816-r4/);
+assert.match(studioHtml, /project-library-management\.js\?v=20260816-cover-carousel-r1/);
 
 console.log('PROJECT_LIBRARY_THUMBNAIL_PRESENTATION_CONTRACT_OK');

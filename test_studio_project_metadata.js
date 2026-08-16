@@ -80,6 +80,34 @@ async function run() {
   assert.equal(read.project.name, '雨夜重逢');
   assert.equal(read.project.cover.assetId, uploaded.asset.id);
 
+  const candidateAssets = [uploaded.asset];
+  for (let index = 1; index < 5; index += 1) {
+    const candidateImage = await sharp({create:{width:24 + index,height:14 + index,channels:4,background:{r:41 + index,g:52 + index,b:62 + index,alpha:1}}}).png().toBuffer();
+    const candidateForm = new FormData();
+    candidateForm.append('referenceImage', new Blob([candidateImage], {type:'image/png'}), `cover-${index}.png`);
+    const candidateResponse = await fetch(`${baseUrl}/api/projects/NN-web-meta-a/assets`, {method:'POST',headers:auth('meta-token-a',{'x-niannian-project-kind':'redraw'}),body:candidateForm});
+    const candidate = await candidateResponse.json();
+    assert.equal(candidateResponse.status, 201);
+    candidateAssets.push(candidate.asset);
+  }
+  const documentResponse = await fetch(`${baseUrl}/api/studio/projects/NN-web-meta-a`, {
+    method:'PUT',
+    headers:auth('meta-token-a',{'content-type':'application/json','if-match':'"nomi-rev-0"'}),
+    body:JSON.stringify({document:{generationCanvas:{nodes:candidateAssets.map((asset, index) => ({id:`cover-node-${index}`,kind:'image',title:`封面节点 ${index + 1}`,result:{type:'image',assetId:asset.id,url:asset.downloadUrl}})),edges:[]}}})
+  });
+  assert.equal(documentResponse.status, 200);
+  const candidateReadResponse = await fetch(`${baseUrl}/api/studio/projects/NN-web-meta-a`, {headers:auth('meta-token-a')});
+  const candidateRead = await candidateReadResponse.json();
+  assert.equal(candidateRead.project.cover.candidates.length, 5);
+  assert.deepEqual(candidateRead.project.cover.candidates.map(item => item.assetId), candidateAssets.map(asset => asset.id));
+  assert.match(candidateRead.project.cover.candidates[0].thumbnailUrl, /\/thumbnail$/);
+  const autoCoverResponse = await fetch(`${baseUrl}/api/studio/projects/NN-web-meta-a`, {method:'PATCH',headers:auth('meta-token-a',{'content-type':'application/json'}),body:JSON.stringify({coverMode:'auto',autoCoverIndex:4})});
+  const autoCover = await autoCoverResponse.json();
+  assert.equal(autoCoverResponse.status, 200);
+  assert.equal(autoCover.project.cover.mode, 'auto');
+  assert.equal(autoCover.project.cover.autoIndex, 4);
+  assert.equal(autoCover.project.cover.candidates[4].assetId, candidateAssets[4].id);
+
   const crossProjectResponse = await fetch(`${baseUrl}/api/studio/projects/NN-web-meta-b`, {method:'PATCH',headers:auth('meta-token-a',{'content-type':'application/json'}),body:JSON.stringify({coverMode:'custom',coverAssetId:uploaded.asset.id})});
   const crossProject = await crossProjectResponse.json();
   assert.equal(crossProjectResponse.status, 422);

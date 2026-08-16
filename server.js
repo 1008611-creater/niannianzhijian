@@ -362,6 +362,7 @@ let step01ArtifactSessionStore = null;
 let step01ArtifactSessionIdentity = null;
 const mediaPreflightEnabled = String(process.env.NIANNIAN_MEDIA_PREFLIGHT || 'on').toLowerCase() !== 'off';
 const ffprobePath = String(process.env.NIANNIAN_FFPROBE_PATH || 'ffprobe').trim() || 'ffprobe';
+const ffmpegPath = String(process.env.NIANNIAN_FFMPEG_PATH || 'ffmpeg').trim() || 'ffmpeg';
 const mediaPreflightTimeoutMs = Math.max(3000, Math.min(60000, Number(process.env.NIANNIAN_MEDIA_PREFLIGHT_TIMEOUT_MS || 20000)));
 const redrawMinDurationSeconds = Math.max(1, Number(process.env.NIANNIAN_REDRAW_MIN_DURATION_SECONDS || 15));
 const redrawMaxDurationSeconds = Math.max(redrawMinDurationSeconds, Number(process.env.NIANNIAN_REDRAW_MAX_DURATION_SECONDS || 180));
@@ -7043,8 +7044,10 @@ function canvasAssetThumbnailPlaceholder() {
   return Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180"><rect width="320" height="180" fill="#f4f1ec"/><rect x="112" y="48" width="96" height="84" rx="8" fill="#ebe7e0" stroke="#d7cec2"/><path d="M151 74l35 16-35 16z" fill="#796c5d"/><text x="160" y="151" text-anchor="middle" fill="#796c5d" font-family="system-ui,sans-serif" font-size="13">视频素材</text></svg>');
 }
 
-async function ensureCanvasImageThumbnail(asset) {
-  if (!String(asset.mimeType || '').startsWith('image/')) return null;
+async function ensureCanvasAssetThumbnail(asset) {
+  const isImage = String(asset.mimeType || '').startsWith('image/');
+  const isVideo = String(asset.mimeType || '').startsWith('video/');
+  if (!isImage && !isVideo) return null;
   const target = canvasAssetThumbnailPath(asset);
   const existing = await fsp.stat(target).catch(() => null);
   if (existing && existing.size > 0) return target;
@@ -7056,11 +7059,19 @@ async function ensureCanvasImageThumbnail(asset) {
     if (ready && ready.size > 0) return target;
     const temporary = target + '.tmp-' + process.pid + '-' + crypto.randomBytes(6).toString('hex');
     try {
-      await sharp(asset.storedPath, {failOn:'error'})
-        .rotate()
-        .resize(320, 180, {fit:'inside', withoutEnlargement:true, background:{r:244,g:241,b:236,alpha:1}})
-        .webp({quality:76, effort:3})
-        .toFile(temporary);
+      if (isImage) {
+        await sharp(asset.storedPath, {failOn:'error'})
+          .rotate()
+          .resize(320, 180, {fit:'inside', withoutEnlargement:true, background:{r:244,g:241,b:236,alpha:1}})
+          .webp({quality:76, effort:3})
+          .toFile(temporary);
+      } else {
+        await runProcess(ffmpegPath, [
+          '-v', 'error', '-ss', '0.1', '-i', asset.storedPath, '-frames:v', '1',
+          '-vf', 'scale=320:180:force_original_aspect_ratio=decrease,pad=320:180:(ow-iw)/2:(oh-ih)/2:color=0xf4f1ec',
+          '-c:v', 'libwebp', '-quality', '76', '-y', temporary
+        ], 12000);
+      }
       await fsp.rename(temporary, target);
       return target;
     } catch (error) {
@@ -7075,7 +7086,7 @@ async function ensureCanvasImageThumbnail(asset) {
 }
 
 function prewarmCanvasAssetThumbnail(asset) {
-  void ensureCanvasImageThumbnail(asset);
+  void ensureCanvasAssetThumbnail(asset);
 }
 
 function publicCanvasAsset(asset) {
@@ -7234,7 +7245,7 @@ async function handleCanvasAssetsApi(request, response, pathname, user) {
   if (assetId && action === 'thumbnail' && ['GET','HEAD'].includes(request.method)) {
     const asset = await canvasAssetService.getOwned(user.id, projectId, assetId);
     if (!asset) return json(response, 404, {code:'CANVAS_ASSET_NOT_FOUND',error:'素材不存在'});
-    const thumbnail = await ensureCanvasImageThumbnail(asset);
+    const thumbnail = await ensureCanvasAssetThumbnail(asset);
     if (thumbnail) {
       const stat = await fsp.stat(thumbnail).catch(() => null);
       if (stat && stat.size > 0) {
@@ -8277,6 +8288,7 @@ function normalizeNomiProjectDocument(value) {
 function publicStudioProjectMetadata(project, projectKind) {
   const cover = project?.studioCover && typeof project.studioCover === 'object' ? project.studioCover : {};
   const mode = cover.mode === 'custom' && /^CAS-[a-f0-9]{24}$/.test(String(cover.assetId || '')) ? 'custom' : 'auto';
+  const autoIndex = Math.max(0, Math.min(4, Number.isInteger(cover.autoIndex) ? cover.autoIndex : 0));
   return {
     id:project.id,
     name:canvasText(project.name, 160) || '未命名项目',
@@ -8284,7 +8296,8 @@ function publicStudioProjectMetadata(project, projectKind) {
     cover:{
       mode,
       assetId:mode === 'custom' ? cover.assetId : null,
-      imageUrl:mode === 'custom' ? canvasAssetDownloadUrl(project.id, cover.assetId) : null
+      imageUrl:mode === 'custom' ? canvasAssetDownloadUrl(project.id, cover.assetId) : null,
+      autoIndex
     },
     updatedAt:project.updatedAt || project.createdAt || null
   };
@@ -8293,10 +8306,15 @@ function publicStudioProjectMetadata(project, projectKind) {
 function applyStudioProjectMetadata(project, input) {
   const updatedAt = new Date().toISOString();
   if (input.name !== undefined) project.name = input.name;
-  if (input.coverMode !== undefined) {
-    project.studioCover = input.coverMode === 'custom'
-      ? {mode:'custom',assetId:input.coverAssetId,updatedAt}
-      : {mode:'auto',assetId:null,updatedAt};
+  if (input.coverMode !== undefined || input.autoCoverIndex !== undefined) {
+    const previous = project.studioCover && typeof project.studioCover === 'object' ? project.studioCover : {};
+    const mode = input.coverMode || (previous.mode === 'custom' ? 'custom' : 'auto');
+    const autoIndex = input.autoCoverIndex === undefined
+      ? Math.max(0, Math.min(4, Number.isInteger(previous.autoIndex) ? previous.autoIndex : 0))
+      : input.autoCoverIndex;
+    project.studioCover = mode === 'custom'
+      ? {mode:'custom',assetId:input.coverAssetId || previous.assetId,autoIndex,updatedAt}
+      : {mode:'auto',assetId:null,autoIndex,updatedAt};
   }
   project.updatedAt = updatedAt;
   return project;
@@ -8307,6 +8325,10 @@ async function updateStudioProjectMetadata(user, owned, body) {
   if (body.name !== undefined && (!name || name.length > 80)) throw Object.assign(new Error('项目名称应为 1 到 80 个字符'), {code:'STUDIO_PROJECT_NAME_INVALID',httpStatus:422});
   const coverMode = body.coverMode === undefined ? undefined : canvasText(body.coverMode, 20);
   if (coverMode !== undefined && !['auto','custom'].includes(coverMode)) throw Object.assign(new Error('项目封面模式无效'), {code:'STUDIO_PROJECT_COVER_MODE_INVALID',httpStatus:422});
+  const autoCoverIndex = body.autoCoverIndex === undefined ? undefined : Number(body.autoCoverIndex);
+  if (autoCoverIndex !== undefined && (!Number.isInteger(autoCoverIndex) || autoCoverIndex < 0 || autoCoverIndex > 4)) throw Object.assign(new Error('项目自动封面序号无效'), {code:'STUDIO_PROJECT_COVER_INDEX_INVALID',httpStatus:422});
+  const currentCoverMode = coverMode || (owned.project?.studioCover?.mode === 'custom' ? 'custom' : 'auto');
+  if (autoCoverIndex !== undefined && currentCoverMode !== 'auto') throw Object.assign(new Error('自定义封面不能切换自动封面序号'), {code:'STUDIO_PROJECT_COVER_INDEX_MODE_INVALID',httpStatus:422});
   const coverAssetId = coverMode === 'custom' ? canvasText(body.coverAssetId, 120) : null;
   if (coverMode === 'custom') {
     const asset = await canvasAssetService.getOwned(user.id, owned.project.id, coverAssetId);
@@ -8314,8 +8336,8 @@ async function updateStudioProjectMetadata(user, owned, body) {
       throw Object.assign(new Error('自定义封面必须是当前项目中的图片素材'), {code:'STUDIO_PROJECT_COVER_ASSET_INVALID',httpStatus:422});
     }
   }
-  if (name === undefined && coverMode === undefined) throw Object.assign(new Error('没有可更新的项目信息'), {code:'STUDIO_PROJECT_METADATA_EMPTY',httpStatus:422});
-  const input = {name,coverMode,coverAssetId};
+  if (name === undefined && coverMode === undefined && autoCoverIndex === undefined) throw Object.assign(new Error('没有可更新的项目信息'), {code:'STUDIO_PROJECT_METADATA_EMPTY',httpStatus:422});
+  const input = {name,coverMode,coverAssetId,autoCoverIndex};
   let saved;
   if (owned.project.canvasOnly === true) {
     saved = await withCanvasProjectsWriteLock(async () => {
@@ -8383,7 +8405,7 @@ async function handleNomiProjectApi(request, response, pathname, user) {
     }
     const revision = Number(record?.revision || 0);
     return json(response, 200, {
-      project:{...publicStudioProjectMetadata(owned.project, owned.projectKind),status:canvasText(owned.project.status, 80)},
+      project:{...await publicStudioProjectMetadataForUser(user, owned, record),status:canvasText(owned.project.status, 80)},
       revision,
       document:record?.document || null,
       updatedAt:record?.updatedAt || null
@@ -8392,7 +8414,7 @@ async function handleNomiProjectApi(request, response, pathname, user) {
   if (request.method === 'PATCH') {
     try {
       const saved = await updateStudioProjectMetadata(user, owned, await readBodyJson(request));
-      return json(response, 200, {code:'STUDIO_PROJECT_METADATA_UPDATED',project:publicStudioProjectMetadata(saved, owned.projectKind)}, {'Cache-Control':'no-store'});
+      return json(response, 200, {code:'STUDIO_PROJECT_METADATA_UPDATED',project:await publicStudioProjectMetadataForUser(user, {...owned,project:saved})}, {'Cache-Control':'no-store'});
     } catch (error) {
       return json(response, error.httpStatus || 400, {code:error.code || 'STUDIO_PROJECT_METADATA_INVALID',error:error.message || '项目信息保存失败'});
     }
@@ -8426,6 +8448,48 @@ function studioAssetIdFromReference(value) {
   if (/^CAS-[a-f0-9]{24}$/.test(raw)) return raw;
   const match = /^\/api\/projects\/[^/]+\/assets\/(CAS-[a-f0-9]{24})\/download(?:\?.*)?$/.exec(raw);
   return match ? match[1] : null;
+}
+
+function studioCanvasResultAssetId(node) {
+  const result = node?.result && typeof node.result === 'object' && !Array.isArray(node.result) ? node.result : null;
+  const type = canvasText(result?.type, 24).toLowerCase();
+  if (!result || !['image','video'].includes(type)) return null;
+  const assetId = studioAssetIdFromReference(result.assetId) || studioAssetIdFromReference(result.url);
+  return assetId ? {assetId,type} : null;
+}
+
+async function studioAutoCoverCandidates(user, owned, record = null) {
+  let resolved = record;
+  if (!resolved) {
+    const documents = await readCanvasDocuments();
+    resolved = nomiRecordForProject(documents[nomiDocumentKey(owned.projectKind, owned.project.id)], owned.project, owned.projectKind);
+  }
+  const nodes = Array.isArray(resolved?.document?.generationCanvas?.nodes) ? resolved.document.generationCanvas.nodes : [];
+  const candidates = [];
+  const seen = new Set();
+  for (const node of nodes) {
+    const reference = studioCanvasResultAssetId(node);
+    if (!reference || seen.has(reference.assetId)) continue;
+    const asset = await canvasAssetService.getOwned(user.id, owned.project.id, reference.assetId);
+    if (!asset || asset.projectKind !== owned.projectKind || !String(asset.mimeType || '').startsWith(reference.type + '/')) continue;
+    seen.add(reference.assetId);
+    candidates.push({
+      assetId:asset.id,
+      nodeId:canvasText(node.id, 160),
+      nodeTitle:canvasText(node.title || node.data?.title, 160) || (reference.type === 'video' ? '视频节点' : '图片节点'),
+      type:reference.type,
+      thumbnailUrl:canvasAssetThumbnailUrl(owned.project.id, asset.id)
+    });
+    if (candidates.length === 5) break;
+  }
+  return candidates;
+}
+
+async function publicStudioProjectMetadataForUser(user, owned, record = null) {
+  const metadata = publicStudioProjectMetadata(owned.project, owned.projectKind);
+  metadata.cover.candidates = await studioAutoCoverCandidates(user, owned, record);
+  if (metadata.cover.mode === 'auto') metadata.cover.autoIndex = Math.min(metadata.cover.autoIndex, Math.max(0, metadata.cover.candidates.length - 1));
+  return metadata;
 }
 
 async function resolveStudioProjectAssets(user, owned, values, kind) {

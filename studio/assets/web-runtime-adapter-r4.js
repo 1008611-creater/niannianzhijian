@@ -461,18 +461,24 @@
   function projectThumbnailUrls(record) {
     var values = Array.isArray(record && record.thumbnailUrls) ? record.thumbnailUrls.slice() : [];
     if (!values.length && record && typeof record.thumbnail === 'string') values.push(record.thumbnail);
-    return Array.from(new Set(values.filter(function (value) { return typeof value === 'string' && value.length > 4; }).map(projectThumbnailUrl))).slice(0, 4);
+    return Array.from(new Set(values.filter(function (value) { return typeof value === 'string' && value.length > 4; }).map(projectThumbnailUrl))).slice(0, 5);
+  }
+  function projectAutoCoverIndex(value, count) {
+    var index = Number.isInteger(Number(value)) ? Number(value) : 0;
+    return Math.max(0, Math.min(Math.max(0, count - 1), index));
   }
   function projectSummary(record, previous) {
     var prior = previous && typeof previous === 'object' ? previous : {};
     var incomingUrls = projectThumbnailUrls(record);
     var coverMode = record && ['auto','custom'].includes(record.coverMode) ? record.coverMode : (prior.coverMode || 'auto');
-    var customCoverUrl = String(record && record.customCoverUrl || prior.customCoverUrl || '').trim();
+    var customCoverUrl = projectThumbnailUrl(String(record && record.customCoverUrl || prior.customCoverUrl || '').trim());
     var customCoverAssetId = String(record && record.customCoverAssetId || prior.customCoverAssetId || '').trim();
     var autoThumbnailUrls = incomingUrls.length && !(coverMode === 'custom' && incomingUrls[0] === customCoverUrl)
       ? incomingUrls
       : projectThumbnailUrls({thumbnailUrls:prior.autoThumbnailUrls});
+    var autoCoverIndex = projectAutoCoverIndex(record && record.autoCoverIndex !== undefined ? record.autoCoverIndex : prior.autoCoverIndex, autoThumbnailUrls.length);
     var visibleUrls = coverMode === 'custom' && customCoverUrl ? [customCoverUrl] : autoThumbnailUrls;
+    var selectedThumbnail = coverMode === 'custom' && customCoverUrl ? customCoverUrl : (autoThumbnailUrls[autoCoverIndex] || undefined);
     return {
       id: record.id,
       name: record.name || '未命名项目',
@@ -486,8 +492,9 @@
       customCoverUrl: customCoverUrl || undefined,
       customCoverAssetId: customCoverAssetId || undefined,
       autoThumbnailUrls: autoThumbnailUrls,
+      autoCoverIndex: autoCoverIndex,
       thumbnailUrls: visibleUrls,
-      thumbnail: visibleUrls[0] || undefined,
+      thumbnail: selectedThumbnail,
       thumbStyle: record.thumbStyle || prior.thumbStyle || undefined,
       metadataSynced: prior.metadataSynced === true
     };
@@ -498,7 +505,8 @@
     return {
       name: record.name,
       coverMode: record.coverMode || 'auto',
-      coverAssetId: record.coverMode === 'custom' ? record.customCoverAssetId : null
+      coverAssetId: record.coverMode === 'custom' ? record.customCoverAssetId : null,
+      autoCoverIndex: record.coverMode === 'auto' ? record.autoCoverIndex || 0 : undefined
     };
   }
   function projectMetadataSignature(record) {
@@ -511,6 +519,29 @@
       body: JSON.stringify(projectMetadataPayload(record))
     });
     return response.project || null;
+  }
+  async function refreshProjectCoverCandidates(id) {
+    var previous = webProjects.find(function (item) { return item.id === id; });
+    if (!previous) throw new Error('项目不存在或尚未载入');
+    // A newly created browser project can be rendered before its first canvas save
+    // reaches the server. Keep its local preview and wait for the next normal refresh.
+    if (previous.metadataSynced !== true) return previous;
+    var response = await api('/api/studio/projects/' + encodeURIComponent(id));
+    var remote = response && response.project || {};
+    var cover = remote.cover && typeof remote.cover === 'object' ? remote.cover : {};
+    var urls = Array.isArray(cover.candidates) ? cover.candidates.map(function (item) { return item && item.thumbnailUrl; }) : [];
+    var next = projectSummary(Object.assign({}, previous, {
+      name: remote.name || previous.name,
+      coverMode: cover.mode || previous.coverMode,
+      customCoverAssetId: cover.assetId || previous.customCoverAssetId,
+      customCoverUrl: cover.imageUrl || previous.customCoverUrl,
+      autoCoverIndex: cover.autoIndex === undefined ? previous.autoCoverIndex : cover.autoIndex,
+      thumbnailUrls: urls.length ? urls : previous.autoThumbnailUrls,
+      updatedAt: remote.updatedAt || previous.updatedAt
+    }), previous);
+    webProjects = [next].concat(webProjects.filter(function (item) { return item.id !== id; }));
+    writeWebProjects(webProjects);
+    return next;
   }
   var projectsApi = {
     list: function () {
@@ -558,21 +589,25 @@
         coverMode: requested.coverMode === undefined ? previous.coverMode : requested.coverMode,
         customCoverUrl: requested.customCoverUrl === undefined ? previous.customCoverUrl : requested.customCoverUrl,
         customCoverAssetId: requested.coverAssetId === undefined ? previous.customCoverAssetId : requested.coverAssetId,
+        autoCoverIndex: requested.autoCoverIndex === undefined ? previous.autoCoverIndex : requested.autoCoverIndex,
         updatedAt: Date.now()
       }), previous);
       var saved = await persistProjectMetadata(candidate);
       if (saved && saved.cover) {
         candidate.coverMode = saved.cover.mode || candidate.coverMode;
         candidate.customCoverAssetId = saved.cover.assetId || undefined;
-        candidate.customCoverUrl = saved.cover.imageUrl || undefined;
+        candidate.customCoverUrl = projectThumbnailUrl(saved.cover.imageUrl || '');
+        if (Array.isArray(saved.cover.candidates) && saved.cover.candidates.length) candidate.autoThumbnailUrls = projectThumbnailUrls({thumbnailUrls:saved.cover.candidates.map(function (item) { return item && item.thumbnailUrl; })});
+        candidate.autoCoverIndex = projectAutoCoverIndex(saved.cover.autoIndex, candidate.autoThumbnailUrls.length);
         candidate.thumbnailUrls = candidate.coverMode === 'custom' && candidate.customCoverUrl ? [candidate.customCoverUrl] : candidate.autoThumbnailUrls;
-        candidate.thumbnail = candidate.thumbnailUrls[0] || undefined;
+        candidate.thumbnail = candidate.coverMode === 'custom' ? candidate.customCoverUrl : candidate.autoThumbnailUrls[candidate.autoCoverIndex] || undefined;
       }
       candidate.metadataSynced = true;
       webProjects = [candidate].concat(webProjects.filter(function (item) { return item.id !== id; }));
       writeWebProjects(webProjects);
       return candidate;
     },
+    refreshCoverCandidates: refreshProjectCoverCandidates,
     delete: function (id) {
       webProjects = webProjects.filter(function (item) { return item.id !== id; });
       writeWebProjects(webProjects);

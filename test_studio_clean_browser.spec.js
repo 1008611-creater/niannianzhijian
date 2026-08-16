@@ -72,6 +72,9 @@ test('Studio loads from a clean browser with one canonical module graph', async 
   page.on('console', message => {
     if (message.type() === 'error') failures.push(message.text());
   });
+  page.on('response', response => {
+    if (response.status() >= 400) failures.push('HTTP ' + response.status() + ' ' + response.url());
+  });
 
   const response = await page.goto(baseUrl + '/studio/', {waitUntil: 'networkidle'});
   expect(response?.ok()).toBe(true);
@@ -158,6 +161,9 @@ test('Canvas node save survives a refresh without a false concurrent-edit warnin
   page.on('pageerror', error => failures.push(error.message));
   page.on('console', message => {
     if (message.type() === 'error') failures.push(message.text());
+  });
+  page.on('response', response => {
+    if (response.status() >= 400) failures.push('HTTP ' + response.status() + ' ' + response.url());
   });
 
   await page.goto(baseUrl + '/studio/', {waitUntil: 'networkidle'});
