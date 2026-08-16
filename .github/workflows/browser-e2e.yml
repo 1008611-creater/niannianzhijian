@@ -37,3 +37,6 @@ jobs:
 
       - name: Run clean-browser Studio journey
         run: npm run test:browser-smoke
+
+      - name: Run model catalog web fallback journey
+        run: node test_model_catalog_web_fallback_browser.js
