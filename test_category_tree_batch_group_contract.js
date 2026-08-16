@@ -15,18 +15,20 @@ const shell = fs.readFileSync(
 
 assert.match(source, /批量归组/);
 assert.match(source, /已选择 \$\{e\.length\} 个节点/);
-assert.match(source, /输入目标批次名称/);
-assert.match(source, /未找到同名目标批次，请先新建分组后再归组/);
+assert.match(source, /输入目标组名称/);
+assert.match(source, /未找到目标组，请输入列表中的默认组或子组名称/);
 assert.match(source, /if\(!l\)\{re\(\{message/);
-assert.match(source, /B\(i\.id\),E\(i\.id,\{categoryId:l\.id\}\)/);
-assert.match(source, /disabled:!R\.length\|\|!fe\.some\(e=>!e\.isBuiltin\)/);
+assert.match(source, /fe\.flatMap\(i=>\{const a=oe\(i\.id\)\?s\(`libraries\.sidebar\.builtinCategory\.\$\{i\.id\}`\):i\.name/);
+assert.match(source, /E\(i\.id,\{categoryId:l\.categoryId,groupId:null\}\),l\.groupId&&c\(i\.id,l\.groupId\)/);
+assert.match(source, /disabled:!R\.length\|\|!fe\.length/);
 assert.match(shell, /CategoryTree-D1LnwwpQ-r4\.js/);
+assert.match(shell, /CategoryTree-D1LnwwpQ-r4\.js\?v=20260817-canvas-grouping-r1/);
 assert.doesNotMatch(shell, /CategoryTree-BIOCuy5i-r4\.js/);
 
 console.log(JSON.stringify({
   ok: true,
   verified: [
-    'Selected nodes can be moved into an existing batch category without drag and drop.',
-    'The action remains unavailable until a batch category and selected nodes exist.',
+    'Selected nodes can be moved into any default category or subgroup without drag and drop.',
+    'Moving to a category clears an old subgroup; moving to a subgroup persists both category and subgroup.',
   ],
 }));
