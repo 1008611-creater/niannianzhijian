@@ -80,7 +80,7 @@ assert.match(source, /data-champion-input/);
 assert.match(source, /data-champion-save/);
 assert.match(source, /canvas\/skill-nodes/);
 assert.match(source, /检查服务端输入合同/);
-assert.match(source, /运行编排（MCGrox）/);
+assert.match(source, /生成交付包/);
 assert.match(source, /canvas\/skill-nodes\/.*\/compile/);
 assert.match(source, /confirmProviderCall:true/);
 assert.match(source, /点击兼容输入端完成连接/);
