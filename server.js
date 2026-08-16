@@ -8047,9 +8047,21 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
   }
 }
 
-async function browserCanvasProviderStatus(user) {
+function isCanvasModelRuntimeReady(model) {
+  if (model.kind === 'image') return model.id.startsWith('yunwu-gpt-image-2-c') && canvasImage2Runtime.enabled;
+  if (model.kind !== 'video') return false;
+  if (canvasVideoChannels.isAnimateVideoChannel(model.id)) return canvasAnimateRuntime.enabled;
+  return model.id === 'minimax-h3' && canvasH3Runtime.enabled;
+}
+
+async function browserCanvasModelCatalog(user) {
   const catalog = await modelControlPlane.publicCatalogForTenant(modelControlPlaneModule.tenantForUser(user));
-  const enabled = catalog.models.filter(item => item.enabled === true);
+  return {...catalog, models:catalog.models.filter(isCanvasModelRuntimeReady)};
+}
+
+async function browserCanvasProviderStatus(user) {
+  const catalog = await browserCanvasModelCatalog(user);
+  const enabled = catalog.models;
   return {
     schemaVersion: catalog.schemaVersion,
     modelCatalog: catalog,
@@ -8062,7 +8074,7 @@ async function browserCanvasProviderStatus(user) {
 
 async function handleModelControlApi(request, response, pathname, user) {
   if (request.method === 'GET' && pathname === '/api/canvas/model-catalog') {
-    json(response, 200, {catalog:await modelControlPlane.publicCatalogForTenant(modelControlPlaneModule.tenantForUser(user))}, {'Cache-Control':'no-store'}); return true;
+    json(response, 200, {catalog:await browserCanvasModelCatalog(user)}, {'Cache-Control':'no-store'}); return true;
   }
   if (!pathname.startsWith('/api/admin/model-config') && !pathname.startsWith('/api/admin/credits')) return false;
   try {

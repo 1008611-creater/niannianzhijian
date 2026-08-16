@@ -24,7 +24,7 @@ async function run() {
     fs.writeFile(path.join(dataRoot, 'sessions.json'), JSON.stringify([{userId:'USR-ADMIN',tokenHash:hash('admin-token'),expiresAt:future},{userId:'USR-USER',tokenHash:hash('user-token'),expiresAt:future}])),
     fs.writeFile(path.join(dataRoot, 'projects.json'), '[]'), fs.writeFile(path.join(dataRoot, 'script-projects.json'), '[]'), fs.writeFile(path.join(dataRoot, 'canvas-documents.json'), '{}'), fs.writeFile(path.join(dataRoot, 'canvas-generation-jobs.json'), '[]'), fs.writeFile(path.join(dataRoot, 'workspace-bindings.json'), '[]'), fs.writeFile(path.join(dataRoot, 'website-idempotency.json'), '[]')
   ]);
-  child = spawn(process.execPath, ['server.js'], {cwd:root, env:{...process.env, PORT:String(port), DATA_DIR:dataRoot, NIANNIAN_ADMIN_USER_IDS:'USR-ADMIN'}, stdio:['ignore','pipe','pipe']});
+  child = spawn(process.execPath, ['server.js'], {cwd:root, env:{...process.env, PORT:String(port), DATA_DIR:dataRoot, NIANNIAN_ADMIN_USER_IDS:'USR-ADMIN', AGENT_VAULT_ADDR:'http://127.0.0.1:14321', AGENT_VAULT_VAULT:'test-vault', AGENT_VAULT_TOKEN:'test-token', HTTPS_PROXY:'http://127.0.0.1:14322', NIANNIAN_CANVAS_YUNWU_SUBMIT:'on'}, stdio:['ignore','pipe','pipe']});
   child.stdout.on('data', chunk => { output += chunk.toString(); }); child.stderr.on('data', chunk => { output += chunk.toString(); });
   for (let attempt = 0; attempt < 100; attempt += 1) { try { if ((await fetch(`${baseUrl}/api/health`)).ok) break; } catch {} await new Promise(resolve => setTimeout(resolve, 100)); }
   const ordinary = await fetch(`${baseUrl}/api/admin/model-config`, {headers:headers('user-token')});
@@ -41,6 +41,11 @@ async function run() {
   assert.equal(catalogResponse.status, 200);
   assert.equal(catalog.catalog.models.some(item => item.id === 'yunwu-gpt-image-2-c'), true);
   assert.equal(JSON.stringify(catalog).includes('yunwu-agent-vault'), false);
+  const configuredStatus = await fetch(`${baseUrl}/api/canvas/provider-status`, {headers:headers('user-token')});
+  const configuredBody = await configuredStatus.json();
+  assert.equal(configuredBody.providerStatus.imageSubmitEnabled, true);
+  assert.equal(configuredBody.providerStatus.videoSubmitEnabled, false);
+  assert.equal(configuredBody.providerStatus.imageChannels.some(item => item.id === 'yunwu-gpt-image-2-c'), true);
   console.log('MODEL_CONTROL_PLANE_HTTP_CONTRACT_OK');
 }
 
