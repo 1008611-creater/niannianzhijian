@@ -14,5 +14,7 @@ assert.match(bundle, /setProjectFilter\(e\|\|""\)/);
 assert.match(bundle, /Promise\.all\(remaining\.map/);
 assert.match(bundle, /loading:"lazy",decoding:"async"/);
 assert.match(bundle, /"data-asset-project-filter":"true"/);
+assert.match(bundle, /asset-library-project-filter-trigger/);
+assert.match(bundle, /asset-library-project-filter-menu/);
 
 console.log('asset library project grouping contract: PASS');
