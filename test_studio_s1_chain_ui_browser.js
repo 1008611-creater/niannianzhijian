@@ -87,6 +87,7 @@ async function main() {
     await canvas.click({button:'right', position:{x:1080, y:180}});
     await panel.getByRole('button', {name:'编剧 · Screenwriter'}).waitFor();
     await page.mouse.click(1120, 220);
+    assert.equal(await panel.getByRole('button', {name:'编剧 · Screenwriter'}).isVisible(), false, 'left click on the canvas must dismiss the context menu');
     for (const [index, label] of ['编剧 · Screenwriter', '资产方案 · Chaoge', '分镜 · Shotlist Builder', '镜头提示 · Hell Grind'].entries()) {
       await flow.click({button:'right', position:{x:260, y:370}});
       await panel.getByRole('button', {name:label}).click();
@@ -135,10 +136,11 @@ async function main() {
     const connectedDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
     assert.ok(connectedDocument.document.edges.some(edge => edge.sourcePort === 'screenplay' && edge.targetPort === 'screenplay'), 'dragging compatible ports must persist a typed edge: ' + await panel.locator('[data-s1-status]').textContent());
     assert.ok(await panel.locator('.s1-typed-edge').count() >= 1, 'the typed edge must render on the canvas');
-    const championTitle = panel.locator('[data-champion-node]').filter({hasText:'剧本编排'}).locator('h3');
+    const championCard = panel.locator('[data-champion-node]').filter({hasText:'剧本编排'});
+    const championTitle = championCard.locator('[data-s1-drag-handle]');
     const beforeDrag = await championTitle.boundingBox();
-    assert.ok(beforeDrag, 'champion node title must be visible for dragging');
-    const championNodeId = await championTitle.locator('xpath=..').getAttribute('data-node-id');
+    assert.ok(beforeDrag, 'champion node header must be visible for dragging');
+    const championNodeId = await championCard.getAttribute('data-node-id');
     const beforeDragDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
     const beforeDragPosition = beforeDragDocument.document.nodes.find(node => node.id === championNodeId).position;
     await page.mouse.move(beforeDrag.x + 20, beforeDrag.y + 10);

@@ -60,6 +60,7 @@
       '#s1-chain-canvas .s1-meta{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px;color:#8b7764;font-size:11px}#s1-chain-canvas .s1-status{margin-top:10px;padding:8px;border-radius:6px;background:#f4eee6;color:#5d4d3d;white-space:pre-wrap}#s1-chain-canvas .s1-status.error{background:#fff0ee;color:#a33b2d}#s1-chain-canvas .s1-assets{display:grid;gap:5px;margin:8px 0 10px}#s1-chain-canvas label.s1-asset{display:flex;gap:7px;align-items:center;padding:7px;border:1px solid rgba(90,64,42,.12);border-radius:6px;background:#fffaf3;cursor:pointer}#s1-chain-canvas .s1-asset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#s1-chain-canvas .s1-row{display:flex;gap:7px;align-items:center;margin:7px 0}#s1-chain-canvas select{flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:6px;background:#fff}#s1-chain-canvas button{border:0;border-radius:6px;padding:7px 9px;background:#2a2118;color:#fff;cursor:pointer;font-weight:650;font-size:12px}#s1-chain-canvas button[disabled]{opacity:.45;cursor:default}#s1-chain-canvas .s1-secondary{background:#efe5d8;color:#4c3828}#s1-chain-canvas .s1-node small{color:#8b7764}#s1-chain-canvas .s1-contract{display:grid;gap:4px;margin:8px 0;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-contract span{display:block;padding:5px 7px;border-radius:6px;background:#faf5ef}#s1-chain-canvas .s1-port-state{margin:7px 0 0;padding:6px 7px;border-radius:6px;background:#f4eee6;color:#5d4d3d;font-size:11px;line-height:1.35}#s1-chain-canvas .s1-port-state[data-state=ready]{background:#edf6ee;color:#376745}#s1-chain-canvas .s1-port-state[data-state=blocked]{background:#f8efe5;color:#785330}#s1-chain-canvas .s1-context-menu{position:absolute;z-index:20;display:grid;gap:4px;min-width:206px;padding:7px;border:1px solid rgba(90,64,42,.22);border-radius:6px;background:#fffdf9;box-shadow:0 14px 34px rgba(42,33,24,.2);pointer-events:auto}#s1-chain-canvas .s1-context-menu[hidden]{display:none}#s1-chain-canvas .s1-context-menu strong{padding:5px 7px;color:#8b6040;font-size:10px;letter-spacing:.08em}#s1-chain-canvas .s1-context-menu button{width:100%;text-align:left;background:transparent;color:#2a2118;font-weight:600}#s1-chain-canvas .s1-context-menu button:hover{background:#f3e9dc}#s1-chain-canvas .s1-skill-node{border-top:3px solid #9a6a3c}#s1-chain-canvas .s1-port-list{display:grid;gap:4px;margin:8px 0}#s1-chain-canvas .s1-port-list span{display:block;padding:5px 7px;border-radius:5px;background:#faf5ef;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-ports{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}#s1-chain-canvas .s1-port-group{display:grid;gap:4px;color:#8b7764;font-size:10px}#s1-chain-canvas .s1-port-group.output{text-align:right}#s1-chain-canvas .s1-port-handle{display:block;width:100%;padding:5px 7px;border:1px solid #cdbca8;border-radius:5px;background:#fff8ef;color:#4b3829;text-align:left;cursor:crosshair}#s1-chain-canvas .s1-port-group.output .s1-port-handle{text-align:right}#s1-chain-canvas .s1-input-port{border-color:#89a8b5}#s1-chain-canvas .s1-output-port{border-color:#b68d63}#s1-chain-canvas .s1-port-handle.s1-connecting{background:#dcecf1;border-color:#426f83}',
       '#s1-chain-canvas[data-s1-empty=true]>.s1-chain-title,#s1-chain-canvas[data-s1-empty=true]>.s1-chain-flow>.s1-edge,#s1-chain-canvas[data-s1-empty=true]>.s1-chain-flow>.s1-node{display:none!important}@media (max-width:900px){#s1-chain-canvas{padding:72px 14px 30px}#s1-chain-canvas .s1-chain-flow{min-width:1680px}}@media (max-width:600px){#s1-chain-canvas{padding-top:62px}#s1-chain-canvas .s1-chain-title{margin-bottom:12px}}'
     ].join('');
+    style.textContent += '#s1-chain-canvas .s1-skill-node{width:300px;min-height:0;padding:0;overflow:hidden;border:1px solid rgba(90,64,42,.22);border-top:3px solid #9a6a3c;border-radius:9px;background:#fffdf9;box-shadow:0 8px 24px rgba(42,33,24,.12)}#s1-chain-canvas .s1-skill-node .s1-skill-head{display:flex;align-items:center;gap:8px;padding:10px 42px 8px 13px;border-bottom:1px solid rgba(90,64,42,.12);background:#fffaf3;cursor:grab;touch-action:none}#s1-chain-canvas .s1-skill-node.s1-dragging .s1-skill-head{cursor:grabbing}#s1-chain-canvas .s1-skill-node .s1-skill-icon{display:grid;place-items:center;width:24px;height:24px;border-radius:6px;background:#efe2d2;color:#8d5d38;font-size:11px;font-weight:800}#s1-chain-canvas .s1-skill-node .s1-skill-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:750;color:#2a2118}#s1-chain-canvas .s1-skill-node .s1-skill-version{margin-left:auto;color:#8b7764;font-size:10px}#s1-chain-canvas .s1-skill-node .s1-skill-body{padding:12px 13px 13px}#s1-chain-canvas .s1-skill-node .s1-skill-body>h3{margin:0 0 5px;font-size:15px;cursor:default}#s1-chain-canvas .s1-skill-node .s1-skill-body>p{margin:0 0 10px}#s1-chain-canvas .s1-skill-node .s1-skill-foot{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(90,64,42,.12)}#s1-chain-canvas .s1-skill-node .s1-skill-foot button{flex:1 1 76px;min-height:28px}#s1-chain-canvas .s1-skill-node [data-s1-delete]{z-index:2;top:8px;right:9px;width:24px;height:24px}#s1-chain-canvas .s1-skill-node .s1-ports{margin:9px 0 4px}#s1-chain-canvas .s1-skill-node textarea{box-sizing:border-box;width:100%;resize:vertical}';
     document.head.appendChild(style);
   }
 
@@ -325,7 +326,7 @@
     function championInputValue(node, portId) { return node && node.parameters && node.parameters.inputs && node.parameters.inputs[portId] || ''; }
     function championNodeMarkup(node, spec) {
       var primaryPort = championPrimaryPort(spec);
-      return '<article class="s1-node s1-skill-node" data-champion-node data-node-id="' + escapeHtml(node.id) + '" data-status="' + escapeHtml(node.status || 'draft') + '"><div class="s1-meta"><span>编排 Skill · ' + escapeHtml(node.skillKey) + '</span><small data-node-status>' + escapeHtml(node.status || 'draft') + '</small></div><h3>' + escapeHtml((node.data && node.data.title) || spec.title) + '</h3><p>' + escapeHtml((node.data && node.data.note) || spec.note) + '</p><div class="s1-ports"><div class="s1-port-group input"><small>输入</small>' + nodePortButtons(node, 'input') + '</div><div class="s1-port-group output"><small>输出</small>' + nodePortButtons(node, 'output') + '</div></div><label class="s1-row" style="align-items:flex-start"><span>核心输入 · ' + escapeHtml(primaryPort) + '</span><textarea data-champion-input data-champion-port="' + escapeHtml(primaryPort) + '" placeholder="填写内容或从左侧端口连接上游输出" style="flex:1;min-width:0;min-height:54px;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:6px;font:inherit">' + escapeHtml(championInputValue(node, primaryPort)) + '</textarea></label><div class="s1-status" data-champion-readiness>保存后可检查当前节点是否具备编排输入。</div><div class="s1-row"><button type="button" class="s1-secondary" data-champion-save>保存参数</button><button type="button" data-champion-check>检查输入</button><button type="button" data-champion-run>运行编排（MCGrox）</button></div><div class="s1-status">编排节点只输出计划、提示词或资产引用；图像和视频仍通过后续生成节点的服务器任务链。</div></article>';
+      return '<article class="s1-node s1-skill-node" data-champion-node data-node-id="' + escapeHtml(node.id) + '" data-status="' + escapeHtml(node.status || 'draft') + '"><div class="s1-skill-head" data-s1-drag-handle role="button" tabindex="0" aria-label="拖动 ' + escapeHtml(spec.title) + ' 节点"><span class="s1-skill-icon" aria-hidden="true">S</span><span class="s1-skill-name">' + escapeHtml(node.skillKey) + '</span><span class="s1-skill-version">v' + escapeHtml(node.skillVersion || spec.version) + '</span></div><div class="s1-skill-body"><h3>' + escapeHtml((node.data && node.data.title) || spec.title) + '</h3><p>' + escapeHtml((node.data && node.data.note) || spec.note) + '</p><div class="s1-ports"><div class="s1-port-group input"><small>输入</small>' + nodePortButtons(node, 'input') + '</div><div class="s1-port-group output"><small>输出</small>' + nodePortButtons(node, 'output') + '</div></div><label class="s1-row" style="align-items:flex-start;display:block"><span>核心输入 · ' + escapeHtml(primaryPort) + '</span><textarea data-champion-input data-champion-port="' + escapeHtml(primaryPort) + '" placeholder="填写内容或从上游端口连接" rows="3">' + escapeHtml(championInputValue(node, primaryPort)) + '</textarea></label><div class="s1-status" data-champion-readiness>保存后可检查当前节点是否具备编排输入。</div><div class="s1-skill-foot"><button type="button" class="s1-secondary" data-champion-save>保存参数</button><button type="button" data-champion-check>检查输入</button><button type="button" data-champion-run>运行编排（MCGrox）</button></div><div class="s1-status">只输出计划、提示词或资产引用；图像和视频仍通过画布生成节点的服务器任务链。</div></div></article>';
     }
     function renderChampionNodes(nodes) {
       panel.querySelectorAll('[data-champion-node]').forEach(function (card) { card.remove(); });
@@ -401,7 +402,7 @@
       var portType = function (port) { return typeof port === 'string' ? port : port.type; };
       var ports = {inputPorts:spec.inputs.map(function (port, index) { return {id:portId(port),type:portType(port),required:index === 0}; }),outputPorts:spec.outputs.map(function (port) { return {id:portId(port),type:portType(port),required:false}; })};
       var parameters = {compiledOutputs:{}, providerSubmitRequested:false, gateState:'awaiting_inputs'};
-      var node = {id:id,type:spec.type,kind:spec.type,status:'draft',skillKey:skillKey,skillVersion:spec.version,description:spec.note,inputPorts:ports.inputPorts,outputPorts:ports.outputPorts,parameters:parameters,assetRefs:[],taskRef:null,preview:null,recovery:{actions:['repair_input','retry'],lastAction:null},executionMode:'orchestration',position:nodePosition,data:{title:spec.title,note:spec.note,status:'draft',skillKey:skillKey,skillVersion:spec.version,description:spec.note,inputPorts:ports.inputPorts,outputPorts:ports.outputPorts,parameters:parameters,assetRefs:[],taskRef:null,preview:null,recovery:{actions:['repair_input','retry'],lastAction:null},executionMode:'orchestration'}};
+      var node = {id:id,type:spec.type,kind:spec.type,status:'draft',skillKey:skillKey,skillVersion:spec.version,description:spec.note,inputPorts:ports.inputPorts,outputPorts:ports.outputPorts,parameters:parameters,assetRefs:[],taskRef:null,preview:null,recovery:{actions:['repair_input','retry'],lastAction:null},executionMode:'orchestration',position:nodePosition,data:{title:spec.title,note:spec.note,status:'draft',skillKey:skillKey,skillVersion:spec.version,description:spec.note,inputPorts:ports.inputPorts,outputPorts:ports.outputPorts,parameters:parameters,assetRefs:[],taskRef:null,preview:null,recovery:{actions:['repair_input','retry'],lastAction:null},executionMode:'orchestration',uiVersion:'native-card-v2'}};
       canvasDocument.nodes = (canvasDocument.nodes || []).concat([node]);
       nodeById[id] = node;
       await persistRuntimeProjection();
@@ -453,16 +454,22 @@
     }
     function installDragging() {
       panel.addEventListener('pointerdown', function (event) {
-        var handle = event.target.closest('.s1-node h3');
+        var handle = event.target.closest('[data-s1-drag-handle]');
         if (!handle || !panel.contains(handle)) return;
         var card = handle.closest('.s1-node'); var key = card.getAttribute('data-node'); var id = card.dataset.nodeId || nodeIds[key];
         if (!id) return;
         selectNode(card);
         var current = nodeById[id] && nodeById[id].position;
         var start = current || positionOf(key); var baseX = event.clientX; var baseY = event.clientY;
-        event.preventDefault(); card.classList.add('s1-dragging'); card.setPointerCapture && card.setPointerCapture(event.pointerId);
-        function move(next) { nodeById[id] = Object.assign({}, nodeById[id] || {}, {position:{x:Math.max(0,Math.round(start.x + next.clientX - baseX)),y:Math.max(80,Math.round(start.y + next.clientY - baseY))}}); applyNodePositions(); }
-        function end() { card.classList.remove('s1-dragging'); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', end); saveLayout().catch(function (error) { setStatus(error.message || '节点位置保存失败', true); }); }
+        event.preventDefault(); card.setPointerCapture && card.setPointerCapture(event.pointerId);
+        var dragging = false;
+        function move(next) {
+          var deltaX = next.clientX - baseX; var deltaY = next.clientY - baseY;
+          if (!dragging && Math.sqrt(deltaX * deltaX + deltaY * deltaY) < 4) return;
+          if (!dragging) { dragging = true; card.classList.add('s1-dragging'); }
+          nodeById[id] = Object.assign({}, nodeById[id] || {}, {position:{x:Math.max(0,Math.round(start.x + deltaX)),y:Math.max(80,Math.round(start.y + deltaY))}}); applyNodePositions();
+        }
+        function end() { card.classList.remove('s1-dragging'); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', end); if (dragging) saveLayout().catch(function (error) { setStatus(error.message || '节点位置保存失败', true); }); }
         window.addEventListener('pointermove', move); window.addEventListener('pointerup', end, {once:true});
       });
     }
@@ -775,7 +782,8 @@
     function hideContextMenu() { contextMenu.hidden = true; }
     function showContextMenu(event) {
       event.preventDefault();
-      contextPoint = {x:Math.max(8,Math.round(event.clientX)),y:Math.max(8,Math.round(event.clientY))};
+      var bounds = panel.getBoundingClientRect();
+      contextPoint = {x:Math.max(8,Math.round(event.clientX - bounds.left + panel.scrollLeft)),y:Math.max(8,Math.round(event.clientY - bounds.top + panel.scrollTop))};
       contextMenu.style.left = String(contextPoint.x) + 'px';
       contextMenu.style.top = String(contextPoint.y) + 'px';
       contextMenu.hidden = false;
@@ -806,7 +814,18 @@
       var skillKey = button.getAttribute('data-s1-add-skill');
       createChampionNode(skillKey, contextPoint).catch(function (error) { setStatus((error.code ? error.code + ': ' : '') + (error.message || '添加节点失败'), true); });
     });
-    panel.addEventListener('pointerdown', function (event) { if (!event.target.closest('[data-s1-context]')) hideContextMenu(); });
+    panel.addEventListener('pointerdown', function (event) {
+      if (!event.target.closest('[data-s1-context]')) hideContextMenu();
+      var card = event.target.closest('.s1-node');
+      if (card && panel.contains(card)) selectNode(card);
+    });
+    function dismissContextMenu(event) {
+      if (contextMenu.hidden || event.button !== 0) return;
+      if (event.target.closest('[data-s1-context]')) return;
+      hideContextMenu();
+    }
+    document.addEventListener('pointerdown', dismissContextMenu, true);
+    document.addEventListener('click', dismissContextMenu, true);
     panel.addEventListener('click', function (event) {
       var card = event.target.closest('.s1-node');
       if (!card || !panel.contains(card)) return;
@@ -824,9 +843,15 @@
     var previousSelectionKeydown = window.__s1SelectionKeydownHandler;
     if (previousSelectionKeydown) document.removeEventListener('keydown', previousSelectionKeydown);
     var selectionKeydown = function (event) {
-      if (!panel.isConnected || !selectedNodeId || (event.key !== 'Delete' && event.key !== 'Backspace')) return;
+      if (!panel.isConnected || (event.key !== 'Delete' && event.key !== 'Backspace')) return;
       var active = document.activeElement;
       if (active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) return;
+      if (!selectedNodeId) {
+        var focusedCard = active && active.closest && active.closest('.s1-node');
+        var selectedCard = focusedCard || panel.querySelector('.s1-node.s1-selected');
+        if (selectedCard) selectNode(selectedCard);
+      }
+      if (!selectedNodeId) return;
       event.preventDefault();
       deleteSelectedNode().catch(function (error) { setStatus(error.message || '删除节点失败', true); });
     };

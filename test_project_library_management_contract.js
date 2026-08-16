@@ -27,8 +27,8 @@ const html = fs.readFileSync(path.join(__dirname, 'studio', 'index.html'), 'utf8
   'api.updateMetadata'
 ].forEach(token => assert(controls.includes(token), `项目库管理界面缺少合同：${token}`));
 
-assert(html.includes('project-library-management.js?v=20260816-r1'));
-assert(html.includes('web-runtime-adapter-r4.js?v=20260816-canvas-retry-download-r1'));
+assert(html.includes('project-library-management.js?v=20260816-cover-carousel-r1'));
+assert(html.includes('web-runtime-adapter-r4.js?v=20260816-cover-carousel-r1'));
 assert(html.includes('studio-route-boot.js?v=20260816-route-gate-r1'));
 assert(html.includes('nomi-project-route-pending'));
 assert(routeBoot.includes('projectId') && routeBoot.includes('nomi-studio-app'));
