@@ -88,12 +88,15 @@ test('Studio loads from a clean browser with one canonical module graph', async 
   await expect(page.getByText('AI 助手入口加载失败')).toHaveCount(0);
   await expect(page.getByRole('complementary', {name: '生成区 AI 侧栏'})).toBeVisible();
 
-  const loadedModuleUrls = await page.evaluate(() => performance.getEntriesByType('resource')
+  const loadedStudioAssetUrls = await page.evaluate(() => performance.getEntriesByType('resource')
     .map(entry => entry.name)
-    .filter(name => /\/studio\/assets\/(index-M-8MrEH2|NomiStudioApp-DDB0IgSO)-.*\.js/.test(name)));
+    .filter(name => /\/studio\/assets\/.*\.(?:js|css)/.test(name)));
+  const loadedModuleUrls = loadedStudioAssetUrls.filter(name => /\/studio\/assets\/(index-M-8MrEH2|NomiStudioApp-DDB0IgSO)-.*\.js/.test(name));
   expect(loadedModuleUrls.some(url => url.includes('r27'))).toBe(false);
   expect(loadedModuleUrls.filter(url => /index-M-8MrEH2-r28-19b89ec-r6\.js/.test(url))).toHaveLength(1);
   expect(loadedModuleUrls.filter(url => /NomiStudioApp-DDB0IgSO-r28-19b89ec-r6\.js/.test(url))).toHaveLength(1);
+  expect(loadedStudioAssetUrls.some(url => url.includes('20260816-batch-group-feedback-r8'))).toBe(false);
+  expect(loadedStudioAssetUrls.some(url => url.includes('20260816-studio-closure-r9'))).toBe(true);
   expect(failures).toEqual([]);
 
   await context.close();
