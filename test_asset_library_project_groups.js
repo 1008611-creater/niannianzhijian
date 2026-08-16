@@ -11,8 +11,8 @@ assert.match(bundle, /children:"分组"/);
 assert.match(bundle, /children:"全部项目"/);
 assert.match(bundle, /aria-label":"按画布分组"/);
 assert.match(bundle, /setProjectFilter\(e\|\|""\)/);
-assert.doesNotMatch(bundle, /value:w,onChange:A\),s\.jsxs\("label"/);
-assert.match(bundle, /value:w,onChange:A\}\),s\.jsxs\("label"/);
-assert.match(bundle, /B\?ne\?s\.jsx\(Dn/);
+assert.match(bundle, /Promise\.all\(remaining\.map/);
+assert.match(bundle, /loading:"lazy",decoding:"async"/);
+assert.match(bundle, /"data-asset-project-filter":"true"/);
 
 console.log('asset library project grouping contract: PASS');

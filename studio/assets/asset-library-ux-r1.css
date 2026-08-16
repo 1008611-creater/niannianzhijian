@@ -1,0 +1,48 @@
+/* Keep the project filter compact so the search and action controls retain room. */
+[data-asset-project-filter="true"] {
+  flex: 0 1 156px;
+  min-width: 118px;
+  max-width: 156px;
+  overflow: hidden;
+}
+
+[data-asset-project-filter="true"] .asset-library-project-filter-label {
+  flex: 0 0 auto;
+}
+
+[data-asset-project-filter="true"] .asset-library-project-filter-select {
+  min-width: 0;
+  max-width: 108px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-library-toolbar {
+  flex-wrap: nowrap;
+}
+
+.asset-library-toolbar .asset-library-search {
+  min-width: 72px;
+}
+
+.asset-library-card-image {
+  display: block;
+  background: #f1eee8;
+}
+
+@media (max-width: 460px) {
+  [data-asset-project-filter="true"] {
+    min-width: 106px;
+    max-width: 132px;
+    padding-inline: 5px;
+  }
+
+  [data-asset-project-filter="true"] .asset-library-project-filter-select {
+    max-width: 88px;
+  }
+
+  .asset-library-toolbar .asset-library-search {
+    min-width: 54px;
+  }
+}
