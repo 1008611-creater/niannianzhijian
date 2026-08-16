@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
-  var selectorPattern = /模型接入|添加模型|中转站|供应商配置/;
+  var selectorPattern = /模型接入|接入模型|添加模型|中转站|供应商配置/;
   var style = document.createElement('style');
   style.textContent = '[data-nomi-admin-model-entry="hidden"]{display:none!important}';
   (document.head || document.documentElement).appendChild(style);
