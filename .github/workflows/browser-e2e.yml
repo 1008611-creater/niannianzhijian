@@ -38,5 +38,8 @@ jobs:
       - name: Run clean-browser Studio journey
         run: npm run test:browser-smoke
 
+      - name: Run champion node canvas journey
+        run: npm run test:studio-s1-chain-ui-browser
+
       - name: Run model catalog web fallback journey
         run: node test_model_catalog_web_fallback_browser.js
