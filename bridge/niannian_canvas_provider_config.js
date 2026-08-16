@@ -56,4 +56,38 @@ function publicCanvasProviderStatus(env = process.env) {
   };
 }
 
-module.exports = {DEFAULT_BASE_URL, readCanvasProviderConfig, publicCanvasProviderStatus};
+// The browser-facing catalog deliberately contains capabilities and pricing only.
+// Provider addresses, credential presence, and submit switches belong to the
+// administrator control plane and must never be used as a user configuration API.
+function publicCanvasModelCatalog(env = process.env) {
+  const config = readCanvasProviderConfig(env);
+  return {
+    schemaVersion: 'niannian.canvas_model_catalog.v1',
+    models: [
+      ...config.imageChannels.map(channel => ({
+        id: channel.id,
+        label: channel.label,
+        kind: 'image',
+        providerLabel: '云雾',
+        enabled: channel.submitEnabled === true,
+        resolutions: channel.resolutions,
+        aspectRatios: channel.aspectRatios,
+        outputSizes: channel.outputSizes,
+        priceCredits: channel.id === 'yunwu-gpt-image-2-c-edit' ? 12 : 10
+      })),
+      {
+        id: 'minimax-h3',
+        label: 'H3 生视频',
+        kind: 'video',
+        providerLabel: 'RunningHub',
+        enabled: config.videoSubmitEnabled === true,
+        resolutions: ['2k'],
+        aspectRatios: ['9:16', '16:9', '1:1'],
+        outputSizes: {},
+        priceCredits: 20
+      }
+    ]
+  };
+}
+
+module.exports = {DEFAULT_BASE_URL, readCanvasProviderConfig, publicCanvasProviderStatus, publicCanvasModelCatalog};

@@ -212,6 +212,7 @@ function createCanvasGenerationJobService(options = {}) {
         schemaVersion: 'niannian.canvas_generation_job.v1',
         id: 'CGJ-' + crypto.randomBytes(12).toString('hex'),
         ownerId: clean(input.ownerId, 120),
+        tenantId: clean(input.tenantId || input.ownerId, 120),
         projectId: normalized.projectId,
         projectKind: normalized.projectKind,
         nodeId: normalized.nodeId,

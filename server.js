@@ -54,6 +54,7 @@ const canvasH3RuntimeModule = require('./bridge/niannian_canvas_h3_runtime');
 const canvasAnimateRuntimeModule = require('./bridge/niannian_canvas_animate_runtime');
 const canvasVideoChannels = require('./bridge/niannian_canvas_video_channels');
 const canvasProviderConfig = require('./bridge/niannian_canvas_provider_config');
+const modelControlPlaneModule = require('./bridge/niannian_model_control_plane');
 const canvasTextRuntimeModule = require('./bridge/niannian_canvas_text_runtime');
 const canvasTextJobs = require('./bridge/niannian_canvas_text_jobs');
 const canvasSkillNodes = require('./bridge/niannian_canvas_skill_nodes');
@@ -143,6 +144,8 @@ const canvasAssetsRoot = path.join(dataRoot, 'canvas-assets');
 const usersPath = path.join(dataRoot, 'users.json');
 const sessionsPath = path.join(dataRoot, 'sessions.json');
 const authAuditPath = path.join(dataRoot, 'auth_audit.jsonl');
+const modelControlConfigPath = path.join(dataRoot, 'model-control-config.json');
+const creditLedgerPath = path.join(dataRoot, 'credit-ledger.json');
 const maxUploadBytes = Math.max(1024 * 1024, Math.min(300 * 1024 * 1024, Number(process.env.MAX_UPLOAD_BYTES || 300 * 1024 * 1024)));
 const maxScriptDocumentBytes = Math.max(1024 * 1024, Math.min(100 * 1024 * 1024, Number(process.env.MAX_SCRIPT_DOCUMENT_BYTES || 25 * 1024 * 1024)));
 const scriptUploadChunkBytes = Math.max(256 * 1024, Math.min(4 * 1024 * 1024, Number(process.env.SCRIPT_UPLOAD_CHUNK_BYTES || 1024 * 1024)));
@@ -154,6 +157,7 @@ const previewUser = Object.freeze({id:'USR-PREVIEW', email:'preview@niannian.loc
 const canvasGenerationJobService = canvasGenerationJobs.createCanvasGenerationJobService({filePath:canvasGenerationJobsPath});
 const canvasAssetService = canvasAssets.createCanvasAssetService({indexPath:canvasAssetsPath,storageRoot:canvasAssetsRoot,maxBytes:process.env.CANVAS_ASSET_MAX_BYTES});
 const canvasProviderStatus = canvasProviderConfig.readCanvasProviderConfig();
+const modelControlPlane = modelControlPlaneModule.createModelControlPlane({configPath:modelControlConfigPath,ledgerPath:creditLedgerPath});
 const canvasImage2Runtime = canvasImage2RuntimeModule.createCanvasImage2Runtime({
   jobService:canvasGenerationJobService,
   assetService:canvasAssetService,
@@ -1269,7 +1273,7 @@ async function createSession(user, request, response) {
   const sessions = (await readJson(sessionsPath)).filter(item => new Date(item.expiresAt).getTime() > Date.now());
   sessions.push({ id:crypto.randomBytes(12).toString('hex'), userId:user.id, tokenHash:crypto.createHash('sha256').update(token).digest('hex'), createdAt:new Date().toISOString(), expiresAt:new Date(Date.now() + sessionTtlMs).toISOString() });
   await writeJson(sessionsPath, sessions);
-  json(response, 200, { user:{ id:user.id, email:user.email } }, { 'Set-Cookie':sessionCookie(token) });
+  json(response, 200, { user:{ id:user.id, email:user.email, isAdmin:modelControlPlane.isAdmin(user) } }, { 'Set-Cookie':sessionCookie(token) });
 }
 
 async function currentUser(request) {
@@ -1280,7 +1284,7 @@ async function currentUser(request) {
   const session = sessions.find(item => item.tokenHash === tokenHash && new Date(item.expiresAt).getTime() > Date.now());
   if (!session) return previewAutoLogin ? previewUser : null;
   const user = (await readJson(usersPath)).find(item => item.id === session.userId && item.status === 'active');
-  return user ? { id:user.id, email:user.email } : (previewAutoLogin ? previewUser : null);
+  return user ? { id:user.id, email:user.email, role:user.role || null, tenantId:user.tenantId || user.id } : (previewAutoLogin ? previewUser : null);
 }
 
 async function handleRegister(request, response) {
@@ -1294,7 +1298,7 @@ async function handleRegister(request, response) {
   const users = await readJson(usersPath);
   if (users.some(item => item.email === email)) return json(response, 409, { code:'EMAIL_ALREADY_REGISTERED', error:'该邮箱已经注册' });
   const salt = crypto.randomBytes(16).toString('hex');
-  const user = { id:'USR-' + crypto.randomBytes(8).toString('hex').toUpperCase(), email, passwordSalt:salt, passwordHash:await scryptPassword(password, salt), status:'active', createdAt:new Date().toISOString() };
+  const user = { id:'USR-' + crypto.randomBytes(8).toString('hex').toUpperCase(), email, tenantId:'TEN-' + crypto.randomBytes(8).toString('hex').toUpperCase(), passwordSalt:salt, passwordHash:await scryptPassword(password, salt), status:'active', createdAt:new Date().toISOString() };
   users.push(user);
   await writeJson(usersPath, users);
   await auditAuth('register_success', request, { user_id:user.id });
@@ -7346,7 +7350,7 @@ async function handleCanvasImage2NodeApi(request, response, pathname, user) {
       await writeCanvasDocuments(documents);
       return record;
     });
-    return json(response, 201, {code:'CANVAS_S2_IMAGE2_NODE_READY',revision:saved.revision,node:saved.document.nodes.find(item => item.id === canvasImage2Node.IMAGE2_NODE_ID),imageChannels:canvasProviderConfig.publicCanvasProviderStatus().imageChannels,updatedAt:saved.updatedAt}, {ETag:canvasEtag(saved.revision),'Cache-Control':'no-store'});
+    return json(response, 201, {code:'CANVAS_S2_IMAGE2_NODE_READY',revision:saved.revision,node:saved.document.nodes.find(item => item.id === canvasImage2Node.IMAGE2_NODE_ID),imageChannels:(await browserCanvasProviderStatus(user)).imageChannels,updatedAt:saved.updatedAt}, {ETag:canvasEtag(saved.revision),'Cache-Control':'no-store'});
   } catch (error) {
     return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_S2_IMAGE2_NODE_FAILED',error:error.message || 'Image2 节点创建失败'});
   }
@@ -7750,9 +7754,14 @@ function canvasGenerationSubmitEnabled(jobOrNodeType) {
 function publicCanvasTextResponse(job) {
   return {
     job:canvasTextJobService.publicJob(job),
-    providerStatus:canvasTextRuntimeModule.publicCanvasTextStatus(),
+    providerStatus:browserCanvasTextStatus(),
     spendRequested:job.status === 'succeeded'
   };
+}
+
+function browserCanvasTextStatus() {
+  const status = canvasTextRuntimeModule.publicCanvasTextStatus();
+  return {provider:status.provider, model:status.model || null, modelConfigured:status.modelConfigured === true, submitEnabled:status.submitEnabled === true};
 }
 
 function scheduleCanvasTextJob({ownerId, projectId, job}) {
@@ -7805,7 +7814,7 @@ async function handleCanvasTextApi(request, response, pathname, user) {
       if (nodeType !== 'text') return json(response, 422, {code:'CANVAS_TEXT_NODE_REQUIRED',error:'当前节点不是文本节点'});
       const requestedModel = canvasText(body.model || node.meta?.modelKey || node.data?.modelKey || canvasTextRuntime.config.model, 200);
       const prompt = canvasText(body.prompt || node.prompt || node.data?.prompt, 12000);
-      if (!canvasTextRuntime.config.submitEnabled) return json(response, 409, {code:'CANVAS_TEXT_PROVIDER_NOT_READY',error:'文本模型尚未完成服务端配置',providerStatus:canvasTextRuntimeModule.publicCanvasTextStatus()});
+      if (!canvasTextRuntime.config.submitEnabled) return json(response, 409, {code:'CANVAS_TEXT_PROVIDER_NOT_READY',error:'文本模型尚未完成服务端配置',providerStatus:browserCanvasTextStatus()});
       if (!prompt) return json(response, 422, {code:'CANVAS_TEXT_PROMPT_REQUIRED',error:'文本节点需要填写提示词'});
       if (!requestedModel || requestedModel !== canvasTextRuntime.config.model) return json(response, 422, {code:'CANVAS_TEXT_MODEL_INVALID',error:'文本模型与服务器配置不匹配'});
       const idempotencyKey = request.headers['idempotency-key'];
@@ -7828,12 +7837,12 @@ async function handleCanvasTextApi(request, response, pathname, user) {
   }
 }
 
-function publicCanvasGenerationResponse(job) {
+async function publicCanvasGenerationResponse(job, user) {
   const providerSubmitEnabled = canvasGenerationSubmitEnabled(job);
   return {
     job:canvasGenerationJobService.publicJob(job, {providerSubmitEnabled}),
     providerSubmitEnabled,
-    providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),
+    providerStatus:await browserCanvasProviderStatus(user),
     spendRequested:false
   };
 }
@@ -7855,7 +7864,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       return json(response, 200, {
         jobs:jobs.map(job => canvasGenerationJobService.publicJob(job, {providerSubmitEnabled:canvasGenerationSubmitEnabled(job)})),
         providerSubmitEnabled:canvasImage2Runtime.enabled || canvasH3Runtime.enabled || canvasAnimateRuntime.enabled,
-        providerStatus:canvasProviderConfig.publicCanvasProviderStatus()
+        providerStatus:await browserCanvasProviderStatus(user)
       });
     }
     if (!jobId && !action && request.method === 'POST') {
@@ -7879,6 +7888,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       }
       const created = await canvasGenerationJobService.create({
         ownerId:user.id,
+        tenantId:modelControlPlaneModule.tenantForUser(user),
         projectId,
         projectKind:owned.projectKind,
         nodeId,
@@ -7903,7 +7913,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         durationSeconds:body.durationSeconds || body.duration_seconds || node.data?.durationSeconds || node.data?.duration_seconds || (nodeType === 'video' ? 5 : 0),
         idempotencyKey:request.headers['idempotency-key']
       });
-      return json(response, created.created ? 201 : 200, {code:created.created ? 'CANVAS_GENERATION_JOB_PREPARED' : 'CANVAS_GENERATION_JOB_REUSED',idempotent:!created.created,...publicCanvasGenerationResponse(created.job)});
+      return json(response, created.created ? 201 : 200, {code:created.created ? 'CANVAS_GENERATION_JOB_PREPARED' : 'CANVAS_GENERATION_JOB_REUSED',idempotent:!created.created,...await publicCanvasGenerationResponse(created.job, user)});
     }
     if (jobId && !action && request.method === 'GET') {
       let job = await canvasGenerationJobService.getOwned(user.id, projectId, jobId);
@@ -7913,7 +7923,12 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         if (canvasVideoChannels.isAnimateVideoChannel(job.videoChannel) && canvasAnimateRuntime.enabled) job = await canvasAnimateRuntime.reconcile(user.id, projectId, jobId);
         else if (canvasH3Runtime.enabled) job = await canvasH3Runtime.reconcile(user.id, projectId, jobId);
       }
-      return json(response, 200, publicCanvasGenerationResponse(job));
+      if (job.creditReservationId && ['succeeded','failed','review'].includes(job.status) && job.creditState === 'reserved') {
+        if (job.status === 'succeeded') await modelControlPlane.settleCredits({reservationId:job.creditReservationId, amount:job.creditAmount, idempotencyKey:job.id + ':settle'});
+        else await modelControlPlane.refundCredits({reservationId:job.creditReservationId, reason:'provider_failed', idempotencyKey:job.id + ':refund'});
+        job = await canvasGenerationJobService.updateOwned(user.id, projectId, jobId, {creditState:job.status === 'succeeded' ? 'settled' : 'refunded'});
+      }
+      return json(response, 200, await publicCanvasGenerationResponse(job, user));
     }
     if (jobId && action === 'dry-run' && request.method === 'POST') {
       const job = await canvasGenerationJobService.getOwned(user.id, projectId, jobId);
@@ -7926,30 +7941,72 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         dryRun:canvasGenerationJobService.dryRunContract(job, {providerSubmitEnabled}),
         ...(providerDryRun ? {providerDryRun} : {}),
         providerSubmitEnabled,
-        providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),
+        providerStatus:await browserCanvasProviderStatus(user),
         spendRequested:false
       });
     }
     if (jobId && action === 'authorize' && request.method === 'POST') {
-      const job = await canvasGenerationJobService.getOwned(user.id, projectId, jobId);
+      let job = await canvasGenerationJobService.getOwned(user.id, projectId, jobId);
       if (!job) return json(response, 404, {code:'CANVAS_JOB_NOT_FOUND',error:'任务不存在'});
       if (body.confirmProviderSpend !== true) return json(response, 422, {code:'CANVAS_PROVIDER_AUTHORIZATION_REQUIRED',error:'请明确确认本次生成会调用已配置的图像渠道'});
+      if (job.nodeType === 'image' && !canvasGenerationSubmitEnabled(job)) return json(response, 409, {code:'CANVAS_PROVIDER_SUBMIT_DISABLED',error:'所选图像渠道尚未启用，当前任务仅完成准备'});
+      if (job.nodeType === 'video') {
+        const selectedRuntime = canvasVideoChannels.isAnimateVideoChannel(job.videoChannel) ? canvasAnimateRuntime : canvasH3Runtime;
+        if (!selectedRuntime.enabled) return json(response, 409, {code:'CANVAS_PROVIDER_SUBMIT_DISABLED',error:'视频生成尚未启用，当前任务仅完成准备'});
+      }
+      const catalog = await modelControlPlane.publicCatalogForTenant(modelControlPlaneModule.tenantForUser(user));
+      const catalogModel = catalog.models.find(item => item.id === (job.nodeType === 'image' ? job.imageChannel || job.model : job.videoChannel || job.model));
+      if (!catalogModel || catalogModel.enabled !== true) return json(response, 409, {code:'CANVAS_MODEL_NOT_ENABLED',error:'当前模型尚未由管理员启用'});
+      const reservation = await modelControlPlane.reserveCredits({tenantId:modelControlPlaneModule.tenantForUser(user),userId:user.id,jobId:job.id,idempotencyKey:job.id + ':reserve',amount:catalogModel.priceCredits});
+      job = await canvasGenerationJobService.updateOwned(user.id, projectId, jobId, {tenantId:modelControlPlaneModule.tenantForUser(user),creditReservationId:reservation.reservationId,creditAmount:catalogModel.priceCredits,creditState:'reserved'});
       if (job.nodeType === 'image') {
-        if (!canvasGenerationSubmitEnabled(job)) return json(response, 409, {code:'CANVAS_PROVIDER_SUBMIT_DISABLED',error:'所选图像渠道尚未启用，当前任务仅完成准备'});
-        const submitted = await canvasImage2Runtime.submit(user.id, projectId, jobId);
-        return json(response, 202, {code:'CANVAS_GENERATION_SUBMITTED',job:canvasGenerationJobService.publicJob(submitted, {providerSubmitEnabled:true}),providerSubmitEnabled:true,providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),spendRequested:true});
+        let submitted;
+        try { submitted = await canvasImage2Runtime.submit(user.id, projectId, jobId); }
+        catch (error) { await modelControlPlane.refundCredits({reservationId:reservation.reservationId,reason:'provider_submit_failed',idempotencyKey:job.id + ':refund'}); await canvasGenerationJobService.updateOwned(user.id, projectId, jobId, {creditState:'refunded'}); throw error; }
+        return json(response, 202, {code:'CANVAS_GENERATION_SUBMITTED',job:canvasGenerationJobService.publicJob(submitted, {providerSubmitEnabled:true}),providerSubmitEnabled:true,providerStatus:await browserCanvasProviderStatus(user),spendRequested:true});
       }
       if (job.nodeType === 'video') {
         const runtime = canvasVideoChannels.isAnimateVideoChannel(job.videoChannel) ? canvasAnimateRuntime : canvasH3Runtime;
-        if (!runtime.enabled) return json(response, 409, {code:'CANVAS_PROVIDER_SUBMIT_DISABLED',error:'视频生成尚未启用，当前任务仅完成准备'});
-        const submitted = await runtime.submit(user.id, projectId, jobId);
-        return json(response, 202, {code:'CANVAS_GENERATION_SUBMITTED',job:canvasGenerationJobService.publicJob(submitted, {providerSubmitEnabled:true}),providerSubmitEnabled:true,providerStatus:canvasProviderConfig.publicCanvasProviderStatus(),spendRequested:true});
+        let submitted;
+        try { submitted = await runtime.submit(user.id, projectId, jobId); }
+        catch (error) { await modelControlPlane.refundCredits({reservationId:reservation.reservationId,reason:'provider_submit_failed',idempotencyKey:job.id + ':refund'}); await canvasGenerationJobService.updateOwned(user.id, projectId, jobId, {creditState:'refunded'}); throw error; }
+        return json(response, 202, {code:'CANVAS_GENERATION_SUBMITTED',job:canvasGenerationJobService.publicJob(submitted, {providerSubmitEnabled:true}),providerSubmitEnabled:true,providerStatus:await browserCanvasProviderStatus(user),spendRequested:true});
       }
       return json(response, 409, {code:'CANVAS_PROVIDER_MODEL_UNAVAILABLE',error:'当前节点尚未接入可提交的服务端执行器'});
     }
     return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
   } catch (error) {
     return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_GENERATION_JOB_INVALID',error:error.message || '画布生成任务无效'});
+  }
+}
+
+async function browserCanvasProviderStatus(user) {
+  const catalog = await modelControlPlane.publicCatalogForTenant(modelControlPlaneModule.tenantForUser(user));
+  const enabled = catalog.models.filter(item => item.enabled === true);
+  return {
+    schemaVersion: catalog.schemaVersion,
+    modelCatalog: catalog,
+    imageChannels: enabled.filter(item => item.kind === 'image').map(item => ({id:item.id,label:item.label,provider:item.providerLabel,resolutions:item.resolutions,aspectRatios:item.aspectRatios,outputSizes:item.outputSizes,submitEnabled:true,priceCredits:item.priceCredits})),
+    imageSubmitEnabled: enabled.some(item => item.kind === 'image'),
+    videoSubmitEnabled: enabled.some(item => item.kind === 'video'),
+    animateSubmitEnabled: false
+  };
+}
+
+async function handleModelControlApi(request, response, pathname, user) {
+  if (request.method === 'GET' && pathname === '/api/canvas/model-catalog') {
+    json(response, 200, {catalog:await modelControlPlane.publicCatalogForTenant(modelControlPlaneModule.tenantForUser(user))}, {'Cache-Control':'no-store'}); return true;
+  }
+  if (!pathname.startsWith('/api/admin/model-config') && !pathname.startsWith('/api/admin/credits')) return false;
+  try {
+    if (request.method === 'GET' && pathname === '/api/admin/model-config') { json(response, 200, await modelControlPlane.adminSnapshot(user)); return true; }
+    if (request.method === 'PUT' && pathname === '/api/admin/model-config/provider') { json(response, 200, {provider:await modelControlPlane.upsertProvider(user, await readBodyJson(request))}); return true; }
+    if (request.method === 'PUT' && pathname === '/api/admin/model-config/model') { json(response, 200, {model:await modelControlPlane.upsertModel(user, await readBodyJson(request))}); return true; }
+    if (request.method === 'POST' && pathname === '/api/admin/credits/adjust') { json(response, 200, {account:await modelControlPlane.creditAdmin(user, await readBodyJson(request))}); return true; }
+    if (request.method === 'GET' && pathname === '/api/admin/credits/ledger') { const search = new URL(request.url, 'http://127.0.0.1').searchParams; json(response, 200, await modelControlPlane.auditCredits(user, {tenantId:search.get('tenantId'), userId:search.get('userId')})); return true; }
+    json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'}); return true;
+  } catch (error) {
+    json(response, error.httpStatus || 400, {code:error.code || 'MODEL_CONTROL_INVALID',error:error.message || '模型配置操作失败'}); return true;
   }
 }
 
@@ -8831,10 +8888,11 @@ async function handleApi(request, response, pathname) {
     }, {'Cache-Control':'no-store'});
   }
   if (request.method === 'GET' && pathname === '/api/canvas/provider-status') {
+    const user = await currentUser(request);
     return json(response, 200, {
       providerStatus:{
-        ...canvasProviderConfig.publicCanvasProviderStatus(),
-        text:canvasTextRuntimeModule.publicCanvasTextStatus()
+        ...(user ? await browserCanvasProviderStatus(user) : {modelCatalog:{schemaVersion:'niannian.canvas_model_catalog.v1',models:[]},imageChannels:[],imageSubmitEnabled:false,videoSubmitEnabled:false,animateSubmitEnabled:false}),
+        text:browserCanvasTextStatus()
       }
     }, {'Cache-Control':'no-store'});
   }
@@ -8854,6 +8912,8 @@ async function handleApi(request, response, pathname) {
   }
   const user = await currentUser(request);
   if (!user) return json(response, 401, {code:'AUTH_REQUIRED',error:'请先登录'});
+  const modelControlHandled = await handleModelControlApi(request, response, pathname, user);
+  if (modelControlHandled) return;
   if (pathname.startsWith('/api/studio/')) {
     const nomiProjectHandled = await handleNomiProjectApi(request, response, pathname, user);
     if (nomiProjectHandled) return;
