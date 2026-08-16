@@ -96,12 +96,38 @@ async function main() {
     }
     assert.equal(await panel.locator('[data-champion-node]').count(), 4, 'right click must create all four persisted orchestration Skill nodes');
     const screenwriterCard = panel.locator('[data-champion-node]').filter({hasText:'剧本编排'});
+    assert.deepEqual(
+      (await panel.locator('[data-champion-node]').evaluateAll(cards => cards.map(card => card.dataset.championKind).sort())),
+      ['assets', 'delivery', 'shotlist', 'story'],
+      'each champion must keep a distinct production role presentation'
+    );
+    assert.equal(await screenwriterCard.getByText('故事事实', {exact:true}).count(), 1, 'the screenwriter node must expose its responsibility');
+    assert.equal(await screenwriterCard.getByText('待配置', {exact:true}).count(), 1, 'the screenwriter node must translate its raw status for users');
+    assert.equal(await screenwriterCard.locator('.s1-champion-io .s1-port-group').count(), 2, 'champion node ports must be divided into input and delivery regions');
+    assert.deepEqual(
+      await screenwriterCard.locator('.s1-champion-actions').evaluate(node => {
+        const run = node.querySelector('[data-champion-run]');
+        const style = getComputedStyle(node);
+        const runStyle = getComputedStyle(run);
+        return {display:style.display, runColumn:runStyle.gridColumn};
+      }),
+      {display:'grid', runColumn:'1 / -1'},
+      'champion node must reserve a single full-width primary action below supporting actions'
+    );
+    assert.deepEqual(
+      await screenwriterCard.evaluate(node => {
+        const style = getComputedStyle(node);
+        return {width:style.width, borderRadius:style.borderRadius};
+      }),
+      {width:'322px', borderRadius:'8px'},
+      'champion node presentation must stay within the compact canvas card system'
+    );
     await screenwriterCard.locator('[data-champion-input]').fill('一段发生在雨夜街头的短剧故事。');
     await screenwriterCard.getByRole('button', {name:'保存参数'}).click();
     await page.getByText('已保存「剧本编排」的核心输入。').waitFor();
     await screenwriterCard.getByRole('button', {name:'检查输入'}).click();
     await screenwriterCard.getByText('核心输入已齐全，可在文本模型配置完成后请求编排。').waitFor();
-    await screenwriterCard.getByRole('button', {name:'运行编排（MCGrox）'}).click();
+    await screenwriterCard.getByRole('button', {name:'生成交付包'}).click();
     await screenwriterCard.getByText('MCGrox 服务端执行器未就绪；节点输入已保留，可在服务恢复后重试。').waitFor();
     await flow.click({button:'right', position:{x:1180, y:370}});
     await panel.getByRole('button', {name:'生成节点 · H3 生视频'}).click();
