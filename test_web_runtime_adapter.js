@@ -22,6 +22,7 @@ assert.match(source, /runninghub-animate-ai-app/);
 assert.match(source, /archetype:\s*\{id: 'happyhorse', modeId: 'edit'\}/);
 assert.match(source, /function projectThumbnailUrl\(value\)/);
 assert.match(source, /\/thumbnail/);
+assert.match(source, /webProjects = webProjects\.map\(function \(record\) \{ return projectSummary\(record, record\); \}\);/);
 
 const calls = [];
 const requestBodies = [];

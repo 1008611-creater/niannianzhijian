@@ -492,6 +492,8 @@
       metadataSynced: prior.metadataSynced === true
     };
   }
+  webProjects = webProjects.map(function (record) { return projectSummary(record, record); });
+  writeWebProjects(webProjects);
   function projectMetadataPayload(record) {
     return {
       name: record.name,
