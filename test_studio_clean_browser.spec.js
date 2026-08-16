@@ -92,8 +92,8 @@ test('Studio loads from a clean browser with one canonical module graph', async 
     .map(entry => entry.name)
     .filter(name => /\/studio\/assets\/(index-M-8MrEH2|NomiStudioApp-DDB0IgSO)-.*\.js/.test(name)));
   expect(loadedModuleUrls.some(url => url.includes('r27'))).toBe(false);
-  expect(loadedModuleUrls.filter(url => /index-M-8MrEH2-r28-19b89ec-r4\.js/.test(url))).toHaveLength(1);
-  expect(loadedModuleUrls.filter(url => /NomiStudioApp-DDB0IgSO-r28-19b89ec-r4\.js/.test(url))).toHaveLength(1);
+  expect(loadedModuleUrls.filter(url => /index-M-8MrEH2-r28-19b89ec-r5\.js/.test(url))).toHaveLength(1);
+  expect(loadedModuleUrls.filter(url => /NomiStudioApp-DDB0IgSO-r28-19b89ec-r5\.js/.test(url))).toHaveLength(1);
   expect(failures).toEqual([]);
 
   await context.close();
