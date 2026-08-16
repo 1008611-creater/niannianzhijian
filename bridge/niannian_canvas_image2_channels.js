@@ -46,13 +46,18 @@ function normalizeImage2Spec(input = {}) {
   if (!channel.aspectRatios.includes(aspectRatio)) {
     throw channelError('CANVAS_IMAGE2_ASPECT_RATIO_UNSUPPORTED', `${channel.label}不支持 ${aspectRatio} 比例`);
   }
+  const outputSize = clean(input.outputSize || input.imageSize, 32);
+  const expectedOutputSize = channel.outputSizes[resolution] || null;
+  if (outputSize && outputSize !== expectedOutputSize) {
+    throw channelError('CANVAS_IMAGE2_OUTPUT_SIZE_UNSUPPORTED', `${channel.label}不支持 ${outputSize} 输出尺寸`);
+  }
   return Object.freeze({
     imageChannel: channel.id,
     imageChannelLabel: channel.label,
     imageProvider: channel.provider,
     resolution,
     aspectRatio,
-    outputSize: channel.outputSizes[resolution] || null
+    outputSize: expectedOutputSize
   });
 }
 

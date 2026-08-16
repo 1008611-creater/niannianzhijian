@@ -14,6 +14,56 @@ function kindOf(model) {
   return String(model?.kind || model?.type || "").trim().toLowerCase();
 }
 
+function option(value, label) {
+  const normalized = String(value || "").trim();
+  return normalized ? { value: normalized, label: label || normalized } : null;
+}
+
+function generationOptions(model, normalized) {
+  const rawResolutions = model?.resolutions || model?.supportedResolutions || [];
+  const rawRatios = model?.aspectRatios || model?.supportedAspectRatios || [];
+  const resolutions = Array.isArray(rawResolutions)
+    ? rawResolutions.map((value) => option(value, String(value).toUpperCase())).filter(Boolean)
+    : [];
+  const ratios = Array.isArray(rawRatios)
+    ? rawRatios.map((value) => option(value)).filter(Boolean)
+    : [];
+  const outputSizes = model?.outputSizes && typeof model.outputSizes === "object" ? model.outputSizes : {};
+  const imageSizes = Object.entries(outputSizes).map(([resolution, size]) => option(size, `${size}（${String(resolution).toUpperCase()}）`)).filter(Boolean);
+  if (normalized === "image") {
+    return {
+      imageOptions: {
+        aspectRatioOptions: ratios,
+        imageSizeOptions: imageSizes,
+        resolutionOptions: resolutions,
+        defaultAspectRatio: ratios[0]?.value,
+        defaultImageSize: imageSizes[0]?.value,
+        defaultResolution: resolutions[0]?.value,
+        controls: [
+          { key: "aspect_ratio", label: "比例", binding: "aspectRatio", optionSource: "aspectRatioOptions" },
+          { key: "outputSize", label: "大小", binding: "imageSize", optionSource: "imageSizeOptions" },
+          { key: "resolution", label: "清晰度", binding: "resolution", optionSource: "resolutionOptions" }
+        ]
+      }
+    };
+  }
+  if (normalized === "video") {
+    return {
+      videoOptions: {
+        sizeOptions: ratios,
+        resolutionOptions: resolutions,
+        defaultSize: ratios[0]?.value,
+        defaultResolution: resolutions[0]?.value,
+        controls: [
+          { key: "aspect_ratio", label: "比例", binding: "size", optionSource: "sizeOptions" },
+          { key: "resolution", label: "大小", binding: "resolution", optionSource: "resolutionOptions" }
+        ]
+      }
+    };
+  }
+  return {};
+}
+
 export async function webCatalogModels(kind) {
   const normalized = kind === "imageEdit" ? "image" : kind;
   const models = await readCatalog();
@@ -43,6 +93,7 @@ export async function webCatalogModels(kind) {
           supportedResolutions: model?.resolutions || model?.supportedResolutions || [],
           supportedAspectRatios: model?.aspectRatios || model?.supportedAspectRatios || [],
           outputSizes: model?.outputSizes || {},
+          ...generationOptions(model, normalized),
         },
       };
     });

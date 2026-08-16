@@ -126,7 +126,7 @@ async function run() {
   const invalidSkill = await invalidSkillSave.json();
   assert.equal(invalidSkillSave.status, 422);
   assert.equal(invalidSkill.code, 'CANVAS_SKILL_NODE_UNKNOWN_SKILL');
-  const body = {projectKind:'redraw',nodeId:'image-node-001',model:'yunwu-gpt-image-2-c',prompt:'白色背景产品主视觉',inputAssetIds:['asset-001'],resolution:'4k',aspectRatio:'9:16'};
+  const body = {projectKind:'redraw',nodeId:'image-node-001',model:'yunwu-gpt-image-2-c',prompt:'白色背景产品主视觉',inputAssetIds:['asset-001'],resolution:'4k',outputSize:'2160x3840',aspectRatio:'9:16'};
   const first = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-job-0001'}),body:JSON.stringify(body)});
   assert.equal(first.response.status, 201);
   assert.equal(first.body.job.status, 'awaiting_authorization');
@@ -145,7 +145,7 @@ async function run() {
   assert.equal(repeat.body.idempotent, true);
   assert.equal(repeat.body.job.id, first.body.job.id);
 
-  const yunwuEdit = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-yunwu-edit-0001'}),body:JSON.stringify({...body, model:'yunwu-gpt-image-2-c-edit',resolution:'4k',aspectRatio:'16:9'})});
+  const yunwuEdit = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-yunwu-edit-0001'}),body:JSON.stringify({...body, model:'yunwu-gpt-image-2-c-edit',resolution:'4k',outputSize:'3840x2160',aspectRatio:'16:9'})});
   assert.equal(yunwuEdit.response.status, 201);
   assert.equal(yunwuEdit.body.job.imageChannel, 'yunwu-gpt-image-2-c-edit');
   assert.equal(yunwuEdit.body.job.outputSize, '3840x2160');

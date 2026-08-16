@@ -7979,6 +7979,9 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         resolution:nodeType === 'image' && ['yunwu-gpt-image-2-c','yunwu-gpt-image-2-c-edit'].includes(requestedModel)
           ? '4k'
           : canvasText(body.resolution || node.data?.resolution || '2k', 8),
+        outputSize:nodeType === 'image'
+          ? canvasText(body.outputSize || body.imageSize || node.data?.outputSize || node.data?.imageSize || '', 32) || null
+          : null,
         aspectRatio:nodeType === 'image' && ['yunwu-gpt-image-2-c','yunwu-gpt-image-2-c-edit'].includes(requestedModel)
           ? (requestedModel === 'yunwu-gpt-image-2-c-edit' ? '16:9' : '9:16')
           : canvasText(

@@ -18,9 +18,9 @@ async function waitForHealth(baseUrl) {
 
 async function main() {
   const studioIndex = require('node:fs').readFileSync(root + '/studio/index.html', 'utf8');
-  assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260816-model-catalog-fallback-r1/);
+  assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260817-generation-spec-r1/);
   const assetsDir = root + '/studio/assets';
-  const cacheUsers = require('node:fs').readdirSync(assetsDir).filter(name => name.endsWith('.js')).map(name => require('node:fs').readFileSync(assetsDir + '/' + name, 'utf8')).filter(source => source.includes('modelCatalogCache-C1hWiSJp-r4.js?v=20260816-model-catalog-fallback-r1')).join('\n');
+  const cacheUsers = require('node:fs').readdirSync(assetsDir).filter(name => name.endsWith('.js')).map(name => require('node:fs').readFileSync(assetsDir + '/' + name, 'utf8')).filter(source => source.includes('modelCatalogCache-C1hWiSJp-r4.js?v=20260817-generation-spec-r1')).join('\n');
   assert.match(cacheUsers, /NomiStudioApp|useDedupedModelSelect|Generation|Creation|Canvas|applyCanvasToolCall/);
   const port = 29200 + crypto.randomInt(500);
   const baseUrl = 'http://127.0.0.1:' + port;
@@ -46,7 +46,8 @@ async function main() {
           enabled: true,
           priceCredits: 4,
           resolutions: ['4096x4096'],
-          aspectRatios: ['1:1']
+          aspectRatios: ['1:1'],
+          outputSizes: {'4096x4096': '4096x4096'}
         }]
       }
     };
@@ -62,6 +63,9 @@ async function main() {
     });
     assert.deepEqual(result.models.map(model => model.modelKey), ['yunwu-image-4k']);
     assert.equal(result.models[0].pricing.cost, 4);
+    assert.deepEqual(result.models[0].meta.imageOptions.aspectRatioOptions, [{value: '1:1', label: '1:1'}]);
+    assert.deepEqual(result.models[0].meta.imageOptions.imageSizeOptions, [{value: '4096x4096', label: '4096x4096（4096X4096）'}]);
+    assert.deepEqual(result.models[0].meta.imageOptions.resolutionOptions, [{value: '4096x4096', label: '4096X4096'}]);
     assert.equal(result.health.byKind.find(item => item.kind === 'image').enabledModels, 1);
     assert.deepEqual(result.vendors, [{key: 'yunwu-image', name: '云雾', enabled: true, authType: 'none', hasApiKey: true}]);
     console.log('MODEL_CATALOG_WEB_FALLBACK_BROWSER_OK');
