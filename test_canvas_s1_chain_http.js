@@ -86,13 +86,13 @@ async function run() {
   assert.equal(step02.skillKey, 'mx-shortdrama-02-source-timeline');
   assert.deepEqual(step02.data.inputPorts.map(item => item.id), ['evidence_manifest']);
   assert.deepEqual(step02.data.parameters.inputBindings, [{portId:'evidence_manifest',sourceNodeId:'s1-step01-analysis',sourcePortId:'evidence_manifest',state:'blocked',assetIds:[]}]);
-  const image2 = await request('/api/canvas/documents/redraw/' + project.id + '/s2-image2', {method:'POST',headers:headers({'content-type':'application/json','if-match':built.response.headers.get('etag')}),body:JSON.stringify({prompt:'角色站在街角，电影感关键帧',imageChannel:'yunfei-gpt-image-2-1k',resolution:'1k',aspectRatio:'1:1',referenceAssetIds:[]})});
+  const image2 = await request('/api/canvas/documents/redraw/' + project.id + '/s2-image2', {method:'POST',headers:headers({'content-type':'application/json','if-match':built.response.headers.get('etag')}),body:JSON.stringify({prompt:'角色站在街角，电影感关键帧',imageChannel:'yunwu-gpt-image-2-c',resolution:'4k',aspectRatio:'9:16',referenceAssetIds:[]})});
   assert.equal(image2.response.status, 201, JSON.stringify(image2.body));
   assert.equal(image2.body.node.skillKey, 'image2-storyboard-video');
   assert.deepEqual(image2.body.node.inputPorts.map(item => item.id), ['prompt','reference_asset']);
   assert.deepEqual(image2.body.node.outputPorts.map(item => item.id), ['image_asset']);
-  assert.equal(image2.body.node.parameters.resolution, '1k');
-  assert.equal(image2.body.node.parameters.aspectRatio, '1:1');
+  assert.equal(image2.body.node.parameters.resolution, '4k');
+  assert.equal(image2.body.node.parameters.aspectRatio, '9:16');
   assert.equal(image2.body.node.parameters.providerSubmitRequested, false);
   assert.equal(image2.body.node.status, 'ready');
   const nomi = await request('/api/studio/projects/' + project.id, {headers:headers({'x-niannian-project-kind':'redraw'})});
@@ -101,7 +101,7 @@ async function run() {
   assert.deepEqual(nomi.body.document.generationCanvas.edges.filter(edge => String(edge.id).startsWith('nn-skill-')).map(edge => [edge.source,edge.target]), [['nn-skill-s1-source-input','nn-skill-s1-step01-analysis'],['nn-skill-s1-step01-analysis','nn-skill-s1-step02-timeline']]);
   assert.equal(nomi.body.document.generationCanvas.nodes.find(node => node.id === 'nn-skill-s1-step01-analysis').meta.locked, true);
   const nomiReload = await request('/api/studio/projects/' + project.id, {headers:headers({'x-niannian-project-kind':'redraw'})});
-  assert.equal(nomiReload.body.document.generationCanvas.nodes.find(node => node.id === 'nn-skill-s2-image2-keyframe').meta.parameters.resolution, '1k');
+  assert.equal(nomiReload.body.document.generationCanvas.nodes.find(node => node.id === 'nn-skill-s2-image2-keyframe').meta.parameters.resolution, '4k');
   const image2Reload = await request('/api/canvas/documents/redraw/' + project.id, {headers:headers()});
   assert.equal(image2Reload.body.document.nodes.find(item => item.id === 's2-image2-keyframe').data.prompt, '角色站在街角，电影感关键帧');
   const reloaded = await request('/api/canvas/documents/redraw/' + project.id, {headers:headers()});

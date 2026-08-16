@@ -46,10 +46,10 @@ delivery chain remain explicitly gated.
 
 ## Image2 routing metadata
 
-The user-supplied `yunfei-1k` channel is recorded in
-`authority/IMAGE2_CHANNELS.md` as a 1024x1024-only fallback. It cannot replace
-the required 2048x1152 desktop visual direction image. Its credential remains
-outside the repository and must never be copied into a Skill or document.
+Canvas static-image routing is Yunwu-only. The supported channel and exact
+output contracts are recorded in `authority/IMAGE2_CHANNELS.md`; credentials
+remain outside the repository and must never be copied into a Skill or
+document.
 
 ## Known gaps
 

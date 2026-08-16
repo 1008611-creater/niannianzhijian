@@ -62,7 +62,7 @@ async function run() {
     assert.ok(Object.keys(compiled.body.node.parameters.compiledOutputs).length > 0);
     etag = compiled.response.headers.get('etag');
   }
-  const image = await request('/api/projects/' + project.id + '/canvas/jobs', {method:'POST',headers:headers({'content-type':'application/json','idempotency-key':'mcgrox-image-job'}),body:JSON.stringify({projectKind:'redraw',nodeId:'mcgrox-image',model:'yunfei-gpt-image-2-1k',resolution:'1k',aspectRatio:'1:1'})});
+  const image = await request('/api/projects/' + project.id + '/canvas/jobs', {method:'POST',headers:headers({'content-type':'application/json','idempotency-key':'mcgrox-image-job'}),body:JSON.stringify({projectKind:'redraw',nodeId:'mcgrox-image',model:'yunwu-gpt-image-2-c',resolution:'4k',aspectRatio:'9:16'})});
   assert.equal(image.response.status, 201, JSON.stringify(image.body));
   assert.equal(image.body.job.prompt, '电影感雨夜关键帧提示词。');
   assert.equal(image.body.job.status, 'awaiting_authorization');

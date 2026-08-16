@@ -30,7 +30,7 @@ function championDocument() {
       node('champion-assets','character','chaoge-assets-trial'),
       node('champion-shotlist','shot','shotlist-builder'),
       node('champion-hellgrind','shot','hell-grind',{parameters:{compiledOutputs:{image_prompt:'雨夜霓虹街道，电影级关键帧，人物连续性严格保持。',video_prompt:'雨夜霓虹街道，人物缓慢前行，镜头跟拍。'}}}),
-      node('champion-image','image','image2-storyboard-video',{prompt:'不能覆盖上游编译提示',imageChannel:'yunfei-gpt-image-2-1k',resolution:'1k',aspectRatio:'1:1'}),
+      node('champion-image','image','image2-storyboard-video',{prompt:'不能覆盖上游编译提示',imageChannel:'yunwu-gpt-image-2-c',resolution:'4k',aspectRatio:'9:16'}),
       node('champion-video','video','minimaxh3skill',{prompt:'不能覆盖上游编译提示',durationSeconds:5,aspectRatio:'9:16'})
     ],
     edges:[
@@ -139,7 +139,7 @@ async function run() {
   assert.equal(h3NodeJob.body.job.status, 'awaiting_authorization');
   assert.equal(h3NodeJob.body.providerSubmitEnabled, false);
 
-  const imageJob = await request('/api/projects/' + project.id + '/canvas/jobs', {method:'POST',headers:headers({'content-type':'application/json','idempotency-key':'champion-image-job-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'champion-image',model:'yunfei-gpt-image-2-1k',resolution:'1k',aspectRatio:'1:1'})});
+  const imageJob = await request('/api/projects/' + project.id + '/canvas/jobs', {method:'POST',headers:headers({'content-type':'application/json','idempotency-key':'champion-image-job-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'champion-image',model:'yunwu-gpt-image-2-c',resolution:'4k',aspectRatio:'9:16'})});
   assert.equal(imageJob.response.status, 201, JSON.stringify(imageJob.body));
   assert.equal(imageJob.body.job.status, 'awaiting_authorization');
   assert.equal(imageJob.body.job.prompt, '雨夜霓虹街道，电影级关键帧，人物连续性严格保持。');
