@@ -7,9 +7,9 @@ const path = require('path');
 
 const projectRoot = __dirname;
 const assetsRoot = path.join(projectRoot, 'studio', 'assets');
-const releaseTag = 'r(?:4|5)';
-const moduleCacheVersion = '20260816-persisted-image-r5';
-const starts = ['index-M-8MrEH2-r28-19b89ec-r4.js', 'web-runtime-adapter-r4.js'];
+const releaseTag = 'r(?:4|5|6)';
+const moduleCacheVersion = '20260816-persisted-image-r6';
+const starts = ['index-M-8MrEH2-r28-19b89ec-r6.js', 'web-runtime-adapter-r4.js'];
 
 function localReferences(source) {
   const references = [];
