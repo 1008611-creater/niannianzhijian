@@ -358,6 +358,36 @@
     return {items: items, cursor: null};
   }
 
+  async function downloadProjectAsset(payload) {
+    var input = payload && typeof payload === 'object' ? payload : {};
+    var requestedUrl = String(input.url || '').trim();
+    if (!requestedUrl) throw new Error('没有可下载的素材地址');
+    var locationHref = String(window.location && window.location.href || 'http://localhost/');
+    var resolvedUrl;
+    try {
+      resolvedUrl = new URL(requestedUrl, locationHref);
+    } catch (_) {
+      throw new Error('素材下载地址无效');
+    }
+    if (!/^https?:$/.test(resolvedUrl.protocol)) throw new Error('素材下载地址无效');
+    if (typeof document === 'undefined' || !document.body || typeof document.createElement !== 'function') {
+      throw new Error('当前环境不支持下载素材');
+    }
+    var suggestedName = String(input.suggestedName || 'niannian-asset').trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 180) || 'niannian-asset';
+    var anchor = document.createElement('a');
+    anchor.href = resolvedUrl.href;
+    anchor.download = suggestedName;
+    anchor.rel = 'noopener';
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    try {
+      anchor.click();
+      return {ok: true, canceled: false};
+    } finally {
+      if (anchor.parentNode === document.body) document.body.removeChild(anchor);
+    }
+  }
+
   function taskFromCanvasJob(job, project) {
     var type = job.nodeType === 'video' ? 'video' : 'image';
     var kind = type === 'video' ? 'text_to_video' : 'text_to_image';
@@ -678,7 +708,7 @@
   window.nomiDesktop = {
     platform: 'web',
     projects: projectsApi,
-    assets: {importFile: importProjectAsset, list: listProjectAssets},
+    assets: {importFile: importProjectAsset, list: listProjectAssets, download: downloadProjectAsset},
     modelCatalog: {listVendors: listVendors, listModels: listModels, health: health, listMappings: async function () { return []; }},
     tasks: {
       run: runTask,

@@ -110,8 +110,11 @@ async function run() {
     const output = (await assetService.listOwned('USR-H3','NN-H3','redraw')).find(asset => asset.kind === 'generated_video');
     assert.equal(output.mimeType,'video/mp4');
     const retryable = await jobService.create({ownerId:'USR-H3',projectId:'NN-H3',projectKind:'redraw',nodeId:'video-node-retry',nodeType:'video',prompt:'中文人物再次转身',inputAssetIds:[input.asset.id],aspectRatio:'16:9',durationSeconds:5,idempotencyKey:'runtime-h3-retry'});
-    await jobService.updateOwned('USR-H3','NN-H3',retryable.job.id,{status:'failed',providerSubmitState:'failed',providerTaskId:null});
-    const retried = await runtime.submit('USR-H3','NN-H3',retryable.job.id);
+    await jobService.updateOwned('USR-H3','NN-H3',retryable.job.id,{status:'failed',providerSubmitState:'failed',providerTaskId:'failed-provider-task'});
+    const retryAttempt = await jobService.create({ownerId:'USR-H3',projectId:'NN-H3',projectKind:'redraw',nodeId:'video-node-retry',nodeType:'video',prompt:'中文人物再次转身',inputAssetIds:[input.asset.id],aspectRatio:'16:9',durationSeconds:5,idempotencyKey:'runtime-h3-retry'});
+    assert.equal(retryAttempt.created, true);
+    assert.notEqual(retryAttempt.job.id, retryable.job.id);
+    const retried = await runtime.submit('USR-H3','NN-H3',retryAttempt.job.id);
     assert.equal(retried.providerTaskId,'fake-h3-task-3');
     console.log('CANVAS_H3_RUNTIME_CONTRACT_OK');
   } finally { await fsp.rm(root,{recursive:true,force:true}); }
