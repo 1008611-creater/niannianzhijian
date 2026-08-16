@@ -27,3 +27,11 @@ recreated from memory or inferred from a candidate image.
 The local source is the only implementation input for this phase. Online parity
 is not claimed, deployment is not authorized, and no release candidate may be
 assembled from an archive or an old canvas family.
+
+## Authority preflight
+
+Before local development or release review, run `npm run check:authority` from
+the repository root. It refuses to continue unless the working tree is clean,
+the current branch is `main`, and `HEAD` exactly matches `origin/main`.
+Development changes belong in an isolated worktree and pull request; this
+check never resets, deletes, or moves files.
