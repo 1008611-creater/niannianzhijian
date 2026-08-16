@@ -13,9 +13,15 @@ const studioHtml = fs.readFileSync(path.join(__dirname, 'studio/index.html'), 'u
   "image.setAttribute('fetchpriority', 'low');",
   "image.alt = '项目封面缩略图';",
   'object-fit:contain!important',
-  'data-niannian-cover-presentation=thumbnail'
+  'data-niannian-cover-presentation=thumbnail',
+  'inset:50% auto auto 50%!important',
+  'transform:translate(-50%,-50%)!important',
+  "failedCover.dataset.niannianCoverFallback = 'video';",
+  "failedCover.setAttribute('aria-label', '视频素材封面');",
+  'data-niannian-cover-fallback=video',
+  'content:"视频素材"'
 ].forEach((contract) => assert.ok(source.includes(contract), `missing project thumbnail contract: ${contract}`));
 
-assert.match(studioHtml, /project-library-management\.js\?v=20260816-r2/);
+assert.match(studioHtml, /project-library-management\.js\?v=20260816-r3/);
 
 console.log('PROJECT_LIBRARY_THUMBNAIL_PRESENTATION_CONTRACT_OK');

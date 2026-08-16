@@ -26,9 +26,10 @@
     style.textContent = [
       '.niannian-project-edit{position:absolute;top:9px;left:9px;z-index:4;display:grid;place-items:center;width:32px;height:32px;padding:0;border:1px solid rgba(42,33,24,.14);border-radius:6px;background:rgba(255,253,249,.94);box-shadow:0 2px 8px rgba(42,33,24,.08);color:#594737;cursor:pointer;font:600 17px/1 Inter,system-ui,sans-serif;opacity:.78;transition:opacity 150ms,background 150ms,color 150ms}',
       '[data-project-card]:hover .niannian-project-edit,.niannian-project-edit:focus-visible{opacity:1}.niannian-project-edit:hover{background:#2a2118;color:#fff}.niannian-project-edit:focus-visible{outline:2px solid #426f83;outline-offset:2px}',
-      '[data-project-card=true]>.aspect-video[data-niannian-cover-presentation=thumbnail]{display:grid!important;place-items:center;background:#f4f1ec;isolation:isolate}',
-      '[data-project-card=true]>.aspect-video[data-niannian-cover-presentation=thumbnail]>img{position:relative!important;inset:auto!important;width:clamp(84px,48%,128px)!important;height:clamp(58px,64%,82px)!important;max-width:calc(100% - 28px);max-height:calc(100% - 20px);object-fit:contain!important;border-radius:5px;background:#ebe7e0;box-shadow:0 5px 16px rgba(42,33,24,.14)}',
-      '[data-project-card=true]>.aspect-video[data-niannian-cover-presentation=thumbnail]>[title^="图片加载失败"]{position:relative!important;inset:auto!important;display:flex!important;width:84px!important;height:64px!important;border:1px solid rgba(42,33,24,.12);border-radius:5px;background:#ebe7e0}',
+      '[data-project-card=true]>.aspect-video[data-niannian-cover-presentation=thumbnail]{position:relative!important;display:block!important;background:#f4f1ec;isolation:isolate}',
+      '[data-project-card=true]>.aspect-video[data-niannian-cover-presentation=thumbnail]>img{position:absolute!important;inset:50% auto auto 50%!important;transform:translate(-50%,-50%)!important;display:block!important;width:clamp(84px,48%,112px)!important;height:clamp(58px,64%,78px)!important;max-width:calc(100% - 28px);max-height:calc(100% - 20px);object-fit:contain!important;border-radius:5px;background:#ebe7e0;box-shadow:0 5px 16px rgba(42,33,24,.14)}',
+      '[data-project-card=true]>.aspect-video[data-niannian-cover-presentation=thumbnail]>[data-niannian-cover-fallback=video]{position:absolute!important;inset:50% auto auto 50%!important;transform:translate(-50%,-50%)!important;display:grid!important;place-items:center;width:92px!important;height:66px!important;border:1px solid rgba(42,33,24,.12);border-radius:5px;background:#ebe7e0;color:#796c5d;font:600 12px/1 Inter,system-ui,sans-serif;box-shadow:0 5px 16px rgba(42,33,24,.08)}',
+      '[data-project-card=true]>.aspect-video[data-niannian-cover-presentation=thumbnail]>[data-niannian-cover-fallback=video]::before{content:"视频素材"}',
       '#niannian-project-editor{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:18px;background:rgba(42,33,24,.28);font:13px/1.45 Inter,system-ui,sans-serif;color:#2a2118}',
       '#niannian-project-editor[hidden]{display:none}#niannian-project-editor form{width:min(460px,calc(100vw - 28px));padding:20px;border:1px solid rgba(42,33,24,.15);border-radius:8px;background:#fffdf9;box-shadow:0 24px 70px rgba(42,33,24,.22)}',
       '#niannian-project-editor header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}#niannian-project-editor h2{margin:0;font:500 20px/1.2 Georgia,"Songti SC",serif}#niannian-project-editor [data-project-editor-close]{width:30px;height:30px;padding:0;border:0;border-radius:6px;background:transparent;color:#6f6256;cursor:pointer;font-size:20px}',
@@ -72,6 +73,14 @@
     var preview = card.querySelector(':scope > .aspect-video');
     if (!preview) return;
     preview.dataset.niannianCoverPresentation = 'thumbnail';
+    var failedCover = preview.querySelector(':scope > [title^="图片加载失败"]');
+    if (failedCover) {
+      failedCover.dataset.niannianCoverFallback = 'video';
+      failedCover.removeAttribute('title');
+      failedCover.setAttribute('role', 'img');
+      failedCover.setAttribute('aria-label', '视频素材封面');
+      failedCover.textContent = '';
+    }
     var image = preview.querySelector(':scope > img');
     if (!image) return;
     image.loading = 'lazy';
