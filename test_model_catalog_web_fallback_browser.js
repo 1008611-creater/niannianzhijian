@@ -17,6 +17,10 @@ async function waitForHealth(baseUrl) {
 }
 
 async function main() {
+  const studioIndex = require('node:fs').readFileSync(root + '/studio/index.html', 'utf8');
+  assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260816-model-catalog-fallback-r1/);
+  const cacheUsers = require('node:child_process').execFileSync('rg', ['-l', 'modelCatalogCache-C1hWiSJp-r4\.js\\?v=20260816-model-catalog-fallback-r1', 'studio/assets'], {encoding: 'utf8'});
+  assert.match(cacheUsers, /NomiStudioApp|useDedupedModelSelect|Generation|Creation|Canvas|applyCanvasToolCall/);
   const port = 29200 + crypto.randomInt(500);
   const baseUrl = 'http://127.0.0.1:' + port;
   const server = spawn(process.execPath, ['server.js'], {
