@@ -34,6 +34,8 @@ async function run() {
   assert.equal(providerStatus.status, 200);
   assert.equal(Object.hasOwn(publicBody.providerStatus, 'baseUrl'), false);
   assert.equal(Object.hasOwn(publicBody.providerStatus, 'credentialConfigured'), false);
+  const imageProviderSave = await fetch(`${baseUrl}/api/admin/model-config/provider`, {method:'PUT',headers:{...headers('admin-token'),'content-type':'application/json'},body:JSON.stringify({id:'yunwu-agent-vault',label:'云雾',kind:'image',enabled:true})});
+  assert.equal(imageProviderSave.status, 200);
   const modelSave = await fetch(`${baseUrl}/api/admin/model-config/model`, {method:'PUT',headers:{...headers('admin-token'),'content-type':'application/json'},body:JSON.stringify({id:'yunwu-gpt-image-2-c',label:'Image2',kind:'image',providerId:'yunwu-agent-vault',providerLabel:'云雾',tenantId:'tenant-a',enabled:true,priceCredits:10,resolutions:['4k'],aspectRatios:['9:16'],outputSizes:{'4k':'2160x3840'}})});
   assert.equal(modelSave.status, 200);
   const catalogResponse = await fetch(`${baseUrl}/api/canvas/model-catalog`, {headers:headers('user-token')});
@@ -41,6 +43,8 @@ async function run() {
   assert.equal(catalogResponse.status, 200);
   assert.equal(catalog.catalog.models.some(item => item.id === 'yunwu-gpt-image-2-c'), true);
   assert.equal(JSON.stringify(catalog).includes('yunwu-agent-vault'), false);
+  const dolaProviderSave = await fetch(`${baseUrl}/api/admin/model-config/provider`, {method:'PUT',headers:{...headers('admin-token'),'content-type':'application/json'},body:JSON.stringify({id:'dola-desktop-api',label:'Dola',kind:'video',enabled:true})});
+  assert.equal(dolaProviderSave.status, 200);
   const dolaSave = await fetch(`${baseUrl}/api/admin/model-config/model`, {method:'PUT',headers:{...headers('admin-token'),'content-type':'application/json'},body:JSON.stringify({id:'dola-seedance-2-5',label:'Dola Seedance 2.5（30秒）',kind:'video',providerId:'dola-desktop-api',providerLabel:'Dola',tenantId:'tenant-a',enabled:true,priceCredits:0,resolutions:['720p'],aspectRatios:['9:16','16:9','1:1','4:3','3:4'],outputSizes:{}})});
   assert.equal(dolaSave.status, 200);
   const dolaCatalogResponse = await fetch(`${baseUrl}/api/canvas/model-catalog`, {headers:headers('user-token')});

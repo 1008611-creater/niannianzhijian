@@ -54,6 +54,8 @@
     "test:model-control-plane": "node test_model_control_plane.js",
     "test:model-control-plane-http": "node test_model_control_plane_http.js",
     "test:admin-model-visibility": "node test_admin_model_visibility.js",
+    "test:commerce-admin-console": "node test_commerce_admin_console.js",
+    "test:commerce-admin-console-browser": "node test_commerce_admin_console_browser.js",
     "test:canvas-text-runtime": "node test_canvas_text_runtime.js",
     "test:canvas-text-jobs": "node test_canvas_text_jobs.js",
     "test:web-runtime-adapter": "node test_web_runtime_adapter.js",

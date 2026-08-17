@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>商业运营台 · 念念 AI</title>
+    <link rel="stylesheet" href="./commerce.css">
+  </head>
+  <body>
+    <main class="commerce-shell" aria-labelledby="pageTitle">
+      <header class="commerce-topbar">
+        <a class="brand-link" href="/" aria-label="返回念念 AI 首页">念念 AI</a>
+        <div class="commerce-topbar__title">
+          <h1 id="pageTitle">商业运营台</h1>
+          <p>模型发布、价格与服务器配置状态</p>
+        </div>
+        <a class="return-link" href="/studio/#/studio">返回工作台</a>
+      </header>
+
+      <section class="commerce-intro" aria-labelledby="introTitle">
+        <div>
+          <h2 id="introTitle">模型发布</h2>
+          <p>用户只会看到已发布模型与积分价格。密钥始终留在服务器保险库或服务器环境中。</p>
+        </div>
+        <p class="save-state" id="saveState" role="status" aria-live="polite">正在读取服务器配置</p>
+      </section>
+
+      <section class="provider-section" aria-labelledby="providerTitle">
+        <div class="section-heading">
+          <h2 id="providerTitle">供应商状态</h2>
+          <p>发布开关与服务器运行状态必须同时满足，模型才会出现在用户画布。</p>
+        </div>
+        <div class="provider-list" id="providerList" aria-live="polite"></div>
+      </section>
+
+      <section class="model-section" aria-labelledby="modelTitle">
+        <div class="section-heading">
+          <h2 id="modelTitle">用户可用模型</h2>
+          <p>调整后立即写入服务器模型目录；未发布模型不会下发给普通用户。</p>
+        </div>
+        <div class="model-list" id="modelList" aria-live="polite"></div>
+      </section>
+
+      <section class="ledger-section" aria-labelledby="ledgerTitle">
+        <div class="section-heading">
+          <h2 id="ledgerTitle">计费执行规则</h2>
+          <p>本阶段只展示已启用的服务端规则，不开放人工输入积分或套餐价格。</p>
+        </div>
+        <dl class="ledger-facts">
+          <div><dt>团队额度</dt><dd>同一团队共用积分池</dd></div>
+          <div><dt>扣费时机</dt><dd>提交生成前冻结积分</dd></div>
+          <div><dt>失败处理</dt><dd>提交失败或任务失败自动退款</dd></div>
+        </dl>
+      </section>
+    </main>
+    <template id="providerTemplate">
+      <article class="provider-row">
+        <div class="provider-row__identity">
+          <h3></h3>
+          <p class="provider-kind"></p>
+        </div>
+        <dl class="provider-row__facts">
+          <div><dt>密钥</dt><dd class="credential-state"></dd></div>
+          <div><dt>接入位置</dt><dd class="credential-storage"></dd></div>
+          <div><dt>运行状态</dt><dd class="runtime-state"></dd></div>
+        </dl>
+        <label class="switch-control"><input type="checkbox"><span aria-hidden="true"></span><b>允许发布</b></label>
+      </article>
+    </template>
+    <template id="modelTemplate">
+      <article class="model-row">
+        <div class="model-row__identity"><h3></h3><p></p></div>
+        <label class="price-field"><span>用户价格（积分）</span><input type="number" min="0" step="1" inputmode="numeric"></label>
+        <label class="switch-control"><input type="checkbox"><span aria-hidden="true"></span><b>发布给用户</b></label>
+        <button type="button" class="save-button">保存</button>
+      </article>
+    </template>
+    <script src="./commerce.js"></script>
+  </body>
+</html>

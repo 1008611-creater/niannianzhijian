@@ -20,7 +20,9 @@ async function run() {
   assert.equal(Object.hasOwn(catalog, 'providers'), false);
   assert.equal(JSON.stringify(catalog).includes('private.example'), false);
   assert.equal(JSON.stringify(catalog).includes('agent-vault'), false);
-  assert.equal((await plane.adminSnapshot(admin)).providers[0].secretRef, 'agent-vault://yunwu/image2');
+  const adminSnapshot = await plane.adminSnapshot(admin);
+  assert.equal(JSON.stringify(adminSnapshot).includes('agent-vault://yunwu/image2'), false);
+  assert.equal(Object.hasOwn(adminSnapshot.providers[0], 'secretRef'), false);
   await assert.rejects(() => plane.adminSnapshot(user), error => error.code === 'ADMIN_REQUIRED');
   const reserved = await plane.reserveCredits({tenantId:user.tenantId, userId:user.id, jobId:'CGJ-1', idempotencyKey:'CGJ-1:reserve', amount:10});
   const reused = await plane.reserveCredits({tenantId:user.tenantId, userId:user.id, jobId:'CGJ-1', idempotencyKey:'CGJ-1:reserve', amount:10});
@@ -29,6 +31,12 @@ async function run() {
   await plane.refundCredits({reservationId:reserved.reservationId, idempotencyKey:'CGJ-1:refund', reason:'provider_failed'});
   await plane.refundCredits({reservationId:reserved.reservationId, idempotencyKey:'CGJ-1:refund', reason:'provider_failed'});
   assert.equal(await plane.accountBalance(user.tenantId, user.id), 20);
+  const shared = await plane.reserveCredits({tenantId:user.tenantId, userId:'USR-TEAMMATE', jobId:'CGJ-SHARED', idempotencyKey:'CGJ-SHARED:reserve', amount:7});
+  assert.equal(await plane.accountBalance(user.tenantId, user.id), 13, 'team members must spend from one shared tenant balance');
+  await plane.refundCredits({reservationId:shared.reservationId, idempotencyKey:'CGJ-SHARED:refund', reason:'test'});
+  const settled = await plane.reserveCredits({tenantId:user.tenantId, userId:user.id, jobId:'CGJ-SETTLED', idempotencyKey:'CGJ-SETTLED:reserve', amount:5});
+  await plane.settleCredits({reservationId:settled.reservationId, idempotencyKey:'CGJ-SETTLED:settle'});
+  await assert.rejects(() => plane.refundCredits({reservationId:settled.reservationId, idempotencyKey:'CGJ-SETTLED:late-refund'}), error => error.code === 'CREDIT_RESERVATION_FINALIZED');
   await assert.rejects(() => plane.reserveCredits({tenantId:other.tenantId, userId:other.id, jobId:'CGJ-2', idempotencyKey:'CGJ-2:reserve', amount:1}), error => error.code === 'CREDIT_INSUFFICIENT');
 
   const welcomePlane = createModelControlPlane({configPath:path.join(root, 'welcome-config.json'), ledgerPath:path.join(root, 'welcome-ledger.json'), welcomeCredits:30});
