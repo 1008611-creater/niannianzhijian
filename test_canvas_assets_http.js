@@ -4,12 +4,13 @@ const fs = require('fs');
 const fsp = fs.promises;
 const os = require('os');
 const path = require('path');
+const net = require('net');
 const {spawn} = require('child_process');
 const sharp = require('sharp');
 
 const root = __dirname;
-const port = 19800 + Math.floor(Math.random() * 500);
-const baseUrl = `http://127.0.0.1:${port}`;
+let port;
+let baseUrl;
 const dataRoot = path.join(os.tmpdir(), `niannian-canvas-assets-${process.pid}-${Date.now()}`);
 let child;
 let childOutput = '';
@@ -17,6 +18,17 @@ let childExit = null;
 
 function tokenHash(token) { return crypto.createHash('sha256').update(token).digest('hex'); }
 function headers(token, extra = {}) { return {cookie:`niannian_session=${token}`, ...extra}; }
+
+async function allocateTestPort() {
+  return new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.once('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const address = probe.address();
+      probe.close(error => error ? reject(error) : resolve(address.port));
+    });
+  });
+}
 
 async function seed() {
   await fsp.mkdir(dataRoot, {recursive:true});
@@ -45,6 +57,8 @@ async function waitForServer() {
 }
 
 async function run() {
+  port = await allocateTestPort();
+  baseUrl = `http://127.0.0.1:${port}`;
   await seed();
   const image = await sharp({create:{width:12,height:8,channels:4,background:{r:20,g:30,b:40,alpha:1}}}).png().toBuffer();
   child = spawn(process.execPath, ['server.js'], {cwd:root,env:{...process.env,PORT:String(port),DATA_DIR:dataRoot,NIANNIAN_LOCAL_PREVIEW_INSECURE_SESSION:'on'},stdio:['ignore','pipe','pipe']});

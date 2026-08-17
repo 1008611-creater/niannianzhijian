@@ -9980,10 +9980,11 @@ async function handleApi(request, response, pathname) {
   const projectPrefix = '/api/projects/';
   const projectId = pathname.startsWith(projectPrefix) ? pathname.slice(projectPrefix.length) : '';
   if (request.method === 'GET' && projectId && !projectId.includes('/')) {
-    const project = (await readOwnedProjects(user.id)).find(item => item.id === projectId) || await ensureWebCanvasProject(user, projectId);
+    const owned = await ownedCanvasProjectById(user, projectId);
+    const project = owned?.project || await ensureWebCanvasProject(user, projectId);
     if (!project) return json(response, 404, {error:'项目不存在'});
     if (project.canvasOnly === true) return json(response, 200, {project:{id:project.id,name:project.name,status:project.status,createdAt:project.createdAt,updatedAt:project.updatedAt,workspaceProjectId:project.id,source:null,runtime:project.runtime || {},studio:publicStudioProjectMetadata(project, project.projectKind || 'redraw')}});
-    return json(response, 200, {project:publicProject(project)});
+    return json(response, 200, {project:owned?.projectKind === 'script' ? publicScriptProject(project) : publicProject(project)});
   }
   return json(response, 404, {error:'API 不存在'});
 }
