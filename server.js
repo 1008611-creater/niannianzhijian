@@ -8089,7 +8089,9 @@ function isCanvasModelRuntimeReady(model) {
 
 async function browserCanvasModelCatalog(user) {
   const catalog = await modelControlPlane.publicCatalogForTenant(modelControlPlaneModule.tenantForUser(user));
-  return {...catalog, models:catalog.models.filter(isCanvasModelRuntimeReady)};
+  // Dola remains a selectable video model after an administrator enables it.
+  // Its submit path still checks the runtime bridge before it can spend or submit.
+  return {...catalog, models:catalog.models.filter(model => canvasVideoChannels.isDolaVideoChannel(model.id) || isCanvasModelRuntimeReady(model))};
 }
 
 async function browserCanvasProviderStatus(user) {
@@ -8100,9 +8102,9 @@ async function browserCanvasProviderStatus(user) {
     modelCatalog: catalog,
     imageChannels: enabled.filter(item => item.kind === 'image').map(item => ({id:item.id,label:item.label,provider:item.providerLabel,resolutions:item.resolutions,aspectRatios:item.aspectRatios,outputSizes:item.outputSizes,submitEnabled:true,priceCredits:item.priceCredits})),
     imageSubmitEnabled: enabled.some(item => item.kind === 'image'),
-    videoSubmitEnabled: enabled.some(item => item.kind === 'video'),
+    videoSubmitEnabled: enabled.some(item => item.kind === 'video' && !canvasVideoChannels.isDolaVideoChannel(item.id)),
     animateSubmitEnabled: false,
-    dolaSubmitEnabled: enabled.some(item => item.id === 'dola-seedance-2-5')
+    dolaSubmitEnabled: canvasDolaRuntime.enabled && enabled.some(item => item.id === 'dola-seedance-2-5')
   };
 }
 
