@@ -145,6 +145,16 @@ async function run() {
   assert.equal(repeat.body.idempotent, true);
   assert.equal(repeat.body.job.id, first.body.job.id);
 
+  // Retrying a failed, refunded Image2 submission must reach the normal provider
+  // gate instead of being rejected as an already-authorized historical job.
+  const jobsPath = path.join(dataRoot, 'canvas-generation-jobs.json');
+  const failedJobs = JSON.parse(await fsp.readFile(jobsPath, 'utf8'));
+  failedJobs[0] = {...failedJobs[0], status:'failed', providerSubmitState:'failed', creditState:'refunded', creditReservationId:'R-REFUNDED', providerTaskId:null};
+  await fsp.writeFile(jobsPath, JSON.stringify(failedJobs));
+  const retryFailed = await request(`/api/projects/NN-CANVAS-A/canvas/jobs/${encodeURIComponent(first.body.job.id)}/authorize`, {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','x-niannian-project-kind':'redraw'}),body:JSON.stringify({projectKind:'redraw',confirmProviderSpend:true})});
+  assert.equal(retryFailed.response.status, 409);
+  assert.equal(retryFailed.body.code, 'CANVAS_PROVIDER_SUBMIT_DISABLED');
+
   const yunwuEdit = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-yunwu-edit-0001'}),body:JSON.stringify({...body, model:'yunwu-gpt-image-2-c-edit',resolution:'4k',outputSize:'3840x2160',aspectRatio:'16:9'})});
   assert.equal(yunwuEdit.response.status, 201);
   assert.equal(yunwuEdit.body.job.imageChannel, 'yunwu-gpt-image-2-c-edit');
