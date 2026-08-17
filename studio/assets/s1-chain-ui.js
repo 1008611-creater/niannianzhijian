@@ -58,9 +58,10 @@
       '#s1-chain-canvas .s1-chain-flow{position:relative;min-width:1680px;min-height:610px;margin:0 auto;padding:0 24px 60px;pointer-events:none}#s1-chain-canvas .s1-edge{position:absolute;height:2px;background:rgba(154,106,60,.58);transform-origin:0 50%;pointer-events:none;z-index:0}#s1-chain-canvas .s1-edge.dashed{background:repeating-linear-gradient(90deg,rgba(154,106,60,.58) 0 8px,transparent 8px 14px)}#s1-chain-canvas .s1-typed-edge{height:2px;background:#426f83;z-index:1}',
       '#s1-chain-canvas .s1-node{position:absolute;width:276px;min-height:212px;padding:15px;border:1px solid rgba(90,64,42,.2);border-radius:6px;background:rgba(255,252,246,.97);box-shadow:0 16px 36px rgba(42,33,24,.13);pointer-events:auto;z-index:1;touch-action:none}#s1-chain-canvas .s1-node[data-node=source]{z-index:4}#s1-chain-canvas .s1-node[data-node=step01]{z-index:3}#s1-chain-canvas .s1-node[data-node=step02]{z-index:2}#s1-chain-canvas .s1-node[data-status=blocked]{border-color:rgba(154,106,60,.26)}#s1-chain-canvas .s1-node[data-status=ready]{border-color:#5b8d6b}#s1-chain-canvas .s1-node.s1-selected{outline:2px solid #426f83;outline-offset:3px;box-shadow:0 0 0 4px rgba(66,111,131,.16),0 16px 36px rgba(42,33,24,.18)}#s1-chain-canvas .s1-node h3{margin:4px 0 5px;font-size:15px;cursor:grab}#s1-chain-canvas .s1-node.s1-dragging h3{cursor:grabbing}#s1-chain-canvas .s1-node p{margin:0 0 12px;color:#786958;font-size:12px}#s1-chain-canvas .s1-node [data-s1-delete]{position:absolute;top:8px;right:8px;width:24px;height:24px;padding:0;border:1px solid rgba(90,64,42,.16);border-radius:50%;background:#fff8ef;color:#8a5a45;font-size:16px;line-height:20px;opacity:.72}#s1-chain-canvas .s1-node [data-s1-delete]:hover,#s1-chain-canvas .s1-node.s1-selected [data-s1-delete]{opacity:1;background:#8a5a45;color:#fff}',
       '#s1-chain-canvas .s1-meta{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px;color:#8b7764;font-size:11px}#s1-chain-canvas .s1-status{margin-top:10px;padding:8px;border-radius:6px;background:#f4eee6;color:#5d4d3d;white-space:pre-wrap}#s1-chain-canvas .s1-status.error{background:#fff0ee;color:#a33b2d}#s1-chain-canvas .s1-assets{display:grid;gap:5px;margin:8px 0 10px}#s1-chain-canvas label.s1-asset{display:flex;gap:7px;align-items:center;padding:7px;border:1px solid rgba(90,64,42,.12);border-radius:6px;background:#fffaf3;cursor:pointer}#s1-chain-canvas .s1-asset-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#s1-chain-canvas .s1-row{display:flex;gap:7px;align-items:center;margin:7px 0}#s1-chain-canvas select{flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:6px;background:#fff}#s1-chain-canvas button{border:0;border-radius:6px;padding:7px 9px;background:#2a2118;color:#fff;cursor:pointer;font-weight:650;font-size:12px}#s1-chain-canvas button[disabled]{opacity:.45;cursor:default}#s1-chain-canvas .s1-secondary{background:#efe5d8;color:#4c3828}#s1-chain-canvas .s1-node small{color:#8b7764}#s1-chain-canvas .s1-contract{display:grid;gap:4px;margin:8px 0;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-contract span{display:block;padding:5px 7px;border-radius:6px;background:#faf5ef}#s1-chain-canvas .s1-port-state{margin:7px 0 0;padding:6px 7px;border-radius:6px;background:#f4eee6;color:#5d4d3d;font-size:11px;line-height:1.35}#s1-chain-canvas .s1-port-state[data-state=ready]{background:#edf6ee;color:#376745}#s1-chain-canvas .s1-port-state[data-state=blocked]{background:#f8efe5;color:#785330}#s1-chain-canvas .s1-context-menu{position:absolute;z-index:20;display:grid;gap:4px;min-width:206px;padding:7px;border:1px solid rgba(90,64,42,.22);border-radius:6px;background:#fffdf9;box-shadow:0 14px 34px rgba(42,33,24,.2);pointer-events:auto}#s1-chain-canvas .s1-context-menu[hidden]{display:none}#s1-chain-canvas .s1-context-menu strong{padding:5px 7px;color:#8b6040;font-size:10px;letter-spacing:.08em}#s1-chain-canvas .s1-context-menu button{width:100%;text-align:left;background:transparent;color:#2a2118;font-weight:600}#s1-chain-canvas .s1-context-menu button:hover{background:#f3e9dc}#s1-chain-canvas .s1-skill-node{border-top:3px solid #9a6a3c}#s1-chain-canvas .s1-port-list{display:grid;gap:4px;margin:8px 0}#s1-chain-canvas .s1-port-list span{display:block;padding:5px 7px;border-radius:5px;background:#faf5ef;color:#6d5c4a;font-size:11px}#s1-chain-canvas .s1-ports{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}#s1-chain-canvas .s1-port-group{display:grid;gap:4px;color:#8b7764;font-size:10px}#s1-chain-canvas .s1-port-group.output{text-align:right}#s1-chain-canvas .s1-port-handle{display:block;width:100%;padding:5px 7px;border:1px solid #cdbca8;border-radius:5px;background:#fff8ef;color:#4b3829;text-align:left;cursor:crosshair}#s1-chain-canvas .s1-port-group.output .s1-port-handle{text-align:right}#s1-chain-canvas .s1-input-port{border-color:#89a8b5}#s1-chain-canvas .s1-output-port{border-color:#b68d63}#s1-chain-canvas .s1-port-handle.s1-connecting{background:#dcecf1;border-color:#426f83}',
-      '#s1-chain-canvas[data-s1-empty=true]>.s1-chain-title,#s1-chain-canvas[data-s1-empty=true]>.s1-chain-flow>.s1-edge,#s1-chain-canvas[data-s1-empty=true]>.s1-chain-flow>.s1-node{display:none!important}@media (max-width:900px){#s1-chain-canvas{padding:72px 14px 30px}#s1-chain-canvas .s1-chain-flow{min-width:1680px}}@media (max-width:600px){#s1-chain-canvas{padding-top:62px}#s1-chain-canvas .s1-chain-title{margin-bottom:12px}}'
+      '#s1-chain-canvas[data-s1-empty=true]>.s1-chain-title,#s1-chain-canvas[data-s1-empty=true]>.s1-chain-flow>.s1-edge,#s1-chain-canvas[data-s1-empty=true]>.s1-chain-flow>.s1-node,#s1-chain-canvas .s1-chain-title[hidden],#s1-chain-canvas .s1-edge[hidden],#s1-chain-canvas .s1-node[hidden]{display:none!important}@media (max-width:900px){#s1-chain-canvas{padding:72px 14px 30px}#s1-chain-canvas .s1-chain-flow{min-width:1680px}}@media (max-width:600px){#s1-chain-canvas{padding-top:62px}#s1-chain-canvas .s1-chain-title{margin-bottom:12px}}'
     ].join('');
     style.textContent += '#s1-chain-canvas .s1-skill-node{width:300px;min-height:0;padding:0;overflow:hidden;border:1px solid rgba(90,64,42,.22);border-top:3px solid #9a6a3c;border-radius:9px;background:#fffdf9;box-shadow:0 8px 24px rgba(42,33,24,.12)}#s1-chain-canvas .s1-skill-node .s1-skill-head{display:flex;align-items:center;gap:8px;padding:10px 42px 8px 13px;border-bottom:1px solid rgba(90,64,42,.12);background:#fffaf3;cursor:grab;touch-action:none}#s1-chain-canvas .s1-skill-node.s1-dragging .s1-skill-head{cursor:grabbing}#s1-chain-canvas .s1-skill-node .s1-skill-icon{display:grid;place-items:center;width:24px;height:24px;border-radius:6px;background:#efe2d2;color:#8d5d38;font-size:11px;font-weight:800}#s1-chain-canvas .s1-skill-node .s1-skill-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:750;color:#2a2118}#s1-chain-canvas .s1-skill-node .s1-skill-version{margin-left:auto;color:#8b7764;font-size:10px}#s1-chain-canvas .s1-skill-node .s1-skill-body{padding:12px 13px 13px}#s1-chain-canvas .s1-skill-node .s1-skill-body>h3{margin:0 0 5px;font-size:15px;cursor:default}#s1-chain-canvas .s1-skill-node .s1-skill-body>p{margin:0 0 10px}#s1-chain-canvas .s1-skill-node .s1-skill-foot{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(90,64,42,.12)}#s1-chain-canvas .s1-skill-node .s1-skill-foot button{flex:1 1 76px;min-height:28px}#s1-chain-canvas .s1-skill-node [data-s1-delete]{z-index:2;top:8px;right:9px;width:24px;height:24px}#s1-chain-canvas .s1-skill-node .s1-ports{margin:9px 0 4px}#s1-chain-canvas .s1-skill-node textarea{box-sizing:border-box;width:100%;resize:vertical}#s1-chain-canvas .s1-node[data-champion-node]{width:322px;min-height:0;padding:0;overflow:hidden;border-top:0;border-radius:8px}#s1-chain-canvas .s1-champion-topline{display:flex;align-items:center;gap:8px;padding:13px 44px 0 14px;color:#74695e;font-size:10px;line-height:1.2;cursor:grab;touch-action:none}#s1-chain-canvas .s1-champion-role{font-weight:750;letter-spacing:.08em;color:#426f83}#s1-chain-canvas .s1-champion-skill{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8a8077}#s1-chain-canvas .s1-champion-status{margin-left:auto;padding:3px 6px;border:1px solid rgba(58,55,49,.14);border-radius:4px;background:#f4f0ea;color:#665d55;font-size:10px;font-weight:700;white-space:nowrap}#s1-chain-canvas .s1-node[data-champion-node] h3{margin:6px 14px 2px;color:#292725;font-size:17px;line-height:1.25}#s1-chain-canvas .s1-node[data-champion-node] .s1-champion-note{margin:0 14px 13px;color:#70675f;font-size:12px;line-height:1.5}#s1-chain-canvas .s1-champion-io{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0;border-top:1px solid #e8e0d8;border-bottom:1px solid #e8e0d8;background:#faf7f2}#s1-chain-canvas .s1-champion-io .s1-port-group{min-width:0;padding:10px 12px}#s1-chain-canvas .s1-champion-editor{display:grid;gap:6px;margin:13px 14px 0;font-size:11px;font-weight:700}#s1-chain-canvas .s1-champion-editor textarea{box-sizing:border-box;width:100%;min-height:66px;padding:8px;resize:vertical}#s1-chain-canvas .s1-champion-readiness{margin:10px 14px 0;padding:8px 9px;border-left:3px solid #cbb9a4;background:#f5f0e9;font-size:11px}#s1-chain-canvas .s1-champion-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 14px 0}#s1-chain-canvas .s1-champion-actions button{min-height:32px;font-size:11px}#s1-chain-canvas .s1-champion-actions [data-champion-run]{grid-column:1 / -1;background:#2f4f5c;color:#fff}#s1-chain-canvas .s1-champion-contract{margin:10px 14px 14px;padding-top:9px;border-top:1px solid #eee7df;font-size:10px;line-height:1.45}';
+    style.textContent += '#s1-chain-canvas .s1-legacy-skill-node{width:300px;min-height:0;padding:0;overflow:hidden;border:1px solid rgba(90,64,42,.22);border-top:3px solid #9a6a3c;border-radius:9px;background:#fffdf9;box-shadow:0 8px 24px rgba(42,33,24,.12)}#s1-chain-canvas .s1-legacy-skill-node .s1-skill-head{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:10px 42px 8px 13px;border-bottom:1px solid rgba(90,64,42,.12);background:#fffaf3;cursor:grab;touch-action:none}#s1-chain-canvas .s1-legacy-skill-node .s1-skill-head span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:750;color:#2a2118}#s1-chain-canvas .s1-legacy-skill-node .s1-skill-head small{margin-left:auto;color:#8b7764;font-size:10px}#s1-chain-canvas .s1-legacy-skill-node>h3,#s1-chain-canvas .s1-legacy-skill-node>p,#s1-chain-canvas .s1-legacy-skill-node>.s1-contract,#s1-chain-canvas .s1-legacy-skill-node>.s1-port-state,#s1-chain-canvas .s1-legacy-skill-node>.s1-status,#s1-chain-canvas .s1-legacy-skill-node>.s1-assets,#s1-chain-canvas .s1-legacy-skill-node>.s1-row,#s1-chain-canvas .s1-legacy-skill-node>.s1-ports,#s1-chain-canvas .s1-legacy-skill-node>.s1-preview{margin-left:13px;margin-right:13px}#s1-chain-canvas .s1-legacy-skill-node>h3{margin-top:0;font-size:15px}#s1-chain-canvas .s1-legacy-skill-node>p{margin-bottom:12px}#s1-chain-canvas .s1-legacy-skill-node [data-s1-delete]{z-index:2;top:8px;right:9px;width:24px;height:24px}';
     document.head.appendChild(style);
   }
 
@@ -192,6 +193,26 @@
       }
     }
     installH3NodeCard();
+    function upgradeLegacySkillCard(key, skillLabel) {
+      var card = panel.querySelector('[data-node="' + key + '"]');
+      if (!card || card.classList.contains('s1-legacy-skill-node')) return;
+      var meta = card.querySelector('.s1-meta');
+      if (!meta) return;
+      card.classList.add('s1-skill-node', 's1-legacy-skill-node');
+      meta.classList.add('s1-skill-head');
+      meta.dataset.s1DragHandle = 'true';
+      meta.setAttribute('role', 'button');
+      meta.setAttribute('tabindex', '0');
+      meta.setAttribute('aria-label', '拖动 ' + skillLabel + ' 节点');
+      var label = meta.querySelector('span');
+      if (label) label.textContent = skillLabel;
+      var status = meta.querySelector('[data-node-status]');
+      if (status) status.classList.add('s1-skill-version');
+    }
+    upgradeLegacySkillCard('step01', 'Skill 节点 · mx-shortdrama-01');
+    upgradeLegacySkillCard('step02', 'Skill 节点 · mx-shortdrama-02');
+    upgradeLegacySkillCard('image2', 'Skill 节点 · image2-storyboard-video');
+    upgradeLegacySkillCard('h3', 'Skill 节点 · minimaxh3skill');
     var h3Card = panel.querySelector('[data-node="h3"]');
     var h3Prompt = panel.querySelector('[data-s3-prompt]');
     var h3Aspect = panel.querySelector('[data-s3-aspect]');
@@ -207,6 +228,7 @@
     var nodeById = Object.create(null);
     var selectedNodeId = null;
     var canvasDocument = {nodes:[], edges:[], viewport:{x:0,y:0,zoom:1}};
+    var sourceChainDraftOpen = false;
     var step01PollTimer = null;
     var nodeIds = {source:'s1-source-input',step01:'s1-step01-analysis',step02:'s1-step02-timeline',image2:'s2-image2-keyframe',h3:'s3-h3-video'};
     var championSpecs = {
@@ -302,8 +324,10 @@
       });
       [['source','step01','source-step01'],['step01','step02','step01-step02'],['step02','image2','step02-image2']].forEach(function (item) {
         var a = positionOf(item[0]), b = positionOf(item[1]), edge = panel.querySelector('[data-edge="' + item[2] + '"]');
-        var dx = b.x - a.x - 276, dy = b.y - a.y, width = Math.max(20, Math.sqrt(dx * dx + dy * dy));
-        edge.style.left = String(a.x + 276) + 'px'; edge.style.top = String(a.y + 112) + 'px'; edge.style.width = String(width) + 'px'; edge.style.transform = 'rotate(' + Math.atan2(dy, dx) + 'rad)';
+        var sourceCard = panel.querySelector('[data-node="' + item[0] + '"]');
+        var nodeWidth = sourceCard ? sourceCard.offsetWidth : 276;
+        var dx = b.x - a.x - nodeWidth, dy = b.y - a.y, width = Math.max(20, Math.sqrt(dx * dx + dy * dy));
+        edge.style.left = String(a.x + nodeWidth) + 'px'; edge.style.top = String(a.y + 112) + 'px'; edge.style.width = String(width) + 'px'; edge.style.transform = 'rotate(' + Math.atan2(dy, dx) + 'rad)';
       });
       window.requestAnimationFrame(renderTypedEdges);
     }
@@ -644,14 +668,21 @@
     function renderNodes(nodes) {
       canvasDocument.nodes = Array.isArray(nodes) ? nodes : [];
       nodeById = Object.fromEntries(canvasDocument.nodes.map(function (node) { return [node.id,node]; }));
-      panel.dataset.s1Empty = canvasDocument.nodes.some(function (node) { return /^s1-|^s2-|^s3-|^skill-/.test(String(node && node.id || '')); }) ? 'false' : 'true';
+      panel.dataset.s1Empty = sourceChainDraftOpen || canvasDocument.nodes.some(function (node) { return /^s1-|^s2-|^s3-|^skill-/.test(String(node && node.id || '')); }) ? 'false' : 'true';
+      var deletedNodeIds = canvasDocument.deletedNodeIds || [];
+      var hasVisibleSourceChainNode = false;
       Object.keys(nodeIds).forEach(function (key) {
         var card = panel.querySelector('[data-node="' + key + '"]');
         if (!card) return;
         card.dataset.nodeId = nodeIds[key];
-        card.hidden = (canvasDocument.deletedNodeIds || []).includes(nodeIds[key]);
-        ensureDeleteControl(card);
+        var documentOwnsNode = Boolean(nodeById[nodeIds[key]]);
+        var visible = !deletedNodeIds.includes(nodeIds[key]) && (sourceChainDraftOpen || documentOwnsNode);
+        card.hidden = !visible;
+        if (visible) ensureDeleteControl(card);
+        if (visible) hasVisibleSourceChainNode = true;
       });
+      panel.querySelector('.s1-chain-title').hidden = !hasVisibleSourceChainNode;
+      panel.querySelectorAll('.s1-edge').forEach(function (edge) { edge.hidden = !hasVisibleSourceChainNode; });
       var chainNodes = (Array.isArray(nodes) ? nodes : []).filter(function (node) { return /^s1-/.test(node.id); });
       chainReady = chainNodes.some(function (node) { return node.id === 's1-source-input' && node.status === 'ready'; });
       chainNodes.forEach(function (node) { var key = node.id === 's1-source-input' ? 'source' : node.id === 's1-step01-analysis' ? 'step01' : 'step02'; var card = panel.querySelector('[data-node="' + key + '"]'); if (!card) return; card.dataset.status = node.status; var status = card.querySelector('[data-node-status]'); if (status) status.textContent = node.status; });
@@ -873,8 +904,12 @@
         button.addEventListener('mouseenter', function () { button.style.background = 'rgba(90,64,42,.07)'; });
         button.addEventListener('mouseleave', function () { button.style.background = 'transparent'; });
         button.addEventListener('click', function () {
+          if (item.key === 's1-chain') {
+            sourceChainDraftOpen = true;
+            renderNodes(canvasDocument.nodes);
+            return;
+          }
           panel.dataset.s1Empty = 'false';
-          if (item.key === 's1-chain') return;
           createChampionNode(item.key, {x:180,y:180}).catch(function (error) { setStatus((error.code ? error.code + ': ' : '') + (error.message || '添加节点失败'), true); });
         });
         group.appendChild(button);
