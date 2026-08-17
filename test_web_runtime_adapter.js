@@ -7,7 +7,7 @@ const vm = require('vm');
 (async () => {
 const source = fs.readFileSync(require('path').join(__dirname, 'studio/assets/web-runtime-adapter-r4.js'), 'utf8');
 const studioIndex = fs.readFileSync(require('path').join(__dirname, 'studio/index.html'), 'utf8');
-assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260818-storyboard-group-contract-r8/);
+assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260818-web-document-sync-r1/);
 assert.match(source, /\/api\/canvas\/provider-status/);
 assert.match(source, /\/api\/projects\/.*\/canvas\/jobs/);
 assert.match(source, /\/api\/projects\/.*\/text\/jobs/);
@@ -28,6 +28,9 @@ assert.match(source, /archetype:\s*\{id: 'happyhorse', modeId: 'edit'\}/);
 assert.match(source, /function projectThumbnailUrl\(value\)/);
 assert.match(source, /\/thumbnail/);
 assert.match(source, /webProjects = webProjects\.map\(function \(record\) \{ return projectSummary\(record, record\); \}\);/);
+assert.match(source, /readAsync: async function/);
+assert.match(source, /persistProjectDocument/);
+assert.match(source, /niannian-project-document-conflict/);
 
 const calls = [];
 const requestBodies = [];
