@@ -25,6 +25,20 @@ function adapterError(code, message, httpStatus = 502) {
   return error;
 }
 
+function safeReceiptDiagnostic(receiptPath) {
+  return fsp.readFile(receiptPath, 'utf8').then(text => {
+    const receipt = JSON.parse(text);
+    const status = String(receipt?.status || '').trim();
+    const errorType = String(receipt?.error_type || '').trim();
+    const httpStatus = Number(receipt?.http_status);
+    return {
+      status:/^[a-z_]{1,80}$/.test(status) ? status : null,
+      errorType:/^[A-Za-z][A-Za-z0-9_.-]{0,80}$/.test(errorType) ? errorType : null,
+      httpStatus:Number.isInteger(httpStatus) && httpStatus >= 100 && httpStatus <= 599 ? httpStatus : null
+    };
+  }).catch(() => ({status:null,errorType:null,httpStatus:null}));
+}
+
 function vaultReady(env) {
   return ['AGENT_VAULT_ADDR', 'AGENT_VAULT_VAULT', 'AGENT_VAULT_TOKEN'].every(name => String(env[name] || '').trim())
     && String(env.HTTPS_PROXY || env.https_proxy || '').trim();
@@ -79,12 +93,20 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
     return adapterError('YUNWU_NETWORK_UNCERTAIN', '云雾请求状态待确认');
   }
 
-  function executionExitFailure(code) {
-    if (code === 2) return adapterError('YUNWU_AGENT_VAULT_NOT_CONFIGURED', '云雾受保护代理会话尚未配置', 503);
-    if ([126, 127].includes(code)) return adapterError('YUNWU_EXECUTOR_NOT_CONFIGURED', '云雾执行器尚未配置', 503);
-    if (code === 5) return adapterError('YUNWU_NETWORK_UNCERTAIN', '云雾请求状态待确认');
-    return adapterError('YUNWU_SUBMISSION_REJECTED', '云雾图像请求未通过');
+async function executionExitFailure(result, receiptPath) {
+  const code = Number(result?.code);
+  const diagnostic = await safeReceiptDiagnostic(receiptPath);
+  if (code === 2) return adapterError('YUNWU_AGENT_VAULT_NOT_CONFIGURED', '云雾受保护代理会话尚未配置', 503);
+  if ([126, 127].includes(code)) return adapterError('YUNWU_EXECUTOR_NOT_CONFIGURED', '云雾执行器尚未配置', 503);
+  if (code === 5) {
+    const error = adapterError('YUNWU_NETWORK_UNCERTAIN', '云雾请求状态待确认');
+    error.providerCode = diagnostic.errorType ? `uncertain:${diagnostic.errorType}` : 'uncertain';
+    return error;
   }
+  const error = adapterError('YUNWU_SUBMISSION_REJECTED', '云雾图像请求未通过');
+  error.providerCode = diagnostic.httpStatus ? `http:${diagnostic.httpStatus}` : (diagnostic.status || 'rejected');
+  return error;
+}
 
   async function dryRun(task, referenceFiles = []) {
     const preflight = validate(task, referenceFiles);
@@ -97,7 +119,7 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
       const args = [scriptPath, '--channel', 'yunwu', '--operation', preflight.payload.operation, '--prompt-file', promptPath, '--model', 'gpt-image-2-c', '--size', preflight.payload.size, '--asset-id', `canvas-${id}`, '--dry-run', '--receipt', receiptPath];
       for (const referenceFile of referenceFiles) args.push('--reference-image', referenceFile);
       const result = await run(pythonPath, args, protectedProxyEnv(env));
-      if (result.code !== 0) throw executionExitFailure(result.code);
+      if (result.code !== 0) throw await executionExitFailure(result, receiptPath);
       return preflight;
     } catch (error) {
       if (error?.code?.startsWith('YUNWU_')) throw error;
@@ -126,8 +148,9 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
     }
     await fsp.rm(promptPath, {force:true});
     if (result.code === 0) return {taskId:`local-${id}`, payload:{outputPath, receiptPath}};
+    const failure = await executionExitFailure(result, receiptPath);
     await cleanup([outputPath, receiptPath]);
-    throw executionExitFailure(result.code);
+    throw failure;
   }
 
   async function query(taskId, payload) {

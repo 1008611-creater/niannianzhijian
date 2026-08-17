@@ -16,6 +16,14 @@ function publicFailure(error) {
   return '图像生成暂未完成，请检查输入后重试。';
 }
 
+function failureCategory(error) {
+  if (error?.code === 'YUNWU_NETWORK_UNCERTAIN') return 'network_uncertain';
+  if (error?.code === 'YUNWU_AGENT_VAULT_NOT_CONFIGURED') return 'provider_configuration';
+  if (error?.code === 'YUNWU_EXECUTOR_NOT_CONFIGURED') return 'executor_configuration';
+  if (error?.code === 'YUNWU_SUBMISSION_REJECTED') return 'provider_request';
+  return 'image_request';
+}
+
 function formatForMime(mime) {
   return ({'image/png':'png','image/jpeg':'jpeg','image/webp':'webp'})[String(mime || '').toLowerCase()] || null;
 }
@@ -78,7 +86,13 @@ function createCanvasImage2Runtime(options = {}) {
       return await jobs.updateOwned(ownerId, projectId, jobId, {status:'queued',providerSubmitState:'accepted',providerTaskId:submitted.taskId,providerPayload:submitted.payload,publicError:null});
     } catch (error) {
       const unknown = error?.code === 'YUNWU_NETWORK_UNCERTAIN';
-      return await jobs.updateOwned(ownerId, projectId, jobId, {status:unknown ? 'review' : 'failed',providerSubmitState:unknown ? 'uncertain' : 'failed',publicError:publicFailure(error)}).then(() => { throw error; });
+      return await jobs.updateOwned(ownerId, projectId, jobId, {
+        status:unknown ? 'review' : 'failed',
+        providerSubmitState:unknown ? 'uncertain' : 'failed',
+        failureCategory:failureCategory(error),
+        providerErrorCode:error?.providerCode || null,
+        publicError:publicFailure(error)
+      }).then(() => { throw error; });
     }
   }
 
@@ -109,8 +123,8 @@ function createCanvasImage2Runtime(options = {}) {
       if (!outputAssetIds.length) throw runtimeError('CANVAS_IMAGE2_OUTPUT_MISSING', '图像生成尚未返回结果', 502);
       return await jobs.updateOwned(ownerId, projectId, jobId, {status:'succeeded',providerSubmitState:'completed',outputAssetIds:[...new Set(outputAssetIds)],publicError:null,completedAt:new Date().toISOString()});
     } catch (error) {
-      if (error?.code === 'YUNWU_NETWORK_UNCERTAIN') return await jobs.updateOwned(ownerId, projectId, jobId, {status:'review',providerSubmitState:'uncertain',publicError:publicFailure(error)});
-      return await jobs.updateOwned(ownerId, projectId, jobId, {status:'failed',providerSubmitState:'failed',publicError:publicFailure(error)});
+      if (error?.code === 'YUNWU_NETWORK_UNCERTAIN') return await jobs.updateOwned(ownerId, projectId, jobId, {status:'review',providerSubmitState:'uncertain',failureCategory:failureCategory(error),providerErrorCode:error?.providerCode || null,publicError:publicFailure(error)});
+      return await jobs.updateOwned(ownerId, projectId, jobId, {status:'failed',providerSubmitState:'failed',failureCategory:failureCategory(error),providerErrorCode:error?.providerCode || null,publicError:publicFailure(error)});
     }
   }
 
