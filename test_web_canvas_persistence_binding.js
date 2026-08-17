@@ -5,7 +5,11 @@ const fs = require('fs');
 const path = require('path');
 
 const source = fs.readFileSync(
-  path.join(__dirname, 'studio', 'assets', 'NomiStudioApp-DDB0IgSO-r28-19b89ec-r4.js'),
+  path.join(__dirname, 'studio', 'assets', 'NomiStudioApp-DDB0IgSO-r28-19b89ec-r6.js'),
+  'utf8',
+);
+const baseNodeSource = fs.readFileSync(
+  path.join(__dirname, 'studio', 'assets', 'BaseGenerationNode-DLwEdORF-r6.js'),
   'utf8',
 );
 
@@ -18,8 +22,11 @@ assert.match(
 );
 assert.doesNotMatch(source, /if\(h\|\|P\.current!==s\.id\)return;const K=N\.bindProjectPersistence/);
 assert.match(source, /window\.dispatchEvent\(new Event\("nomi-canvas-mutated"\)\)/);
-assert.match(source, /window\.addEventListener\("nomi-canvas-mutated",q\)/);
-assert.match(source, /N\.persistProject\(s,ir\(\)\)/);
+assert.doesNotMatch(source, /window\.addEventListener\("nomi-canvas-mutated",q\)/);
+assert.doesNotMatch(source, /N\.persistProject\(s,ir\(\)\)/);
+assert.match(source, /function by\(e\).*?for\(;n&&e\.isActive\(\);\)/s);
+assert.match(baseNodeSource, /uploadStatus:"uploaded",localOnly:!1\}\)\}\),r\(\)\}\)/);
+assert.match(baseNodeSource, /P!==t&&\(i\(e,\{title:P\}\),x\(\)\)/);
 assert.match(source, /platform!==\"web\"&&n===\"image\"/);
 assert.match(source, /uploadStatus:c\?\"local-only\":\"failed\"/);
 assert.match(source, /retryableImport:!c/);

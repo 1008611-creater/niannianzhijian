@@ -9144,6 +9144,10 @@ async function handleApi(request, response, pathname) {
     const handled = await handleWorkbenchCanvasProjectApi(request, response, pathname, user);
     if (handled) return;
   }
+  if (pathname.startsWith('/api/studio/projects/')) {
+    const handled = await handleNomiProjectApi(request, response, pathname, user);
+    if (handled) return;
+  }
   if (request.method === 'GET' && pathname === '/api/video-channels') {
     try {
       let registry;
