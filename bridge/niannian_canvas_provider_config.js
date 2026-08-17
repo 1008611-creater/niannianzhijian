@@ -91,6 +91,7 @@ function publicCanvasModelCatalog(env = process.env) {
         resolutions: channel.resolutions,
         aspectRatios: channel.aspectRatios,
         outputSizes: channel.outputSizes,
+        outputSizesByAspectRatio: channel.outputSizesByAspectRatio || {},
         priceCredits: channel.id === 'yunwu-gpt-image-2-c-edit' ? 12 : 10
       })),
       {

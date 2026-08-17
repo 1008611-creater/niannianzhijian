@@ -23,10 +23,17 @@ async function run() {
     assert.equal(yunwu4k.job.imageChannel, 'yunwu-gpt-image-2-c');
     assert.equal(yunwu4k.job.aspectRatio, '9:16');
     assert.equal(yunwu4k.job.outputSize, '2160x3840');
+    const yunwuPortrait = await service.create({...request, model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'3:4', idempotencyKey:'canvas-job-yunwu-3-4'});
+    assert.equal(yunwuPortrait.job.aspectRatio, '3:4');
+    assert.equal(yunwuPortrait.job.outputSize, '2160x2880');
     const explicitOutputSize = await service.create({...request, model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'9:16', outputSize:'2160x3840', idempotencyKey:'canvas-job-yunwu-output-size'});
     assert.equal(explicitOutputSize.job.outputSize, '2160x3840');
     await assert.rejects(
       () => service.create({...request, model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'9:16', outputSize:'1024x1024', idempotencyKey:'canvas-job-yunwu-output-size-invalid'}),
+      error => error.code === 'CANVAS_IMAGE2_OUTPUT_SIZE_UNSUPPORTED'
+    );
+    await assert.rejects(
+      () => service.create({...request, model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'3:4', outputSize:'2160x3840', idempotencyKey:'canvas-job-yunwu-3-4-invalid'}),
       error => error.code === 'CANVAS_IMAGE2_OUTPUT_SIZE_UNSUPPORTED'
     );
     const yunwuEdit = await service.create({...request, model:'yunwu-gpt-image-2-c-edit', resolution:'4k', aspectRatio:'16:9', idempotencyKey:'canvas-job-yunwu-edit'});
@@ -85,7 +92,7 @@ async function run() {
     assert.equal(replacement.created, true);
     assert.notEqual(replacement.job.id, first.job.id);
     assert.match(replacement.job.idempotencyKey, /^canvas-job-0001\.retry-/);
-    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 8);
+    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 9);
     assert.equal((await service.listOwned('USR-B', 'NN-PROJECT-A')).length, 0);
     assert.equal(await service.getOwned('USR-B', 'NN-PROJECT-A', first.job.id), null);
 

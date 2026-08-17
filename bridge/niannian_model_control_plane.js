@@ -87,7 +87,14 @@ function publicCatalog(models, providers, tenantId, allowedModelIds = []) {
       priceCredits: Number(item.priceCredits),
       resolutions: item.resolutions || [],
       aspectRatios: item.aspectRatios || [],
-      outputSizes: item.outputSizes || {}
+      outputSizes: Object.entries(item.outputSizesByAspectRatio || {}).reduce((sizes, [resolution, ratios]) => {
+        for (const [ratio, size] of Object.entries(ratios || {})) {
+          if (ratio === (item.aspectRatios || [])[0]) sizes[resolution] = size;
+          else sizes[`${resolution} · ${ratio}`] = size;
+        }
+        return sizes;
+      }, {...(item.outputSizes || {})}),
+      outputSizesByAspectRatio: item.outputSizesByAspectRatio || {}
     }))
   };
 }
@@ -167,14 +174,20 @@ function createModelControlPlane(options = {}) {
       const compilerProvider = config.providers.find(item => item.id === 'mcgrox-server');
       if (!compilerProvider) { config.providers.push({id: 'mcgrox-server', label: 'MCGrox 编排服务', kind: 'text', enabled: false, secretRef: 'agent-vault://mcgrox/compiler', baseUrl: '', updatedAt: new Date().toISOString()}); changed = true; }
       const defaults = [
-        {id: 'yunwu-gpt-image-2-c', label: '云雾 Image2 竖版 4K', kind: 'image', providerId: 'yunwu-agent-vault', providerLabel: '云雾', priceCredits: 10, resolutions: ['4k'], aspectRatios: ['9:16'], outputSizes: {'4k': '2160x3840'}},
+        {id: 'yunwu-gpt-image-2-c', label: '云雾 Image2 竖版 4K', kind: 'image', providerId: 'yunwu-agent-vault', providerLabel: '云雾', priceCredits: 10, resolutions: ['4k'], aspectRatios: ['9:16', '3:4'], outputSizes: {'4k': '2160x3840'}, outputSizesByAspectRatio: {'4k': {'9:16': '2160x3840', '3:4': '2160x2880'}}},
         {id: 'yunwu-gpt-image-2-c-edit', label: '云雾 Image2 图改图 4K', kind: 'image', providerId: 'yunwu-agent-vault', providerLabel: '云雾', priceCredits: 12, resolutions: ['4k'], aspectRatios: ['16:9'], outputSizes: {'4k': '3840x2160'}},
         {id: 'minimax-h3', label: 'H3 生视频', kind: 'video', providerId: 'runninghub-consumer', providerLabel: 'RunningHub', priceCredits: 20, resolutions: ['2k'], aspectRatios: ['9:16', '16:9', '1:1'], outputSizes: {}},
         {id: 'dola-seedance-2-5', label: 'Dola Seedance 2.5（30秒）', kind: 'video', providerId: 'dola-desktop-api', providerLabel: 'Dola', priceCredits: 0, resolutions: ['720p'], aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'], outputSizes: {}},
         {id: 'mcgrox-compiler', label: 'MCGrox 编排模型', kind: 'text', providerId: 'mcgrox-server', providerLabel: 'MCGrox', priceCredits: 1, resolutions: [], aspectRatios: [], outputSizes: {}}
       ];
       for (const item of defaults) {
-        if (!config.models.some(model => model.id === item.id)) { config.models.push({...item, tenantId: 'default', enabled: false, updatedAt: new Date().toISOString()}); changed = true; }
+        const existing = config.models.find(model => model.id === item.id);
+        if (!existing) { config.models.push({...item, tenantId: 'default', enabled: false, updatedAt: new Date().toISOString()}); changed = true; }
+        else if (item.id === 'yunwu-gpt-image-2-c' && JSON.stringify(existing.outputSizesByAspectRatio || {}) !== JSON.stringify(item.outputSizesByAspectRatio)) {
+          existing.aspectRatios = item.aspectRatios;
+          existing.outputSizesByAspectRatio = item.outputSizesByAspectRatio;
+          changed = true;
+        }
       }
       const plans = [
         {id:'creator-monthly', label:'个人创作者月度套餐', audience:'creator', monthlyCredits:0, monthlyPriceCny:0, modelIds:[], published:false},

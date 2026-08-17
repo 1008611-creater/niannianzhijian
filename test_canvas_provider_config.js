@@ -53,7 +53,7 @@ function run() {
   assert.equal(Object.hasOwn(publicStatus, 'dolaApiUrl'), false);
   assert.equal(Object.hasOwn(publicStatus, 'dolaCredentialConfigured'), false);
   assert.deepEqual(publicStatus.imageChannels.map(channel => [channel.id, channel.submitEnabled, channel.outputSizes]), [
-    ['yunwu-gpt-image-2-c', true, {'4k':'2160x3840'}],
+    ['yunwu-gpt-image-2-c', true, {'4k':'2160x3840','4k · 3:4':'2160x2880'}],
     ['yunwu-gpt-image-2-c-edit', true, {'4k':'3840x2160'}]
   ]);
   const yunwu = readCanvasProviderConfig({AGENT_VAULT_ADDR:'http://127.0.0.1:14321',AGENT_VAULT_VAULT:'niannian-production',AGENT_VAULT_TOKEN:'protected-test-token',HTTPS_PROXY:'http://127.0.0.1:14322',NIANNIAN_CANVAS_YUNWU_SUBMIT:'on'});
