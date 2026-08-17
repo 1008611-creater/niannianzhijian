@@ -444,6 +444,37 @@
     return {items: items, cursor: null};
   }
 
+  async function listAllProjectAssets(payload) {
+    var input = payload && typeof payload === 'object' ? payload : {};
+    var project = String(input.projectId || projectId()).trim();
+    if (!project) return {items: [], projects: [], cursor: null};
+    var response = await api('/api/projects/' + encodeURIComponent(project) + '/assets/catalog', {
+      headers: {'x-niannian-project-kind': canvasProjectKind()}
+    });
+    var items = Array.isArray(response.assets)
+      ? response.assets.map(function (asset) { return browserAssetFromProjectAsset(asset, asset && asset.projectId); }).filter(Boolean)
+      : [];
+    var projects = Array.isArray(response.projects)
+      ? response.projects.filter(function (item) { return item && item.id; })
+      : [];
+    return {items: items, projects: projects, cursor: null};
+  }
+
+  async function referenceProjectAsset(payload) {
+    var input = payload && typeof payload === 'object' ? payload : {};
+    var project = String(input.projectId || projectId()).trim();
+    var sourceProjectId = String(input.sourceProjectId || '').trim();
+    var sourceAssetId = String(input.sourceAssetId || '').trim();
+    if (!project || !sourceProjectId || !sourceAssetId) throw new Error('请选择一个可引用的项目素材');
+    var response = await api('/api/projects/' + encodeURIComponent(project) + '/assets/references', {
+      method: 'POST',
+      headers: {'content-type': 'application/json', 'x-niannian-project-kind': canvasProjectKind()},
+      body: JSON.stringify({sourceProjectId: sourceProjectId, sourceAssetId: sourceAssetId})
+    });
+    if (!response.asset || !response.asset.id || !response.asset.downloadUrl) throw new Error('服务器没有返回引用素材');
+    return {asset: browserAssetFromProjectAsset(response.asset, project), created: response.idempotent !== true, alreadyInProject: response.alreadyInProject === true};
+  }
+
   async function downloadProjectAsset(payload) {
     var input = payload && typeof payload === 'object' ? payload : {};
     var requestedUrl = String(input.url || '').trim();
@@ -835,7 +866,7 @@
   window.nomiDesktop = {
     platform: 'web',
     projects: projectsApi,
-    assets: {importFile: importProjectAsset, list: listProjectAssets, download: downloadProjectAsset},
+    assets: {importFile: importProjectAsset, list: listProjectAssets, listAll: listAllProjectAssets, reference: referenceProjectAsset, download: downloadProjectAsset},
     modelCatalog: {listVendors: listVendors, listModels: listModels, health: health, listMappings: async function () { return []; }},
     tasks: {
       run: runTask,
