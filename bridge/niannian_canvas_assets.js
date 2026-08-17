@@ -90,6 +90,7 @@ function createCanvasAssetService(options = {}) {
       bytes:asset.bytes,
       sha256:asset.sha256,
       status:asset.status,
+      sourceAsset:asset.sourceAssetId ? {projectId:asset.sourceProjectId,assetId:asset.sourceAssetId} : null,
       createdAt:asset.createdAt,
       updatedAt:asset.updatedAt
     };
@@ -153,9 +154,57 @@ function createCanvasAssetService(options = {}) {
     }
   }
 
+  async function referenceOwned(input) {
+    const ownerId = clean(input.ownerId, 120);
+    const projectId = clean(input.projectId, 160);
+    const projectKind = clean(input.projectKind, 20);
+    const sourceProjectId = clean(input.sourceProjectId, 160);
+    const sourceAssetId = validateAssetId(input.sourceAssetId);
+    if (!ownerId || !projectId || !sourceProjectId || !['redraw','script'].includes(projectKind)) {
+      throw assetError('CANVAS_ASSET_REFERENCE_INPUT_INVALID', '素材引用信息无效', 422);
+    }
+    return withWriteLock(async () => {
+      const assets = await readAll();
+      const source = assets.find(item => item.id === sourceAssetId && item.ownerId === ownerId && item.projectId === sourceProjectId && item.status === 'ready');
+      if (!source) throw assetError('CANVAS_ASSET_REFERENCE_SOURCE_NOT_FOUND', '来源素材不存在或无权访问', 404);
+      if (source.projectId === projectId && source.projectKind === projectKind) return {asset:source,created:false,alreadyInProject:true};
+      const existing = assets.find(item => item.ownerId === ownerId && item.projectId === projectId && item.projectKind === projectKind && item.sourceProjectId === sourceProjectId && item.sourceAssetId === sourceAssetId && item.status === 'ready');
+      if (existing) return {asset:existing,created:false,alreadyInProject:false};
+      const timestamp = new Date().toISOString();
+      const asset = {
+        schemaVersion:'niannian.canvas_asset.v2',
+        id:'CAS-' + crypto.randomBytes(12).toString('hex'),
+        ownerId,
+        projectId,
+        projectKind,
+        kind:source.kind,
+        originalName:source.originalName,
+        mimeType:source.mimeType,
+        format:source.format,
+        bytes:source.bytes,
+        sha256:source.sha256,
+        storageKey:source.storageKey,
+        storedPath:source.storedPath,
+        sourceProjectId,
+        sourceAssetId,
+        status:'ready',
+        createdAt:timestamp,
+        updatedAt:timestamp
+      };
+      assets.push(asset);
+      await writeAll(assets);
+      return {asset,created:true,alreadyInProject:false};
+    });
+  }
+
   async function listOwned(ownerId, projectId, projectKind) {
     const assets = await readAll();
     return assets.filter(item => item.ownerId === ownerId && item.projectId === projectId && (!projectKind || item.projectKind === projectKind) && item.status === 'ready').sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  }
+
+  async function listByOwner(ownerId) {
+    const assets = await readAll();
+    return assets.filter(item => item.ownerId === ownerId && item.status === 'ready').sort((a,b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   }
 
   async function getOwned(ownerId, projectId, assetId) {
@@ -175,7 +224,10 @@ function createCanvasAssetService(options = {}) {
       if (index < 0) return null;
       const [asset] = assets.splice(index, 1);
       await writeAll(assets);
-      return {...asset, storedPath:path.resolve(storageRoot, path.basename(asset.storageKey))};
+      const storedPath = path.resolve(storageRoot, path.basename(asset.storageKey));
+      if (!storedPath.startsWith(storageRoot + path.sep)) throw assetError('CANVAS_ASSET_STORAGE_INVALID', '素材存储位置无效', 500);
+      const deleteStoredFile = !assets.some(item => item.status === 'ready' && item.storageKey === asset.storageKey);
+      return {...asset, storedPath, deleteStoredFile};
     });
   }
 
@@ -194,7 +246,7 @@ function createCanvasAssetService(options = {}) {
     });
   }
 
-  return {register,registerBuffer,listOwned,getOwned,removeOwned,renameOwned,publicAsset,formats:FORMATS,maxBytes,maxOutputBytes,constants:{indexPath,storageRoot}};
+  return {register,registerBuffer,referenceOwned,listOwned,listByOwner,getOwned,removeOwned,renameOwned,publicAsset,formats:FORMATS,maxBytes,maxOutputBytes,constants:{indexPath,storageRoot}};
 }
 
 module.exports = {createCanvasAssetService,FORMATS};

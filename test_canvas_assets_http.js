@@ -85,6 +85,28 @@ async function run() {
   assert.equal(repeat.idempotent, true);
   assert.equal(repeat.asset.id, first.asset.id);
 
+  const referenceResponse = await fetch(`${baseUrl}/api/projects/NN-ASSET-B/assets/references`, {
+    method:'POST',
+    headers:headers('asset-token-a', {'content-type':'application/json','x-niannian-project-kind':'redraw'}),
+    body:JSON.stringify({sourceProjectId:'NN-ASSET-A',sourceAssetId:first.asset.id})
+  });
+  const reference = await referenceResponse.json();
+  assert.equal(referenceResponse.status, 201);
+  assert.notEqual(reference.asset.id, first.asset.id);
+  assert.deepEqual(reference.asset.sourceAsset, {projectId:'NN-ASSET-A',assetId:first.asset.id});
+  const repeatedReferenceResponse = await fetch(`${baseUrl}/api/projects/NN-ASSET-B/assets/references`, {
+    method:'POST',
+    headers:headers('asset-token-a', {'content-type':'application/json','x-niannian-project-kind':'redraw'}),
+    body:JSON.stringify({sourceProjectId:'NN-ASSET-A',sourceAssetId:first.asset.id})
+  });
+  const repeatedReference = await repeatedReferenceResponse.json();
+  assert.equal(repeatedReferenceResponse.status, 200);
+  assert.equal(repeatedReference.idempotent, true);
+  assert.equal(repeatedReference.asset.id, reference.asset.id);
+  const referencedDownloadResponse = await fetch(baseUrl + reference.asset.downloadUrl, {headers:headers('asset-token-a')});
+  assert.equal(referencedDownloadResponse.status, 200);
+  assert.deepEqual(Buffer.from(await referencedDownloadResponse.arrayBuffer()), image);
+
   const audio = Buffer.from('ID3\x04\x00\x00\x00\x00\x00\x00niannian-audio-reference');
   const audioForm = new FormData();
   audioForm.append('kind', 'reference_audio');
@@ -120,6 +142,21 @@ async function run() {
   const list = await listResponse.json();
   assert.equal(listResponse.status, 200);
   assert.equal(list.assets.length, 3);
+
+  const targetListResponse = await fetch(`${baseUrl}/api/projects/NN-ASSET-B/assets`, {headers:headers('asset-token-a',{'x-niannian-project-kind':'redraw'})});
+  const targetList = await targetListResponse.json();
+  assert.equal(targetListResponse.status, 200);
+  assert.equal(targetList.assets.length, 1);
+  assert.equal(targetList.assets[0].id, reference.asset.id);
+
+  const catalogResponse = await fetch(`${baseUrl}/api/projects/NN-ASSET-B/assets/catalog`, {headers:headers('asset-token-a',{'x-niannian-project-kind':'redraw'})});
+  const catalog = await catalogResponse.json();
+  assert.equal(catalogResponse.status, 200);
+  assert.equal(catalog.assets.length, 4);
+  assert.deepEqual(catalog.projects.find(project => project.id === 'NN-ASSET-A'), {id:'NN-ASSET-A',name:'素材项目 A'});
+  assert.equal(catalog.assets.find(asset => asset.id === first.asset.id).projectName, '素材项目 A');
+  const foreignCatalogResponse = await fetch(`${baseUrl}/api/projects/NN-ASSET-B/assets/catalog`, {headers:headers('asset-token-b',{'x-niannian-project-kind':'redraw'})});
+  assert.equal(foreignCatalogResponse.status, 404);
 
   const localDocumentResponse = await fetch(`${baseUrl}/api/studio/projects/NN-ASSET-A`, {
     method:'PUT',

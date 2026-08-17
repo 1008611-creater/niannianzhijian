@@ -7174,6 +7174,55 @@ function canvasAssetDeclaredMimeMatches(format, incomingMime) {
 }
 
 async function handleCanvasAssetsApi(request, response, pathname, user) {
+  const catalogMatch = pathname.match(/^\/api\/projects\/([^/]+)\/assets\/catalog$/);
+  if (catalogMatch) {
+    if (request.method !== 'GET') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
+    const projectId = decodeURIComponent(catalogMatch[1]);
+    const preferredKind = String(request.headers['x-niannian-project-kind'] || '').trim() || null;
+    const target = await ownedCanvasProjectById(user, projectId, preferredKind);
+    if (!target) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
+    const [redrawProjects, scriptProjects, canvasProjects, assets] = await Promise.all([
+      readProjects(),
+      readScriptProjects(),
+      readCanvasProjects(),
+      canvasAssetService.listByOwner(user.id)
+    ]);
+    const projectNames = new Map();
+    for (const project of [...redrawProjects, ...scriptProjects, ...canvasProjects]) {
+      if (project && project.ownerId === user.id && project.id) projectNames.set(project.id, canvasText(project.name, 160) || project.id);
+    }
+    projectNames.set(projectId, canvasText(target.project?.name, 160) || projectId);
+    return json(response, 200, {
+      projectId,
+      projects:[...projectNames].map(([id, name]) => ({id,name})),
+      assets:assets.map(asset => ({...publicCanvasAsset(asset),projectName:projectNames.get(asset.projectId) || asset.projectId}))
+    });
+  }
+  const referenceMatch = pathname.match(/^\/api\/projects\/([^/]+)\/assets\/references$/);
+  if (referenceMatch) {
+    if (request.method !== 'POST') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
+    try {
+      const projectId = decodeURIComponent(referenceMatch[1]);
+      const preferredKind = String(request.headers['x-niannian-project-kind'] || '').trim() || null;
+      const target = await ownedCanvasProjectById(user, projectId, preferredKind);
+      if (!target) return json(response, 404, {code:'PROJECT_NOT_FOUND',error:'项目不存在'});
+      const body = await readBodyJson(request);
+      const sourceProjectId = String(body.sourceProjectId || '').trim();
+      const sourceAssetId = String(body.sourceAssetId || '').trim();
+      const source = await ownedCanvasProjectById(user, sourceProjectId, null);
+      if (!source) return json(response, 404, {code:'CANVAS_ASSET_REFERENCE_SOURCE_PROJECT_NOT_FOUND',error:'来源项目不存在或无权访问'});
+      const referenced = await canvasAssetService.referenceOwned({ownerId:user.id,projectId,projectKind:target.projectKind,sourceProjectId,sourceAssetId});
+      if (referenced.created) prewarmCanvasAssetThumbnail(referenced.asset);
+      return json(response, referenced.created ? 201 : 200, {
+        code:referenced.created ? 'CANVAS_ASSET_REFERENCE_CREATED' : 'CANVAS_ASSET_REFERENCE_REUSED',
+        idempotent:!referenced.created,
+        alreadyInProject:referenced.alreadyInProject === true,
+        asset:publicCanvasAsset(referenced.asset)
+      });
+    } catch (error) {
+      return json(response, error.httpStatus || 400, {code:error.code || 'CANVAS_ASSET_REFERENCE_FAILED',error:error.message || '素材引用失败'});
+    }
+  }
   const match = pathname.match(/^\/api\/projects\/([^/]+)\/assets(?:\/([^/]+))?(?:\/(download|thumbnail))?$/);
   if (!match) return false;
   const projectId = decodeURIComponent(match[1]);
@@ -7281,6 +7330,12 @@ async function handleCanvasAssetsApi(request, response, pathname, user) {
     response.writeHead(200, headers);
     if (request.method === 'HEAD') return response.end();
     return fs.createReadStream(asset.storedPath).pipe(response);
+  }
+  if (assetId && !action && request.method === 'DELETE') {
+    const removed = await canvasAssetService.removeOwned(user.id, projectId, assetId);
+    if (!removed) return json(response, 404, {code:'CANVAS_ASSET_NOT_FOUND',error:'素材不存在'});
+    if (removed.deleteStoredFile) await fsp.rm(removed.storedPath, {force:true}).catch(() => {});
+    return json(response, 200, {code:'CANVAS_ASSET_DELETED',assetId:removed.id,referenceOnly:!!removed.sourceAssetId});
   }
   return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'});
 }
