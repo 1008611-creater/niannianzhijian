@@ -10,7 +10,8 @@ const index = fs.readFileSync(path.join(__dirname, 'studio', 'index.html'), 'utf
 assert.match(script, /tapcanvas-open-workbench-project-v1:/);
 assert.match(script, /Object\.values\(groups\)/);
 assert.match(script, /canvas\.selectedNodeIds = selectedNodeIds/);
-assert.match(script, /fetch\('\/api\/studio\/projects\//);
+assert.match(script, /fetch\('\/api\/projects\/' \+ encodeURIComponent\(projectId\) \+ '\/canvas'/);
+assert.match(script, /remote\?\.canvas\?\.document\?\.generationCanvas/);
 assert.match(script, /hashQuery/);
 assert.match(script, /localCanvas\.nodes\.length === 0/);
 assert.match(script, /remoteCanvas\.nodes\.length === 0/);

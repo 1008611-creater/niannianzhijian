@@ -45,10 +45,10 @@
       const localCanvas = saved?.payload?.generationCanvas || saved?.generationCanvas;
       if (!projectId || !localCanvas || !Array.isArray(localCanvas.nodes)) return;
 
-      const response = await fetch('/api/studio/projects/' + encodeURIComponent(projectId), {credentials:'same-origin', cache:'no-store'});
+      const response = await fetch('/api/projects/' + encodeURIComponent(projectId) + '/canvas', {credentials:'same-origin', cache:'no-store'});
       if (!response.ok) return;
       const remote = await response.json();
-      const remoteCanvas = remote?.document?.generationCanvas;
+      const remoteCanvas = remote?.canvas?.document?.generationCanvas || remote?.document?.generationCanvas;
       if (!remoteCanvas || !Array.isArray(remoteCanvas.nodes) || remoteCanvas.nodes.length === 0) return;
 
       let changed = false;
