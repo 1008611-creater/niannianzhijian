@@ -2,6 +2,7 @@
   'use strict';
 
   const projectPrefix = 'tapcanvas-open-workbench-project-v1:';
+  const appModule = './assets/index-M-8MrEH2-r28-19b89ec-r6.js?v=20260818-studio-cache-chain-r7';
 
   function normalizedGroups(groups) {
     if (Array.isArray(groups)) return groups;
@@ -9,7 +10,16 @@
     return Object.values(groups).filter((group) => group && typeof group === 'object' && !Array.isArray(group));
   }
 
-  try {
+  function startStudio() {
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.crossOrigin = 'anonymous';
+    script.src = appModule;
+    document.head.appendChild(script);
+  }
+
+  async function migrate() {
+    let projectId = '';
     for (let index = 0; index < window.localStorage.length; index += 1) {
       const key = window.localStorage.key(index);
       if (!key || !key.startsWith(projectPrefix)) continue;
@@ -26,7 +36,30 @@
       canvas.selectedNodeIds = selectedNodeIds;
       window.localStorage.setItem(key, JSON.stringify(saved));
     }
-  } catch (_) {
-    // Loading the canvas must remain available even if a browser blocks local storage.
+
+    try {
+      const hashQuery = window.location.hash.includes('?') ? window.location.hash.slice(window.location.hash.indexOf('?') + 1) : '';
+      projectId = new URLSearchParams(window.location.search).get('projectId') || new URLSearchParams(hashQuery).get('projectId') || '';
+      const localKey = projectPrefix + projectId;
+      const saved = JSON.parse(window.localStorage.getItem(localKey) || 'null');
+      const localCanvas = saved?.payload?.generationCanvas || saved?.generationCanvas;
+      if (!projectId || !localCanvas || !Array.isArray(localCanvas.nodes) || localCanvas.nodes.length > 0) return;
+
+      const response = await fetch('/api/studio/projects/' + encodeURIComponent(projectId), {credentials:'same-origin', cache:'no-store'});
+      if (!response.ok) return;
+      const remote = await response.json();
+      const remoteCanvas = remote?.document?.generationCanvas;
+      if (!remoteCanvas || !Array.isArray(remoteCanvas.nodes) || remoteCanvas.nodes.length === 0) return;
+
+      localCanvas.nodes = remoteCanvas.nodes;
+      localCanvas.edges = Array.isArray(remoteCanvas.edges) ? remoteCanvas.edges : [];
+      localCanvas.groups = normalizedGroups(remoteCanvas.groups);
+      localCanvas.selectedNodeIds = Array.isArray(remoteCanvas.selectedNodeIds) ? remoteCanvas.selectedNodeIds : [];
+      window.localStorage.setItem(localKey, JSON.stringify(saved));
+    } catch (_) {
+      // Loading the canvas must remain available when browser storage or recovery is unavailable.
+    }
   }
+
+  migrate().finally(startStudio);
 }());
