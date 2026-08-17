@@ -7825,6 +7825,17 @@ function internalCanvasAssetRole(value) {
   return {role,categoryId:categories[role]};
 }
 
+function internalCanvasAssetTitle(fields, fallback) {
+  const encoded = canvasText(fields.titleB64, 600);
+  if (encoded && /^[A-Za-z0-9_-]+$/.test(encoded)) {
+    try {
+      const decoded = canvasText(Buffer.from(encoded, 'base64url').toString('utf8'), 160);
+      if (decoded) return decoded;
+    } catch {}
+  }
+  return canvasText(fields.title, 160) || fallback;
+}
+
 async function readInternalCanvasAssetMultipart(request) {
   return new Promise((resolve, reject) => {
     let busboy;
@@ -7891,6 +7902,7 @@ function internalCanvasAssetNode(asset, title, categoryId, role) {
 
 async function attachInternalCanvasAssetNode(owned, asset, input) {
   const category = internalCanvasAssetRole(input.role);
+  const title = internalCanvasAssetTitle(input, path.basename(asset.originalName, path.extname(asset.originalName)));
   const key = nomiDocumentKey(owned.projectKind, owned.project.id);
   return withCanvasDocumentsWriteLock(async () => {
     const documents = await readCanvasDocuments();
@@ -7899,8 +7911,15 @@ async function attachInternalCanvasAssetNode(owned, asset, input) {
     const document = normalizeNomiProjectDocument(currentDocument);
     const nodes = document.generationCanvas.nodes;
     const existing = nodes.find(node => node?.meta?.canvasAssetId === asset.id || node?.result?.assetId === asset.id);
-    if (existing) return {node:existing,revision:Number(current?.revision || 0),created:false,updatedAt:current?.updatedAt || null};
-    const node = internalCanvasAssetNode(asset, canvasText(input.title, 160), category.categoryId, category.role);
+    if (existing) {
+      if (existing.title === title) return {node:existing,revision:Number(current?.revision || 0),created:false,updatedAt:current?.updatedAt || null};
+      existing.title = title;
+      const record = {...current,revision:Number(current?.revision || 0) + 1,document,updatedAt:new Date().toISOString()};
+      documents[key] = record;
+      await writeCanvasDocuments(documents);
+      return {node:existing,revision:record.revision,created:true,updatedAt:record.updatedAt};
+    }
+    const node = internalCanvasAssetNode(asset, title, category.categoryId, category.role);
     const index = nodes.filter(item => item?.categoryId === category.categoryId).length;
     node.position = {x:120 + (index % 3) * 300,y:120 + Math.floor(index / 3) * 230};
     nodes.push(node);
@@ -7935,6 +7954,10 @@ async function handleInternalCanvasAssetImportApi(request, response, pathname) {
     const expectedMime = canvasAssets.FORMATS[format].mimeType;
     if (!canvasAssetDeclaredMimeMatches(format, source.incomingMime)) throw Object.assign(new Error('素材文件类型与内容不一致'), {code:'CANVAS_ASSET_CONTENT_TYPE_MISMATCH',httpStatus:415});
     registered = await canvasAssetService.registerBuffer({ownerId:owned.project.ownerId,projectId,projectKind:owned.projectKind,kind,format,bytes:source.bytes,originalName:source.originalName});
+    const requestedName = safeName(canvasText(fields.fileName, 160) || source.originalName);
+    if (!registered.created && requestedName !== registered.asset.originalName) {
+      registered.asset = await canvasAssetService.renameOwned(owned.project.ownerId, projectId, registered.asset.id, requestedName) || registered.asset;
+    }
     const attached = await attachInternalCanvasAssetNode(owned, registered.asset, fields);
     if (registered.created) prewarmCanvasAssetThumbnail(registered.asset);
     return json(response, registered.created || attached.created ? 201 : 200, {

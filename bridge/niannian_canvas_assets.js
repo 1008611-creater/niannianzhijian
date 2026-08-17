@@ -179,7 +179,22 @@ function createCanvasAssetService(options = {}) {
     });
   }
 
-  return {register,registerBuffer,listOwned,getOwned,removeOwned,publicAsset,formats:FORMATS,maxBytes,maxOutputBytes,constants:{indexPath,storageRoot}};
+  async function renameOwned(ownerId, projectId, assetId, originalName) {
+    const id = validateAssetId(assetId);
+    const name = safeOriginalName(originalName);
+    return withWriteLock(async () => {
+      const assets = await readAll();
+      const asset = assets.find(item => item.id === id && item.ownerId === ownerId && item.projectId === projectId && item.status === 'ready');
+      if (!asset) return null;
+      if (asset.originalName === name) return asset;
+      asset.originalName = name;
+      asset.updatedAt = new Date().toISOString();
+      await writeAll(assets);
+      return asset;
+    });
+  }
+
+  return {register,registerBuffer,listOwned,getOwned,removeOwned,renameOwned,publicAsset,formats:FORMATS,maxBytes,maxOutputBytes,constants:{indexPath,storageRoot}};
 }
 
 module.exports = {createCanvasAssetService,FORMATS};

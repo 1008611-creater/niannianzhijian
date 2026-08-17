@@ -54,6 +54,8 @@ async function main() {
   const projectKind = checked(options['project-kind'], /^(redraw|script)$/, 'project kind');
   const kind = checked(options.kind, /^(reference_image|reference_video|reference_audio)$/, 'asset kind');
   const role = checked(options.role, /^(character|scene|prop|audio|shot)$/, 'asset role');
+  const title = String(options.title || path.basename(file, path.extname(file))).trim();
+  if (!title || title.length > 160) throw new Error('asset title is invalid');
   const host = checked(options['ssh-host'] || 'haika-niannian', /^[A-Za-z0-9_.-]{1,200}$/, 'SSH host');
   const remotePort = Number(options['remote-port'] || '18083');
   if (!Number.isInteger(remotePort) || remotePort < 1 || remotePort > 65535) throw new Error('remote port is invalid');
@@ -62,7 +64,8 @@ async function main() {
 
   const token = crypto.randomBytes(12).toString('hex');
   const remoteDir = `/tmp/niannian-canvas-import-${token}`;
-  const remoteFile = `${remoteDir}/asset`;
+  const remoteName = path.basename(file).replace(/[^A-Za-z0-9._-]/g, '_') || 'asset';
+  const remoteFile = `${remoteDir}/${remoteName}`;
   let copied = false;
   try {
     await run('ssh', [host, `mkdir -p ${remoteDir} && chmod 700 ${remoteDir}`]);
@@ -73,6 +76,8 @@ async function main() {
       `--form-string projectKind=${projectKind}`,
       `--form-string kind=${kind}`,
       `--form-string role=${role}`,
+      `--form-string fileName=${remoteName}`,
+      `--form-string titleB64=${Buffer.from(title, 'utf8').toString('base64url')}`,
       `--form asset=@${remoteFile}`
     ].join(' ');
     const response = await run('ssh', [host, `curl --silent --show-error --fail-with-body --max-time 180 ${form} http://127.0.0.1:${remotePort}/api/internal/canvas-assets/import`]);
