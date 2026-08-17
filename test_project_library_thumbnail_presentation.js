@@ -29,6 +29,6 @@ const studioHtml = fs.readFileSync(path.join(__dirname, 'studio/index.html'), 'u
   'autoCoverUrl(project)'
 ].forEach((contract) => assert.ok(source.includes(contract), `missing project thumbnail contract: ${contract}`));
 
-assert.match(studioHtml, /project-library-management\.js\?v=20260816-cover-carousel-r1/);
+assert.match(studioHtml, /project-library-management\.js\?v=20260818-storyboard-group-contract-r8/);
 
 console.log('PROJECT_LIBRARY_THUMBNAIL_PRESENTATION_CONTRACT_OK');

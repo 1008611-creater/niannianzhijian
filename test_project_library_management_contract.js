@@ -27,9 +27,9 @@ const html = fs.readFileSync(path.join(__dirname, 'studio', 'index.html'), 'utf8
   'api.updateMetadata'
 ].forEach(token => assert(controls.includes(token), `项目库管理界面缺少合同：${token}`));
 
-assert(html.includes('project-library-management.js?v=20260816-cover-carousel-r1'));
-assert(html.includes('web-runtime-adapter-r4.js?v=20260817-generation-spec-r1'));
-assert(html.includes('studio-route-boot.js?v=20260817-route-gate-mobile-r1'));
+assert(html.includes('project-library-management.js?v=20260818-storyboard-group-contract-r8'));
+assert(html.includes('web-runtime-adapter-r4.js?v=20260818-storyboard-group-contract-r8'));
+assert(html.includes('studio-route-boot.js?v=20260818-storyboard-group-contract-r8'));
 assert(html.includes('nomi-project-route-pending'));
 assert(routeBoot.includes('projectId') && routeBoot.includes('nomi-studio-app'));
 assert(routeBoot.includes('.nomi-studio-app, .nomi-library-page'), '项目路由遮罩必须在画布或项目库任一真实页面挂载后关闭');

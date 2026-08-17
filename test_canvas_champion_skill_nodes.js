@@ -14,6 +14,7 @@ const dataRoot = path.join(os.tmpdir(), 'niannian-champion-skill-nodes-' + proce
 const token = 'champion-skill-node-token';
 const user = {id:'USR-CHAMPION-SKILLS',email:'champion-skills@example.test',status:'active'};
 const project = {id:'NN-CHAMPION-SKILLS-01',ownerId:user.id,name:'Champion Skill Canvas',projectKind:'redraw',canvasOnly:true,status:'ready',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),runtime:{}};
+const firstFrameAssetId = 'CAS-000000000000000000000001';
 let server;
 let output = '';
 
@@ -30,7 +31,7 @@ function championDocument() {
       node('champion-assets','character','chaoge-assets-trial'),
       node('champion-shotlist','shot','shotlist-builder'),
       node('champion-hellgrind','shot','hell-grind',{parameters:{compiledOutputs:{image_prompt:'雨夜霓虹街道，电影级关键帧，人物连续性严格保持。',video_prompt:'雨夜霓虹街道，人物缓慢前行，镜头跟拍。'}}}),
-      node('champion-image','image','image2-storyboard-video',{prompt:'不能覆盖上游编译提示',imageChannel:'yunwu-gpt-image-2-c',resolution:'4k',aspectRatio:'9:16'}),
+      node('champion-image','image','image2-storyboard-video',{prompt:'不能覆盖上游编译提示',assetIds:[firstFrameAssetId],imageChannel:'yunwu-gpt-image-2-c',resolution:'4k',aspectRatio:'9:16'}),
       node('champion-video','video','minimaxh3skill',{prompt:'不能覆盖上游编译提示',durationSeconds:5,aspectRatio:'9:16'})
     ],
     edges:[
@@ -75,7 +76,11 @@ async function run() {
     fs.writeFile(path.join(dataRoot, 'projects.json'), '[]'),
     fs.writeFile(path.join(dataRoot, 'canvas-projects.json'), JSON.stringify([project])),
     fs.writeFile(path.join(dataRoot, 'canvas-documents.json'), '{}'),
-    fs.writeFile(path.join(dataRoot, 'canvas-assets.json'), '[]'),
+    fs.writeFile(path.join(dataRoot, 'canvas-assets.json'), JSON.stringify([{
+      id:firstFrameAssetId, ownerId:user.id, projectId:project.id, projectKind:'redraw', kind:'reference_image',
+      originalName:'first-frame.png', storageKey:'canvas-assets/' + firstFrameAssetId + '.png', format:'png',
+      mimeType:'image/png', bytes:1, sha256:'0'.repeat(64), status:'ready', createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()
+    }])),
     fs.writeFile(path.join(dataRoot, 'canvas-generation-jobs.json'), '[]'),
     fs.writeFile(path.join(dataRoot, 'workspace-bindings.json'), '[]'),
     fs.writeFile(path.join(dataRoot, 'script-projects.json'), '[]')
@@ -127,17 +132,22 @@ async function run() {
   assert.deepEqual(moved.body.document.nodes.find(item => item.id === 'champion-hellgrind').position, {x:960,y:420});
   etag = moved.response.headers.get('etag');
 
-  const h3Node = await request('/api/canvas/documents/redraw/' + project.id + '/s3-h3', {method:'POST',headers:headers({'content-type':'application/json','if-match':etag}),body:JSON.stringify({prompt:'雨夜人物缓慢前行，镜头稳定跟拍。',aspectRatio:'9:16',durationSeconds:5})});
+  const h3Node = await request('/api/canvas/documents/redraw/' + project.id + '/s3-h3', {method:'POST',headers:headers({'content-type':'application/json','if-match':etag}),body:JSON.stringify({prompt:'雨夜人物缓慢前行，镜头稳定跟拍。',referenceAssetIds:[firstFrameAssetId],aspectRatio:'16:9',durationSeconds:12})});
   assert.equal(h3Node.response.status, 201, JSON.stringify(h3Node.body));
   assert.equal(h3Node.body.code, 'CANVAS_S3_H3_NODE_READY');
   assert.equal(h3Node.body.node.skillKey, 'minimaxh3skill');
   assert.deepEqual(h3Node.body.node.inputPorts.map(port => port.id), ['prompt','image_asset']);
   assert.deepEqual(h3Node.body.node.outputPorts.map(port => port.id), ['video_asset']);
+  assert.equal(h3Node.body.node.status, 'ready');
+  assert.equal(h3Node.body.node.data.firstFrameAssetId, firstFrameAssetId);
+  assert.equal(h3Node.body.node.data.aspectRatio, '9:16');
+  assert.equal(h3Node.body.node.data.durationSeconds, 5);
   etag = h3Node.response.headers.get('etag');
   const h3NodeJob = await request('/api/projects/' + project.id + '/canvas/jobs', {method:'POST',headers:headers({'content-type':'application/json','idempotency-key':'champion-s3-h3-job-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'s3-h3-video',model:'h3',durationSeconds:5,aspectRatio:'9:16'})});
   assert.equal(h3NodeJob.response.status, 201, JSON.stringify(h3NodeJob.body));
   assert.equal(h3NodeJob.body.job.status, 'awaiting_authorization');
   assert.equal(h3NodeJob.body.providerSubmitEnabled, false);
+  assert.deepEqual(h3NodeJob.body.job.inputAssetIds, [firstFrameAssetId]);
 
   const imageJob = await request('/api/projects/' + project.id + '/canvas/jobs', {method:'POST',headers:headers({'content-type':'application/json','idempotency-key':'champion-image-job-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'champion-image',model:'yunwu-gpt-image-2-c',resolution:'4k',aspectRatio:'9:16'})});
   assert.equal(imageJob.response.status, 201, JSON.stringify(imageJob.body));

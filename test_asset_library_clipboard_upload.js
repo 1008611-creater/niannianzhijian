@@ -5,8 +5,8 @@ const vm = require('node:vm');
 
 const source = fs.readFileSync(path.join(__dirname, 'studio', 'assets', 'asset-library-clipboard-upload-r1.js'), 'utf8');
 const indexHtml = fs.readFileSync(path.join(__dirname, 'studio', 'index.html'), 'utf8');
-assert.match(indexHtml, /asset-library-upload-contract-r2\.js\?v=20260817-upload-contract-r2/);
-assert.match(indexHtml, /asset-library-clipboard-upload-r1\.js\?v=20260817-clipboard-upload-r2/);
+assert.match(indexHtml, /asset-library-upload-contract-r2\.js\?v=20260818-storyboard-group-contract-r8/);
+assert.match(indexHtml, /asset-library-clipboard-upload-r1\.js\?v=20260818-storyboard-group-contract-r8/);
 const listeners = new Map();
 const dispatched = [];
 const imageFile = {name: 'clipboard-reference.png', type: 'image/png'};

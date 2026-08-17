@@ -43,7 +43,7 @@ function createCanvasH3Runtime(options = {}) {
   function dryRun(job) {
     if (job.nodeType !== 'video') throw runtimeError('CANVAS_H3_NODE_INVALID', '当前任务不是视频任务', 422);
     const count = (job.inputAssetIds || []).length;
-    return adapter.dryRun({prompt:job.prompt,aspectRatio:job.aspectRatio || '16:9',durationSeconds:job.durationSeconds || 5}, count);
+    return adapter.dryRun({prompt:job.prompt,aspectRatio:job.aspectRatio || '9:16',durationSeconds:job.durationSeconds || 5}, count);
   }
 
   async function submitOnce(ownerId, projectId, jobId) {
@@ -57,7 +57,7 @@ function createCanvasH3Runtime(options = {}) {
     const references = await ownedReferences(job);
     await jobs.updateOwned(ownerId, projectId, jobId, {status:'queued',providerSubmitState:'submitting',publicError:null});
     try {
-      const submitted = await adapter.submit({prompt:job.prompt,aspectRatio:job.aspectRatio || '16:9',durationSeconds:job.durationSeconds || 5}, references.map(asset => asset.storedPath));
+      const submitted = await adapter.submit({prompt:job.prompt,aspectRatio:job.aspectRatio || '9:16',durationSeconds:job.durationSeconds || 5}, references.map(asset => asset.storedPath));
       return await jobs.updateOwned(ownerId, projectId, jobId, {status:'queued',providerSubmitState:'accepted',providerTaskId:submitted.taskId,providerChannel:submitted.channel,providerPayload:submitted.payload,publicError:null});
     } catch (error) {
       const unknown = error?.code === 'RUNNINGHUB_NETWORK_UNCERTAIN';

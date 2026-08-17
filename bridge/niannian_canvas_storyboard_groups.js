@@ -1,0 +1,169 @@
+'use strict';
+
+// A canvas category is the durable top-level bucket. Storyboard groups are
+// explicit children of that bucket and are the only place generation nodes
+// may live. Keeping the taxonomy in the document lets every client rebuild
+// the same view after refresh without copying an asset or a provider result.
+const TOP_LEVEL_GROUPS = Object.freeze([
+  Object.freeze({id:'shots', name:'分镜'}),
+  Object.freeze({id:'characters', name:'角色'}),
+  Object.freeze({id:'scenes', name:'场景'}),
+  Object.freeze({id:'props', name:'道具'}),
+  Object.freeze({id:'audio', name:'声音'})
+]);
+
+const TOP_LEVEL_IDS = new Set(TOP_LEVEL_GROUPS.map(group => group.id));
+const STORYBOARD_CATEGORY = 'shots';
+const DEFAULT_STORYBOARD_GROUP_ID = 'storyboard-unassigned';
+
+function text(value, limit = 160) {
+  return String(value == null ? '' : value).replace(/[\u0000-\u001f]/g, '').trim().slice(0, limit);
+}
+
+function safeId(value, fallback) {
+  const id = text(value, 120);
+  return /^[A-Za-z0-9_-]{3,120}$/.test(id) ? id : fallback;
+}
+
+function shotIdFor(group) {
+  const explicit = text(group?.shotId, 120);
+  if (explicit) return explicit;
+  const title = text(group?.name, 240);
+  const matched = title.match(/(?:^|\D)(E\d{2,3}-G\d{1,3})(?:\D|$)/i);
+  return matched ? matched[1].toUpperCase() : null;
+}
+
+function defaultStoryboardGroup(now) {
+  return {
+    id:DEFAULT_STORYBOARD_GROUP_ID,
+    name:'分镜·未分配',
+    categoryId:STORYBOARD_CATEGORY,
+    shotId:'UNASSIGNED',
+    nodeIds:[],
+    systemManaged:true,
+    createdAt:now,
+    updatedAt:now
+  };
+}
+
+function normalizeGroup(group, index, now) {
+  if (!group || typeof group !== 'object' || Array.isArray(group)) return null;
+  const categoryId = TOP_LEVEL_IDS.has(text(group.categoryId, 40)) ? text(group.categoryId, 40) : STORYBOARD_CATEGORY;
+  const normalized = {
+    ...group,
+    id:safeId(group.id, 'group-' + (index + 1)),
+    name:text(group.name, 160) || ('组 ' + (index + 1)),
+    categoryId,
+    nodeIds:[...new Set((Array.isArray(group.nodeIds) ? group.nodeIds : []).map(value => safeId(value, '')).filter(Boolean))].slice(0, 300),
+    assetIds:[...new Set((Array.isArray(group.assetIds) ? group.assetIds : []).map(value => safeId(value, '')).filter(Boolean))].slice(0, 300),
+    parentGroupId:safeId(group.parentGroupId, '') || null,
+    createdAt:Number.isFinite(Number(group.createdAt)) ? Number(group.createdAt) : now,
+    updatedAt:Number.isFinite(Number(group.updatedAt)) ? Number(group.updatedAt) : now
+  };
+  if (categoryId === STORYBOARD_CATEGORY) normalized.shotId = shotIdFor(normalized) || normalized.id;
+  else delete normalized.shotId;
+  return normalized;
+}
+
+function assetIdsForNode(node) {
+  const metadata = node?.meta && typeof node.meta === 'object' && !Array.isArray(node.meta) ? node.meta : {};
+  const values = [
+    ...(Array.isArray(metadata.assetIds) ? metadata.assetIds : []),
+    ...(Array.isArray(metadata.inputAssetIds) ? metadata.inputAssetIds : []),
+    metadata.canvasAssetId,
+    metadata.firstFrameAssetId,
+    node?.result?.assetId
+  ];
+  return [...new Set(values.map(value => safeId(value, '')).filter(Boolean))];
+}
+
+function preferredStoryboardGroup(groups, requestedGroupId, now) {
+  const requested = text(requestedGroupId, 120);
+  const existing = groups.find(group => group.id === requested && group.categoryId === STORYBOARD_CATEGORY)
+    || groups.find(group => group.categoryId === STORYBOARD_CATEGORY && group.shotId && group.shotId !== 'UNASSIGNED')
+    || groups.find(group => group.categoryId === STORYBOARD_CATEGORY);
+  if (existing) return existing;
+  const created = defaultStoryboardGroup(now);
+  groups.push(created);
+  return created;
+}
+
+function isGenerationNode(node) {
+  if (node?.kind === 'asset' || node?.type === 'asset') return false;
+  return node?.kind === 'image' || node?.kind === 'video' || node?.type === 'image' || node?.type === 'video';
+}
+
+function normalizeGenerationCanvas(canvas, options = {}) {
+  const now = Number(options.now || Date.now());
+  const raw = canvas && typeof canvas === 'object' && !Array.isArray(canvas) ? canvas : {};
+  const groups = (Array.isArray(raw.groups) ? raw.groups : [])
+    .map((group, index) => normalizeGroup(group, index, now))
+    .filter(Boolean);
+  const nodes = Array.isArray(raw.nodes) ? raw.nodes.map(node => ({...node})) : [];
+  const nodeIds = new Set(nodes.map(node => text(node?.id, 120)).filter(Boolean));
+  const requestedByNode = options.requestedGroupByNode && typeof options.requestedGroupByNode === 'object'
+    ? options.requestedGroupByNode
+    : {};
+
+  for (const node of nodes) {
+    if (!node || typeof node !== 'object' || Array.isArray(node)) continue;
+    const nodeId = text(node.id, 120);
+    const existingCategory = text(node.categoryId, 40);
+    if (!TOP_LEVEL_IDS.has(existingCategory)) node.categoryId = isGenerationNode(node) ? STORYBOARD_CATEGORY : existingCategory || STORYBOARD_CATEGORY;
+    if (!isGenerationNode(node)) continue;
+    // Image/video generation is always part of the storyboard. Sidebar state
+    // must never route a generation request into roles, scenes, props or audio.
+    node.categoryId = STORYBOARD_CATEGORY;
+    const group = preferredStoryboardGroup(groups, requestedByNode[nodeId] || node.groupId, now);
+    node.groupId = group.id;
+    node.shotId = group.shotId || group.id;
+    node.meta = node.meta && typeof node.meta === 'object' && !Array.isArray(node.meta) ? {...node.meta} : {};
+    node.meta.shotId = node.shotId;
+    node.meta.storyboardGroupId = group.id;
+  }
+
+  for (const group of groups) {
+    const nextNodeIds = nodes
+      .filter(node => node?.groupId === group.id && nodeIds.has(text(node?.id, 120)))
+      .map(node => node.id);
+    const nextAssetIds = [...new Set(nodes
+      .filter(node => node?.groupId === group.id && nodeIds.has(text(node?.id, 120)))
+      .flatMap(assetIdsForNode))];
+    if (JSON.stringify(group.nodeIds) !== JSON.stringify(nextNodeIds) || JSON.stringify(group.assetIds) !== JSON.stringify(nextAssetIds)) {
+      group.nodeIds = nextNodeIds;
+      group.assetIds = nextAssetIds;
+      group.updatedAt = now;
+    }
+  }
+
+  return {
+    ...raw,
+    nodes,
+    groups,
+    groupTaxonomy:{version:'niannian.storyboard_groups.v1',topLevel:TOP_LEVEL_GROUPS.map(group => ({...group}))}
+  };
+}
+
+function resolveProjectGenerationDefaults(project) {
+  const candidates = [
+    project?.generationDefaults,
+    project?.canvasGenerationDefaults,
+    project?.metadata?.generationDefaults,
+    project?.metadata?.canvasGenerationDefaults
+  ].filter(value => value && typeof value === 'object' && !Array.isArray(value));
+  const source = candidates[0] || {};
+  const aspectRatio = /^\d{1,2}:\d{1,2}$/.test(text(source.aspectRatio || source.videoAspectRatio, 16))
+    ? text(source.aspectRatio || source.videoAspectRatio, 16)
+    : '9:16';
+  const durationSeconds = Math.max(4, Math.min(15, Number(source.durationSeconds || source.videoDurationSeconds || 5)) || 5);
+  return {aspectRatio, durationSeconds};
+}
+
+module.exports = {
+  TOP_LEVEL_GROUPS,
+  TOP_LEVEL_IDS,
+  STORYBOARD_CATEGORY,
+  DEFAULT_STORYBOARD_GROUP_ID,
+  normalizeGenerationCanvas,
+  resolveProjectGenerationDefaults
+};

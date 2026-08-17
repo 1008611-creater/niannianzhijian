@@ -96,7 +96,7 @@ try {
       release_id: 'release-stage-materialization-check',
       parent_release_id: 'release-stage-parent',
       scope: 'verify allowed files are packaged',
-      allowed_files: ['admin/commerce/index.html', 'admin/commerce/commerce.js', 'admin/commerce/commerce.css']
+      allowed_files: ['admin/commerce/index.html', 'admin/commerce/commerce.js', 'admin/commerce/commerce.css', 'server.js']
     });
     const scopedManifest = JSON.parse(fs.readFileSync(scopedCandidate.package_manifest, 'utf8'));
     assert(scopedManifest.files.includes('admin/commerce/index.html'));

@@ -42,6 +42,8 @@ function projectNode(node) {
     prompt:text(data.prompt || data.note || node?.description, 4000),
     position:{x:Number(node?.position?.x) || 120,y:Number(node?.position?.y) || 160},
     categoryId:'shots',
+    groupId:text(data.storyboardGroupId || data.groupId || node?.groupId, 120) || undefined,
+    shotId:text(data.shotId || node?.shotId, 120) || undefined,
     meta:{
       niannianSkillNode:true,
       sourceNodeId:sourceId,
@@ -52,6 +54,9 @@ function projectNode(node) {
       outputPorts:clone(outputPorts),
       parameters:clone(parameters),
       assetRefs:clone(assetRefs),
+      assetIds:clone(Array.isArray(data.assetIds) ? data.assetIds : []),
+      inputAssetIds:clone(Array.isArray(data.inputAssetIds) ? data.inputAssetIds : []),
+      firstFrameAssetId:text(data.firstFrameAssetId || parameters.firstFrameAssetId, 120) || null,
       taskRef:clone(node?.taskRef || data.taskRef || null),
       status:text(node?.status || data.status || 'draft', 40),
       preview:clone(node?.preview || data.preview || null),

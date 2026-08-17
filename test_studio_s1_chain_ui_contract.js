@@ -8,7 +8,7 @@ const root = __dirname;
 const html = fs.readFileSync(path.join(root, 'studio', 'index.html'), 'utf8');
 const source = fs.readFileSync(path.join(root, 'studio', 'assets', 's1-chain-ui.js'), 'utf8');
 
-assert.match(html, /assets\/s1-chain-ui\.js\?v=20260817-retire-champion-skill-nodes-r1/);
+assert.match(html, /assets\/s1-chain-ui\.js\?v=20260818-storyboard-group-contract-r8/);
 assert.match(source, /\/api\/canvas\/documents\//);
 assert.match(source, /\/api\/projects\//);
 assert.match(source, /step01Projection/);

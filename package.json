@@ -65,6 +65,7 @@
     "test:asset-library-clipboard-upload": "node test_asset_library_clipboard_upload.js",
     "test:asset-library-upload-contract": "node test_asset_library_upload_contract.js",
     "test:canvas-generation-http": "node test_canvas_generation_http.js",
+    "test:canvas-storyboard-grouping": "node test_canvas_storyboard_grouping_contract.js && node test_canvas_storyboard_grouping_browser.js",
     "test:canvas-s1-chain": "node test_canvas_s1_chain_http.js",
     "test:canvas-champion-skill-nodes": "node test_canvas_champion_skill_nodes.js",
     "test:studio-s1-chain-ui": "node test_studio_s1_chain_ui_contract.js",
