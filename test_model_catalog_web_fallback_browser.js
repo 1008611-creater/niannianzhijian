@@ -23,6 +23,7 @@ async function main() {
   const generationController = require('node:fs').readFileSync(root + '/studio/assets/generationRunController-DH5v5RRt-r4.js', 'utf8');
   assert.match(generationController, /window\.nomiDesktop\?\.modelCatalog\?\.listVendors/);
   assert.match(generationController, /window\.nomiDesktop\?\.modelCatalog\?\.listModels/);
+  assert.match(generationController, /Array\.isArray\(a\)\?a:\[\]\)\.find\(k=>k&&k\.enabled&&ce\(k,r\)\)/);
   assert.match(generationController, /webCatalogModels as Fn,webCatalogVendors as Gn/);
   assert.match(generationController, /const s=\(\)=>Gn\(\)\.catch\(/);
   assert.match(generationController, /const i=\(\)=>Fn\(ct\(e\)\)\.catch\(/);
