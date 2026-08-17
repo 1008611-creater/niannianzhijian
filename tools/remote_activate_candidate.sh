@@ -39,7 +39,8 @@ on_error() {
 }
 trap on_error ERR
 
-install -d -m 0755 "$rollback_root"
+mkdir -p "$rollback_root"
+chmod 0755 "$rollback_root"
 cp -aL /opt/niannian-ai "$rollback_root/app"
 cp -aL /var/www/niannian-ai "$rollback_root/static"
 cp -a /etc/systemd/system/niannian-ai.service "$rollback_root/niannian-ai.service"
