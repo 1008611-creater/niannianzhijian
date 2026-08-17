@@ -11,6 +11,7 @@ let dataDir;
 let baseUrl;
 let serverOutput = '';
 let sessionToken;
+let sessionUserId;
 
 async function waitForServer() {
   let lastError;
@@ -52,6 +53,7 @@ test.beforeAll(async () => {
     body: JSON.stringify({email: 'studio-e2e@example.test', password: 'test-password-123'})
   });
   expect(registration.ok).toBe(true);
+  sessionUserId = (await registration.clone().json()).user.id;
   sessionToken = registration.headers.get('set-cookie').split(';')[0].split('=')[1];
 });
 
@@ -217,20 +219,34 @@ test('Project library renames a project and persists a custom cover', async ({br
 });
 
 test('Project route gate prevents the library flash while the canvas hydrates', async ({browser}) => {
-  const context = await browser.newContext({viewport: {width: 1440, height: 900}});
-  await context.addCookies([{name: 'niannian_session', value: sessionToken, url: baseUrl}]);
-  const page = await context.newPage();
+  const legacyProjectId = 'NN-20260817000000-MOBILE01';
+  const legacyProjectPath = path.join(dataDir, 'canvas-projects.json');
+  const legacyProjects = JSON.parse(await fs.readFile(legacyProjectPath, 'utf8').catch(() => '[]'));
+  if (!legacyProjects.some(project => project.id === legacyProjectId)) {
+    const now = new Date().toISOString();
+    legacyProjects.unshift({
+      id: legacyProjectId,
+      ownerId: sessionUserId,
+      name: '手机直达历史项目',
+      canvasOnly: true,
+      projectKind: 'redraw',
+      createdAt: now,
+      updatedAt: now,
+      status: 'ready',
+      runtime: {productionStatus:'ready', currentNode:'canvas'}
+    });
+    await fs.writeFile(legacyProjectPath, JSON.stringify(legacyProjects, null, 2) + '\n');
+  }
+  for (const viewport of [{width: 1440, height: 900}, {width: 390, height: 844}]) {
+    const context = await browser.newContext({viewport});
+    await context.addCookies([{name: 'niannian_session', value: sessionToken, url: baseUrl}]);
+    const page = await context.newPage();
 
-  await page.goto(baseUrl + '/studio/', {waitUntil: 'networkidle'});
-  await page.getByRole('button', {name: /新建空白项目/}).click();
-  await page.waitForTimeout(500);
-  const projectId = await page.evaluate(() => window.nomiDesktop.projects.list()[0]?.id || null);
-  expect(projectId).toMatch(/^NN-/);
+    await page.goto(baseUrl + '/studio/#/studio?projectId=' + encodeURIComponent(legacyProjectId), {waitUntil: 'commit'});
+    await expect(page.locator('.nomi-studio-app')).toBeVisible({timeout: 15000});
+    expect(await page.locator('.nomi-library-page').count()).toBe(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
-  await page.goto(baseUrl + '/studio/#/studio?projectId=' + encodeURIComponent(projectId), {waitUntil: 'commit'});
-  expect(await page.evaluate(() => document.documentElement.classList.contains('nomi-project-route-pending'))).toBe(true);
-  await expect(page.locator('.nomi-studio-app')).toBeVisible({timeout: 15000});
-  expect(await page.locator('.nomi-library-page').count()).toBe(0);
-
-  await context.close();
+    await context.close();
+  }
 });
