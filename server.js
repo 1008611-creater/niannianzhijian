@@ -148,6 +148,7 @@ const sessionsPath = path.join(dataRoot, 'sessions.json');
 const authAuditPath = path.join(dataRoot, 'auth_audit.jsonl');
 const modelControlConfigPath = path.join(dataRoot, 'model-control-config.json');
 const creditLedgerPath = path.join(dataRoot, 'credit-ledger.json');
+const canvasWelcomeCredits = Math.max(0, Math.min(100000, Math.floor(Number(process.env.NIANNIAN_CANVAS_WELCOME_CREDITS || 0)) || 0));
 const maxUploadBytes = Math.max(1024 * 1024, Math.min(300 * 1024 * 1024, Number(process.env.MAX_UPLOAD_BYTES || 300 * 1024 * 1024)));
 const maxScriptDocumentBytes = Math.max(1024 * 1024, Math.min(100 * 1024 * 1024, Number(process.env.MAX_SCRIPT_DOCUMENT_BYTES || 25 * 1024 * 1024)));
 const scriptUploadChunkBytes = Math.max(256 * 1024, Math.min(4 * 1024 * 1024, Number(process.env.SCRIPT_UPLOAD_CHUNK_BYTES || 1024 * 1024)));
@@ -159,7 +160,7 @@ const previewUser = Object.freeze({id:'USR-PREVIEW', email:'preview@niannian.loc
 const canvasGenerationJobService = canvasGenerationJobs.createCanvasGenerationJobService({filePath:canvasGenerationJobsPath});
 const canvasAssetService = canvasAssets.createCanvasAssetService({indexPath:canvasAssetsPath,storageRoot:canvasAssetsRoot,maxBytes:process.env.CANVAS_ASSET_MAX_BYTES});
 const canvasProviderStatus = canvasProviderConfig.readCanvasProviderConfig();
-const modelControlPlane = modelControlPlaneModule.createModelControlPlane({configPath:modelControlConfigPath,ledgerPath:creditLedgerPath});
+const modelControlPlane = modelControlPlaneModule.createModelControlPlane({configPath:modelControlConfigPath,ledgerPath:creditLedgerPath,welcomeCredits:canvasWelcomeCredits});
 const canvasImage2Runtime = canvasImage2RuntimeModule.createCanvasImage2Runtime({
   jobService:canvasGenerationJobService,
   assetService:canvasAssetService,

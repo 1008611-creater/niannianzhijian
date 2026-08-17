@@ -90,6 +90,17 @@ function publicCatalog(models, tenantId) {
 function createModelControlPlane(options = {}) {
   const configStore = atomicStore(path.resolve(options.configPath), {schemaVersion: 'niannian.model_control_config.v1', providers: [], models: []});
   const ledgerStore = atomicStore(path.resolve(options.ledgerPath), {schemaVersion: 'niannian.credit_ledger.v1', accounts: {}, entries: []});
+  const welcomeCredits = Math.max(0, Math.min(100000, Math.floor(Number(options.welcomeCredits || 0)) || 0));
+
+  function ensureAccount(ledger, tenantId, userId) {
+    const accountKey = tenantId + ':' + userId;
+    if (Object.hasOwn(ledger.accounts, accountKey)) return {accountKey, created:false, balance:Number(ledger.accounts[accountKey] || 0)};
+    ledger.accounts[accountKey] = welcomeCredits;
+    if (welcomeCredits > 0) {
+      ledger.entries.push({id:'LE-' + crypto.randomBytes(10).toString('hex'), type:'welcome_grant', tenantId, userId, amount:welcomeCredits, reason:'configured_welcome_credits', createdAt:new Date().toISOString()});
+    }
+    return {accountKey, created:true, balance:welcomeCredits};
+  }
 
   async function ensureDefaults() {
     await configStore.withLock(async () => {
@@ -158,8 +169,12 @@ function createModelControlPlane(options = {}) {
   }
 
   async function accountBalance(tenantId, userId) {
-    const ledger = await ledgerStore.read();
-    return Number(ledger.accounts[tenantId + ':' + userId] || 0);
+    return ledgerStore.withLock(async () => {
+      const ledger = await ledgerStore.read();
+      const account = ensureAccount(ledger, tenantId, userId);
+      if (account.created) await ledgerStore.write(ledger);
+      return account.balance;
+    });
   }
 
   async function reserveCredits(input) {
@@ -169,7 +184,8 @@ function createModelControlPlane(options = {}) {
       const ledger = await ledgerStore.read();
       const existing = ledger.entries.find(item => item.type === 'reserve' && item.idempotencyKey === idempotencyKey && item.userId === userId);
       if (existing) return {reservationId: existing.reservationId, idempotent: true, balance: Number(ledger.accounts[tenantId + ':' + userId] || 0)};
-      const accountKey = tenantId + ':' + userId; const balance = Number(ledger.accounts[accountKey] || 0);
+      const account = ensureAccount(ledger, tenantId, userId);
+      const accountKey = account.accountKey; const balance = account.balance;
       if (balance < amount) throw controlError('CREDIT_INSUFFICIENT', '积分余额不足', 402);
       ledger.accounts[accountKey] = balance - amount;
       const reservationId = 'CR-' + crypto.randomBytes(12).toString('hex');
@@ -216,7 +232,7 @@ function createModelControlPlane(options = {}) {
     return {schemaVersion:ledger.schemaVersion, entries, accountBalances:Object.fromEntries(Object.entries(ledger.accounts).filter(([key]) => (!tenantId || key.startsWith(tenantId + ':')) && (!userId || key.endsWith(':' + userId))))};
   }
 
-  return {ensureDefaults, publicCatalogForTenant, adminSnapshot, upsertModel, upsertProvider, accountBalance, reserveCredits, settleCredits: input => settleOrRefund(input, 'settle'), refundCredits: input => settleOrRefund(input, 'refund'), creditAdmin, auditCredits, isAdmin, requireAdmin, constants: {configPath: configStore.filePath, ledgerPath: ledgerStore.filePath}};
+  return {ensureDefaults, publicCatalogForTenant, adminSnapshot, upsertModel, upsertProvider, accountBalance, reserveCredits, settleCredits: input => settleOrRefund(input, 'settle'), refundCredits: input => settleOrRefund(input, 'refund'), creditAdmin, auditCredits, isAdmin, requireAdmin, constants: {configPath: configStore.filePath, ledgerPath: ledgerStore.filePath, welcomeCredits}};
 }
 
 module.exports = {createModelControlPlane, tenantForUser, isAdmin, requireAdmin};
