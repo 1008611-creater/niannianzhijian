@@ -7,11 +7,12 @@ const vm = require('vm');
 (async () => {
 const source = fs.readFileSync(require('path').join(__dirname, 'studio/assets/web-runtime-adapter-r4.js'), 'utf8');
 const studioIndex = fs.readFileSync(require('path').join(__dirname, 'studio/index.html'), 'utf8');
-assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=[A-Za-z0-9._-]+/);
+assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260817-catalog-enabled-default-r2/);
 assert.match(source, /\/api\/canvas\/provider-status/);
 assert.match(source, /\/api\/projects\/.*\/canvas\/jobs/);
 assert.match(source, /\/api\/projects\/.*\/text\/jobs/);
 assert.match(source, /var providerKey = typeof item\.providerKey === 'string' \? item\.providerKey\.trim\(\) : ''/);
+assert.match(source, /item && item\.enabled !== false/);
 assert.match(source, /var vendorKey = providerKey \|\| String\(item\.providerLabel \|\| 'server'\)/);
 assert.match(source, /catalogVendors\.push\(\{key: vendorKey, name: item\.providerLabel \|\| '已接入模型', enabled: true, authType: 'none', hasApiKey: true\}\)/);
 assert.match(source, /vendorKey: 'asxs'/);
@@ -58,7 +59,7 @@ const context = {
     calls.push(pathname);
     if (pathname === '/api/canvas/provider-status') return {ok:true,json:async() => ({providerStatus:{
       modelCatalog: {models: [
-        {id:'yunwu-gpt-image-2-c',label:'云雾 Image2 竖版 4K',kind:'image',providerKey:'yunwu-agent-vault',providerLabel:'云雾',enabled:true,priceCredits:10,resolutions:['4k'],aspectRatios:['9:16'],outputSizes:{'4k':'2160x3840'}}
+        {id:'yunwu-gpt-image-2-c',label:'云雾 Image2 竖版 4K',kind:'image',providerKey:'yunwu-agent-vault',providerLabel:'云雾',priceCredits:10,resolutions:['4k'],aspectRatios:['9:16'],outputSizes:{'4k':'2160x3840'}}
       ]},
       credentialConfigured:false,
       imageSubmitEnabled:true,
