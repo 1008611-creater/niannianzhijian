@@ -1225,6 +1225,11 @@ function requestIp(request) {
   return String(request.headers['x-forwarded-for'] || request.socket.remoteAddress || '').split(',')[0].trim();
 }
 
+function isLoopbackSocket(request) {
+  const address = String(request.socket?.remoteAddress || '').trim().toLowerCase();
+  return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';
+}
+
 function consumeRateLimit(key, limit, windowMs) {
   const now = Date.now();
   const current = authRateLimits.get(key);
@@ -7801,6 +7806,156 @@ async function ownedCanvasProjectById(user, projectId, preferredKind) {
   return null;
 }
 
+async function internalCanvasProjectById(projectId, projectKind) {
+  if (!['redraw','script'].includes(projectKind)) return null;
+  const projects = projectKind === 'redraw' ? await readProjects() : await readScriptProjects();
+  const direct = projects.find(project => project.id === projectId && canvasText(project.ownerId, 120));
+  if (direct) return {project:direct, projectKind};
+  const canvasProjects = await readCanvasProjects();
+  const canvasOnly = canvasProjects.find(project => project.id === projectId && project.projectKind === projectKind && canvasText(project.ownerId, 120));
+  return canvasOnly ? {project:canvasOnly, projectKind} : null;
+}
+
+function internalCanvasAssetRole(value) {
+  const role = canvasText(value, 40).toLowerCase();
+  const categories = {character:'characters',scene:'scenes',prop:'props',audio:'audio',shot:'shots'};
+  if (!Object.prototype.hasOwnProperty.call(categories, role)) {
+    throw Object.assign(new Error('素材画布分组无效'), {code:'INTERNAL_CANVAS_ASSET_ROLE_INVALID',httpStatus:422});
+  }
+  return {role,categoryId:categories[role]};
+}
+
+async function readInternalCanvasAssetMultipart(request) {
+  return new Promise((resolve, reject) => {
+    let busboy;
+    try { busboy = Busboy({headers:request.headers,limits:{files:1,fileSize:canvasAssetService.maxBytes,fields:8}}); }
+    catch { reject(Object.assign(new Error('请使用 multipart/form-data 导入素材'), {code:'INTERNAL_CANVAS_ASSET_MULTIPART_REQUIRED',httpStatus:400})); return; }
+    const fields = Object.create(null);
+    let source = null;
+    let uploadError = null;
+    busboy.on('field', (name, value) => { fields[name] = value; });
+    busboy.on('file', (name, file, info) => {
+      if (name !== 'asset' || source) {
+        uploadError = Object.assign(new Error('每次只能导入一个素材文件'), {code:'INTERNAL_CANVAS_ASSET_COUNT_INVALID',httpStatus:422});
+        file.resume();
+        return;
+      }
+      const chunks = [];
+      let bytes = 0;
+      file.on('data', chunk => { bytes += chunk.length; if (bytes <= canvasAssetService.maxBytes) chunks.push(chunk); });
+      file.on('limit', () => { uploadError = Object.assign(new Error('素材超过允许大小'), {code:'CANVAS_ASSET_TOO_LARGE',httpStatus:413}); });
+      file.on('error', reject);
+      file.on('end', () => {
+        if (!uploadError) source = {bytes:Buffer.concat(chunks),originalName:safeName(info.filename || 'reference-asset'),incomingMime:String(info.mimeType || '').toLowerCase()};
+      });
+    });
+    busboy.on('error', reject);
+    busboy.on('close', () => {
+      if (uploadError) return reject(uploadError);
+      if (!source?.bytes?.length) return reject(Object.assign(new Error('请上传一个素材文件'), {code:'CANVAS_ASSET_REQUIRED',httpStatus:400}));
+      resolve({fields,source});
+    });
+    request.pipe(busboy);
+  });
+}
+
+async function inspectInternalCanvasAsset(source, kind) {
+  if (kind === 'reference_image') {
+    const metadata = await sharp(source.bytes, {failOn:'error'}).metadata();
+    const format = String(metadata.format || '').toLowerCase();
+    if (!['png','jpeg','webp'].includes(format)) throw Object.assign(new Error('参考图仅支持 PNG、JPEG 或 WebP'), {code:'CANVAS_ASSET_TYPE_UNSUPPORTED',httpStatus:415});
+    return format;
+  }
+  const format = canvasAssetFormatFromHeader(source.bytes.subarray(0, 64), kind);
+  if (!format) throw Object.assign(new Error(kind === 'reference_audio' ? '参考音频格式无效或不受支持' : '参考视频格式无效或不受支持'), {code:'CANVAS_ASSET_CONTENT_INVALID',httpStatus:415});
+  return format;
+}
+
+function internalCanvasAssetNode(asset, title, categoryId, role) {
+  const type = asset.kind === 'reference_video' ? 'video' : asset.kind === 'reference_audio' ? 'audio' : 'image';
+  const createdAt = Date.now();
+  const result = {id:'project-asset-' + asset.id,type,assetId:asset.id,url:canvasAssetDownloadUrl(asset.projectId, asset.id),createdAt};
+  return {
+    id:'asset-' + asset.id,
+    kind:'asset',
+    title:title || path.basename(asset.originalName, path.extname(asset.originalName)) || '项目素材',
+    prompt:'',
+    position:{x:120,y:120},
+    categoryId,
+    result,
+    history:[result],
+    status:'success',
+    meta:{source:'project-asset',canvasAssetId:asset.id,assetRole:role,fileName:asset.originalName}
+  };
+}
+
+async function attachInternalCanvasAssetNode(owned, asset, input) {
+  const category = internalCanvasAssetRole(input.role);
+  const key = nomiDocumentKey(owned.projectKind, owned.project.id);
+  return withCanvasDocumentsWriteLock(async () => {
+    const documents = await readCanvasDocuments();
+    const current = nomiRecordForProject(documents[key], owned.project, owned.projectKind);
+    const currentDocument = current?.document || {generationCanvas:{nodes:[],edges:[]}};
+    const document = normalizeNomiProjectDocument(currentDocument);
+    const nodes = document.generationCanvas.nodes;
+    const existing = nodes.find(node => node?.meta?.canvasAssetId === asset.id || node?.result?.assetId === asset.id);
+    if (existing) return {node:existing,revision:Number(current?.revision || 0),created:false,updatedAt:current?.updatedAt || null};
+    const node = internalCanvasAssetNode(asset, canvasText(input.title, 160), category.categoryId, category.role);
+    const index = nodes.filter(item => item?.categoryId === category.categoryId).length;
+    node.position = {x:120 + (index % 3) * 300,y:120 + Math.floor(index / 3) * 230};
+    nodes.push(node);
+    const record = {
+      schemaVersion:'niannian.nomi-project-document.v1',
+      projectId:owned.project.id,
+      projectKind:owned.projectKind,
+      ownerId:owned.project.ownerId,
+      revision:Number(current?.revision || 0) + 1,
+      document,
+      updatedAt:new Date().toISOString()
+    };
+    documents[key] = record;
+    await writeCanvasDocuments(documents);
+    return {node,revision:record.revision,created:true,updatedAt:record.updatedAt};
+  });
+}
+
+async function handleInternalCanvasAssetImportApi(request, response, pathname) {
+  if (pathname !== '/api/internal/canvas-assets/import') return false;
+  if (request.method !== 'POST') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'}), true;
+  if (!isLoopbackSocket(request)) return json(response, 403, {code:'INTERNAL_ENDPOINT_LOOPBACK_ONLY',error:'此导入端点仅允许生产机本地调用'}), true;
+  let registered = null;
+  try {
+    const {fields,source} = await readInternalCanvasAssetMultipart(request);
+    const projectId = canvasText(fields.projectId, 160);
+    const projectKind = canvasText(fields.projectKind, 20);
+    const owned = await internalCanvasProjectById(projectId, projectKind);
+    if (!owned) throw Object.assign(new Error('项目不存在'), {code:'PROJECT_NOT_FOUND',httpStatus:404});
+    const kind = canvasAssetUploadKind('asset', fields);
+    const format = await inspectInternalCanvasAsset(source, kind);
+    const expectedMime = canvasAssets.FORMATS[format].mimeType;
+    if (!canvasAssetDeclaredMimeMatches(format, source.incomingMime)) throw Object.assign(new Error('素材文件类型与内容不一致'), {code:'CANVAS_ASSET_CONTENT_TYPE_MISMATCH',httpStatus:415});
+    registered = await canvasAssetService.registerBuffer({ownerId:owned.project.ownerId,projectId,projectKind:owned.projectKind,kind,format,bytes:source.bytes,originalName:source.originalName});
+    const attached = await attachInternalCanvasAssetNode(owned, registered.asset, fields);
+    if (registered.created) prewarmCanvasAssetThumbnail(registered.asset);
+    return json(response, registered.created || attached.created ? 201 : 200, {
+      code:registered.created || attached.created ? 'INTERNAL_CANVAS_ASSET_IMPORTED' : 'INTERNAL_CANVAS_ASSET_REUSED',
+      idempotent:!registered.created && !attached.created,
+      projectId,
+      projectKind:owned.projectKind,
+      asset:publicCanvasAsset(registered.asset),
+      node:attached.node,
+      revision:attached.revision,
+      updatedAt:attached.updatedAt
+    }, {'Cache-Control':'no-store'});
+  } catch (error) {
+    if (registered?.created) {
+      const removed = await canvasAssetService.removeOwned(registered.asset.ownerId, registered.asset.projectId, registered.asset.id).catch(() => null);
+      if (removed) await fsp.rm(removed.storedPath, {force:true}).catch(() => {});
+    }
+    return json(response, error.httpStatus || 400, {code:error.code || 'INTERNAL_CANVAS_ASSET_IMPORT_FAILED',error:error.message || '服务端素材导入失败'});
+  }
+}
+
 async function canvasGenerationContext(project, projectKind, nodeId) {
   const record = (await readCanvasDocuments())[canvasDocumentKey(projectKind, project.id)];
   const document = normalizeCanvasDocument(record?.document, project);
@@ -9066,6 +9221,10 @@ async function handleApi(request, response, pathname) {
   }
   if (pathname.startsWith('/api/internal/smart-cut/')) {
     const handled = await handleSmartCutInternalApi(request, response, pathname);
+    if (handled) return;
+  }
+  if (pathname === '/api/internal/canvas-assets/import') {
+    const handled = await handleInternalCanvasAssetImportApi(request, response, pathname);
     if (handled) return;
   }
   if (pathname.startsWith('/api/internal/step01-artifact-broker/')) return handleStep01ArtifactBrokerSession(request,response,pathname);
