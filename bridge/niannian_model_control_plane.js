@@ -80,6 +80,9 @@ function publicCatalog(models, providers, tenantId) {
       kind: item.kind,
       providerKey: item.providerId,
       providerLabel: item.providerLabel,
+      // A public catalog contains only enabled model/provider pairs. Preserve
+      // that fact for every consumer that performs a submit-time guard.
+      enabled: true,
       priceCredits: Number(item.priceCredits),
       resolutions: item.resolutions || [],
       aspectRatios: item.aspectRatios || [],

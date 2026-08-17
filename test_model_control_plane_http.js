@@ -43,6 +43,7 @@ async function run() {
   assert.equal(catalogResponse.status, 200);
   assert.equal(catalog.catalog.models.some(item => item.id === 'yunwu-gpt-image-2-c'), true);
   assert.equal(catalog.catalog.models.find(item => item.id === 'yunwu-gpt-image-2-c').providerKey, 'yunwu-agent-vault');
+  assert.equal(catalog.catalog.models.find(item => item.id === 'yunwu-gpt-image-2-c').enabled, true);
   assert.equal(JSON.stringify(catalog).includes('agent-vault://'), false);
   const dolaProviderSave = await fetch(`${baseUrl}/api/admin/model-config/provider`, {method:'PUT',headers:{...headers('admin-token'),'content-type':'application/json'},body:JSON.stringify({id:'dola-desktop-api',label:'Dola',kind:'video',enabled:true})});
   assert.equal(dolaProviderSave.status, 200);
