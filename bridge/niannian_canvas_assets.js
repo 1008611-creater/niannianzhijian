@@ -167,7 +167,19 @@ function createCanvasAssetService(options = {}) {
     return {...asset, storedPath};
   }
 
-  return {register,registerBuffer,listOwned,getOwned,publicAsset,formats:FORMATS,maxBytes,maxOutputBytes,constants:{indexPath,storageRoot}};
+  async function removeOwned(ownerId, projectId, assetId) {
+    const id = validateAssetId(assetId);
+    return withWriteLock(async () => {
+      const assets = await readAll();
+      const index = assets.findIndex(item => item.id === id && item.ownerId === ownerId && item.projectId === projectId && item.status === 'ready');
+      if (index < 0) return null;
+      const [asset] = assets.splice(index, 1);
+      await writeAll(assets);
+      return {...asset, storedPath:path.resolve(storageRoot, path.basename(asset.storageKey))};
+    });
+  }
+
+  return {register,registerBuffer,listOwned,getOwned,removeOwned,publicAsset,formats:FORMATS,maxBytes,maxOutputBytes,constants:{indexPath,storageRoot}};
 }
 
 module.exports = {createCanvasAssetService,FORMATS};
