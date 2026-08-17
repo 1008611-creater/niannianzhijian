@@ -275,12 +275,30 @@ function buildStage(candidateRoot, candidate = {}) {
       copyCommittedFile(relativePath, path.join(stageRoot, relativePath));
     }
   }
+  // Candidate scope is not documentation: every approved changed file must be
+  // materialized in the immutable package or staging must fail before deploy.
+  for (const relativePath of candidateContract.allowed_files) {
+    if (!committedPaths.has(relativePath)) fail('release_stage_allowed_file_not_committed:' + relativePath);
+    const destinationPath = path.join(stageRoot, relativePath);
+    if (!fs.existsSync(destinationPath)) copyCommittedFile(relativePath, destinationPath);
+  }
   const inventory = stageManifest(stageRoot);
+  for (const relativePath of candidateContract.allowed_files) {
+    if (!inventory.files.includes(relativePath)) fail('release_stage_allowed_file_not_materialized:' + relativePath);
+  }
+  const sourceGitRevision = gitRevision();
+  const releaseActivationPath = path.join(resolvedCandidateRoot, 'release-activation.json');
+  fs.writeFileSync(releaseActivationPath, JSON.stringify({
+    schema_version: 'niannian_release_activation_v2',
+    release_id: candidateContract.release_id,
+    source_sha: sourceGitRevision,
+    protected_contracts: ['step01_public_ui_v1']
+  }, null, 2) + '\n', { encoding:'utf8', flag:'wx' });
   const packageManifest = {
     schema_version: 'niannian_release_package_manifest_v2',
     release: {
       ...candidateContract,
-      source_git_revision: gitRevision(),
+      source_git_revision: sourceGitRevision,
       materialization: 'local_candidate_only_not_deployed'
     },
     source_root: root,
@@ -310,6 +328,7 @@ function buildStage(candidateRoot, candidate = {}) {
     release: packageManifest.release,
     stage_root: stageRoot,
     package_manifest: packageManifestPath,
+    release_activation: releaseActivationPath,
     file_count: inventory.files.length,
     total_bytes: inventory.total_bytes,
     gate: verification,

@@ -36,7 +36,7 @@ try {
   & node (Join-Path $repoRoot 'build_canonical_release_stage.js') --output $candidateRoot
   if ($LASTEXITCODE -ne 0) { throw 'PREVIEW_CANDIDATE_BUILD_FAILED' }
 
-  & tar -czf $archivePath -C $candidateRoot package release-package-manifest.json release-candidate-summary.json
+  & tar -czf $archivePath -C $candidateRoot package release-package-manifest.json release-candidate-summary.json release-activation.json
   if ($LASTEXITCODE -ne 0) { throw 'PREVIEW_ARCHIVE_FAILED' }
 
   & scp $archivePath "${RemoteHost}:$remoteArchive"
