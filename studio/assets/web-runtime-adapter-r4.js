@@ -167,7 +167,7 @@
       var catalogVendors = [];
       var catalogModelsPublic = catalogModels.map(function (item) {
         var vendorKey = String(item.providerLabel || 'server').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'server';
-        if (!catalogVendors.some(function (vendor) { return vendor.key === vendorKey; })) catalogVendors.push({key: vendorKey, name: item.providerLabel || '已接入模型'});
+        if (!catalogVendors.some(function (vendor) { return vendor.key === vendorKey; })) catalogVendors.push({key: vendorKey, name: item.providerLabel || '已接入模型', enabled: true, authType: 'none', hasApiKey: true});
         return {
           modelKey: item.id,
           modelAlias: item.id,

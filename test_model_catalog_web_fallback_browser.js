@@ -18,7 +18,7 @@ async function waitForHealth(baseUrl) {
 
 async function main() {
   const studioIndex = require('node:fs').readFileSync(root + '/studio/index.html', 'utf8');
-  assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260817-catalog-ready-r1/);
+  assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260817-catalog-vendor-ready-r1/);
   const assetsDir = root + '/studio/assets';
   const cacheUsers = require('node:fs').readdirSync(assetsDir).filter(name => name.endsWith('.js')).map(name => require('node:fs').readFileSync(assetsDir + '/' + name, 'utf8')).filter(source => source.includes('modelCatalogCache-C1hWiSJp-r4.js?v=20260817-generation-spec-r1')).join('\n');
   assert.match(cacheUsers, /NomiStudioApp|useDedupedModelSelect|Generation|Creation|Canvas|applyCanvasToolCall/);

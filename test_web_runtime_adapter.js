@@ -11,6 +11,7 @@ assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=[A-Za-z0-9._-]+/);
 assert.match(source, /\/api\/canvas\/provider-status/);
 assert.match(source, /\/api\/projects\/.*\/canvas\/jobs/);
 assert.match(source, /\/api\/projects\/.*\/text\/jobs/);
+assert.match(source, /catalogVendors\.push\(\{key: vendorKey, name: item\.providerLabel \|\| '已接入模型', enabled: true, authType: 'none', hasApiKey: true\}\)/);
 assert.match(source, /vendorKey: 'asxs'/);
 assert.match(source, /request\.kind === 'chat'/);
 assert.match(source, /confirmProviderSpend:\s*true/);
