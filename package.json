@@ -72,6 +72,7 @@
     "test:canvas-image2-runtime": "node test_canvas_image2_runtime.js",
     "test:canvas-shot-frame-preview": "node test_canvas_shot_frame_preview_contract.js",
     "test:canvas-h3-runtime": "node test_canvas_h3_runtime.js",
+    "test:canvas-dola-runtime": "node test_canvas_dola_runtime.js",
     "test:canvas-animate-runtime": "node test_canvas_animate_runtime.js",
     "test:nomi-h3-multiref": "node test_nomi_h3_multiref_contract.js",
     "test:browser-smoke": "playwright test test_studio_clean_browser.spec.js --reporter=line",

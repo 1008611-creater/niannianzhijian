@@ -11,6 +11,15 @@ function isConfigured(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function isDolaApiUrl(value) {
+  try {
+    const url = new URL(String(value || '').trim());
+    return url.protocol === 'https:' || (url.protocol === 'http:' && ['127.0.0.1', 'localhost', '::1'].includes(url.hostname));
+  } catch {
+    return false;
+  }
+}
+
 function readCanvasProviderConfig(env = process.env) {
   const provider = 'yunwu-agent-vault';
   const credentialConfigured = isConfigured(env.RUNNINGHUB_API_KEY);
@@ -27,6 +36,10 @@ function readCanvasProviderConfig(env = process.env) {
   const videoSubmitEnabled = h3CredentialConfigured && baseUrlValid && isOn(env.NIANNIAN_CANVAS_H3_SUBMIT);
   const animateCredentialConfigured = isConfigured(env.NIANNIAN_RUNNINGHUB_ANIMATE_API_KEY);
   const animateSubmitEnabled = animateCredentialConfigured && baseUrlValid && isOn(env.NIANNIAN_CANVAS_ANIMATE_SUBMIT);
+  const dolaApiUrl = String(env.NIANNIAN_DOLA_API_URL || '').trim().replace(/\/+$/, '');
+  const dolaCredentialConfigured = isConfigured(env.NIANNIAN_DOLA_API_KEY);
+  const dolaApiUrlValid = isDolaApiUrl(dolaApiUrl);
+  const dolaSubmitEnabled = dolaCredentialConfigured && dolaApiUrlValid && isOn(env.NIANNIAN_CANVAS_DOLA_SUBMIT);
   return Object.freeze({
     provider,
     baseUrl,
@@ -39,7 +52,11 @@ function readCanvasProviderConfig(env = process.env) {
     h3CredentialConfigured,
     videoSubmitEnabled,
     animateCredentialConfigured,
-    animateSubmitEnabled
+    animateSubmitEnabled,
+    dolaApiUrl,
+    dolaApiUrlValid,
+    dolaCredentialConfigured,
+    dolaSubmitEnabled
   });
 }
 
@@ -52,7 +69,8 @@ function publicCanvasProviderStatus(env = process.env) {
     imageSubmitEnabled: config.imageSubmitEnabled,
     imageChannels: config.imageChannels,
     videoSubmitEnabled: config.videoSubmitEnabled,
-    animateSubmitEnabled: config.animateSubmitEnabled
+    animateSubmitEnabled: config.animateSubmitEnabled,
+    dolaSubmitEnabled: config.dolaSubmitEnabled
   };
 }
 
@@ -85,9 +103,20 @@ function publicCanvasModelCatalog(env = process.env) {
         aspectRatios: ['9:16', '16:9', '1:1'],
         outputSizes: {},
         priceCredits: 20
+      },
+      {
+        id: 'dola-seedance-2-5',
+        label: 'Dola Seedance 2.5（30秒）',
+        kind: 'video',
+        providerLabel: 'Dola',
+        enabled: config.dolaSubmitEnabled === true,
+        resolutions: ['720p'],
+        aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'],
+        outputSizes: {},
+        priceCredits: 0
       }
     ]
   };
 }
 
-module.exports = {DEFAULT_BASE_URL, readCanvasProviderConfig, publicCanvasProviderStatus, publicCanvasModelCatalog};
+module.exports = {DEFAULT_BASE_URL, readCanvasProviderConfig, publicCanvasProviderStatus, publicCanvasModelCatalog, isDolaApiUrl};
