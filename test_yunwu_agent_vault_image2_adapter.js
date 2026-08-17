@@ -14,16 +14,18 @@ async function run() {
     let editArgs = null;
     const adapter = createYunwuAgentVaultImage2Adapter({env, tempRoot:root, run:async (_python, args) => {
       if (args.includes('edit')) editArgs = args;
-      const outputPath = args[args.indexOf('--output') + 1];
       const receiptPath = args[args.indexOf('--receipt') + 1];
-      await fsp.writeFile(outputPath, await sharp({create:{width:16,height:24,channels:4,background:{r:1,g:2,b:3,alpha:1}}}).png().toBuffer());
+      if (args.includes('--submit')) {
+        const outputPath = args[args.indexOf('--output') + 1];
+        await fsp.writeFile(outputPath, await sharp({create:{width:16,height:24,channels:4,background:{r:1,g:2,b:3,alpha:1}}}).png().toBuffer());
+      }
       await fsp.writeFile(receiptPath, '{"status":"accepted_dimensions"}');
       return {code:0};
     }});
-    assert.equal(adapter.dryRun({output_size:'2160x3840'}, []).payload.model, 'gpt-image-2-c');
-    const editPreflight = adapter.dryRun({image_channel:'yunwu-gpt-image-2-c-edit',output_size:'3840x2160'}, ['reference.png']);
+    assert.equal((await adapter.dryRun({prompt:'预检',output_size:'2160x3840'}, [])).payload.model, 'gpt-image-2-c');
+    const editPreflight = await adapter.dryRun({prompt:'预检',image_channel:'yunwu-gpt-image-2-c-edit',output_size:'3840x2160'}, ['reference.png']);
     assert.equal(editPreflight.payload.operation, 'edit');
-    assert.throws(() => adapter.dryRun({image_channel:'yunwu-gpt-image-2-c-edit',output_size:'2160x3840'}, ['reference.png']), error => error.code === 'YUNWU_OUTPUT_SIZE_INVALID');
+    await assert.rejects(() => adapter.dryRun({prompt:'预检',image_channel:'yunwu-gpt-image-2-c-edit',output_size:'2160x3840'}, ['reference.png']), error => error.code === 'YUNWU_OUTPUT_SIZE_INVALID');
     const submitted = await adapter.submit({prompt:'三维国风角色',output_size:'2160x3840'}, []);
     const result = await adapter.query(submitted.taskId, submitted.payload);
     assert.equal(result.status, 'completed');
@@ -34,6 +36,15 @@ async function run() {
     await adapter.query(edited.taskId, edited.payload);
     assert.equal((await fsp.readdir(root)).length, 0);
     assert.equal((await fsp.readdir(root)).length, 0);
+    const unavailable = createYunwuAgentVaultImage2Adapter({env,tempRoot:root,run:async () => {
+      const error = new Error('missing executable');
+      error.code = 'ENOENT';
+      throw error;
+    }});
+    await assert.rejects(
+      () => unavailable.submit({prompt:'执行器故障',output_size:'2160x3840'}, []),
+      error => error.code === 'YUNWU_EXECUTOR_UNAVAILABLE'
+    );
     console.log('YUNWU_AGENT_VAULT_IMAGE2_ADAPTER_CONTRACT_OK');
   } finally { await fsp.rm(root, {recursive:true,force:true}); }
 }

@@ -8215,9 +8215,11 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       const job = await canvasGenerationJobService.getOwned(user.id, projectId, jobId);
       if (!job) return json(response, 404, {code:'CANVAS_JOB_NOT_FOUND',error:'任务不存在'});
       const providerSubmitEnabled = canvasGenerationSubmitEnabled(job);
-      const providerDryRun = canvasVideoChannels.isDolaVideoChannel(job.videoChannel) && canvasDolaRuntime.enabled
-        ? await canvasDolaRuntime.dryRun(job)
-        : (canvasVideoChannels.isAnimateVideoChannel(job.videoChannel) ? await canvasAnimateRuntime.dryRun(job) : null);
+      const providerDryRun = job.nodeType === 'image' && canvasImage2Runtime.enabled
+        ? await canvasImage2Runtime.dryRun(job)
+        : (canvasVideoChannels.isDolaVideoChannel(job.videoChannel) && canvasDolaRuntime.enabled
+          ? await canvasDolaRuntime.dryRun(job)
+          : (canvasVideoChannels.isAnimateVideoChannel(job.videoChannel) ? await canvasAnimateRuntime.dryRun(job) : null));
       return json(response, 200, {
         code:'CANVAS_GENERATION_DRY_RUN_READY',
         job:canvasGenerationJobService.publicJob(job, {providerSubmitEnabled}),
