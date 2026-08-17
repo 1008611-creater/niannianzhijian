@@ -45,6 +45,18 @@ async function run() {
       () => unavailable.submit({prompt:'执行器故障',output_size:'2160x3840'}, []),
       error => error.code === 'YUNWU_EXECUTOR_NOT_CONFIGURED'
     );
+    const uncertain = createYunwuAgentVaultImage2Adapter({env,tempRoot:root,run:async (_python, args) => {
+      const receiptPath = args[args.indexOf('--receipt') + 1];
+      await fsp.writeFile(receiptPath, args.includes('--submit')
+        ? '{"status":"uncertain_no_retry","error_type":"URLError"}'
+        : '{"status":"dry_run"}');
+      return {code:args.includes('--submit') ? 5 : 0};
+    }});
+    await assert.rejects(
+      () => uncertain.submit({prompt:'网络诊断',output_size:'2160x3840'}, []),
+      error => error.code === 'YUNWU_NETWORK_UNCERTAIN' && error.providerCode === 'uncertain:URLError'
+    );
+    assert.equal((await fsp.readdir(root)).length, 0);
     console.log('YUNWU_AGENT_VAULT_IMAGE2_ADAPTER_CONTRACT_OK');
   } finally { await fsp.rm(root, {recursive:true,force:true}); }
 }
