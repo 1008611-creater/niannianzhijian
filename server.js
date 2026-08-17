@@ -8539,6 +8539,10 @@ function normalizeNomiProjectDocument(value) {
   if (!canvas || typeof canvas !== 'object' || Array.isArray(canvas) || !Array.isArray(canvas.nodes) || !Array.isArray(canvas.edges)) {
     throw Object.assign(new Error('Nomi 生成画布无效'), {code:'NOMI_GENERATION_CANVAS_INVALID',httpStatus:422});
   }
+  // Older web sessions could persist an empty object for groups. The Studio
+  // schema requires an array; repairing it here keeps legacy nodes readable.
+  if (!Array.isArray(canvas.groups)) canvas.groups = [];
+  if (canvas.selectedNodeIds !== undefined && !Array.isArray(canvas.selectedNodeIds)) canvas.selectedNodeIds = [];
   return document;
 }
 
