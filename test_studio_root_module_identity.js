@@ -11,7 +11,7 @@ const moduleCacheVersion = '20260817-generation-runtime-catalog-r3';
 const studioClosureCacheVersion = '20260816-studio-closure-r9';
 const rootModuleName = 'index-M-8MrEH2-r28-19b89ec-r6.js';
 const generationControllerName = 'generationRunController-DH5v5RRt-r4.js';
-const generationControllerCacheVersion = '20260817-generation-runtime-catalog-r4';
+const generationControllerCacheVersion = '20260817-generation-runtime-catalog-r5';
 const starts = ['index-M-8MrEH2-r28-19b89ec-r6.js', 'web-runtime-adapter-r4.js'];
 
 function localReferences(source) {
