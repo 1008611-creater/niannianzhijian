@@ -165,6 +165,19 @@ async function run() {
   assert.equal(h3Job.body.job.durationSeconds, 5);
   assert.equal(Object.hasOwn(h3Job.body.job, 'providerTaskId'), false);
 
+  const dolaBody = {projectKind:'redraw',nodeId:'video-node-001',model:'dola-seedance-2-5',prompt:'产品缓慢旋转，镜头轻微推进',inputAssetIds:['asset-001'],aspectRatio:'9:16',durationSeconds:30,accountSlot:2};
+  const dolaJob = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-dola-0001'}),body:JSON.stringify(dolaBody)});
+  assert.equal(dolaJob.response.status, 201);
+  assert.equal(dolaJob.body.job.model, 'dola-seedance-2-5');
+  assert.equal(dolaJob.body.job.durationSeconds, 30);
+  assert.equal(dolaJob.body.job.accountSlot, 2);
+  const dolaDurationRejected = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-dola-invalid-0001'}),body:JSON.stringify({...dolaBody,durationSeconds:15})});
+  assert.equal(dolaDurationRejected.response.status, 422);
+  assert.equal(dolaDurationRejected.body.code, 'CANVAS_DOLA_DURATION_REQUIRED');
+  const dolaAuthorizationDisabled = await request(`/api/projects/NN-CANVAS-A/canvas/jobs/${encodeURIComponent(dolaJob.body.job.id)}/authorize`, {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','x-niannian-project-kind':'redraw'}),body:JSON.stringify({projectKind:'redraw',confirmProviderSpend:true})});
+  assert.equal(dolaAuthorizationDisabled.response.status, 409);
+  assert.equal(dolaAuthorizationDisabled.body.code, 'CANVAS_PROVIDER_SUBMIT_DISABLED');
+
   const animateJob = await request('/api/projects/NN-CANVAS-A/canvas/jobs', {method:'POST',headers:headers('canvas-token-a',{'content-type':'application/json','idempotency-key':'canvas-http-animate-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'video-node-001',model:'runninghub-animate-motion-transfer',prompt:'',inputAssetIds:['asset-image-001','asset-video-001'],aspectRatio:'9:16',durationSeconds:5})});
   assert.equal(animateJob.response.status, 201);
   assert.equal(animateJob.body.job.model, 'runninghub-animate-motion-transfer');

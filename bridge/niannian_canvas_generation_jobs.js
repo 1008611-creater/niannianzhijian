@@ -5,6 +5,8 @@ const crypto = require('crypto');
 const {normalizeImage2Spec} = require('./niannian_canvas_image2_channels');
 const {resolveVideoChannel} = require('./niannian_canvas_video_channels');
 
+const DOLA_ASPECT_RATIOS = new Set(['9:16', '16:9', '1:1', '4:3', '3:4']);
+
 const MODELS = Object.freeze({
   image: Object.freeze({
     id: 'yunwu-gpt-image-2-c',
@@ -46,6 +48,10 @@ function requestHash(input) {
   return crypto.createHash('sha256').update(stableJson(input), 'utf8').digest('hex');
 }
 
+function videoProvider(channel) {
+  return channel?.id === 'dola-seedance-2-5' ? 'dola-desktop-api' : 'runninghub';
+}
+
 function validateIdempotencyKey(value) {
   const key = clean(value, 200);
   if (!/^[A-Za-z0-9._:-]{8,200}$/.test(key)) throw jobError('CANVAS_JOB_IDEMPOTENCY_REQUIRED', '请提供有效的幂等键', 422);
@@ -55,7 +61,7 @@ function validateIdempotencyKey(value) {
 function publicJob(job, options = {}) {
   const videoChannel = job.nodeType === 'video' ? resolveVideoChannel(job.videoChannel || 'h3') : null;
   const model = videoChannel
-    ? {id:videoChannel.model,label:videoChannel.label,provider:'runninghub',providerSubmitEnabled:false}
+    ? {id:videoChannel.model,label:videoChannel.label,provider:videoProvider(videoChannel),providerSubmitEnabled:false}
     : (MODELS[job.nodeType] || MODELS.image);
   const providerSubmitEnabled = options.providerSubmitEnabled === true ? true : model.providerSubmitEnabled;
   return {
@@ -78,6 +84,7 @@ function publicJob(job, options = {}) {
     aspectRatio: job.aspectRatio || '1:1',
     outputSize: job.nodeType === 'image' ? (job.outputSize || null) : null,
     durationSeconds: job.durationSeconds || null,
+    accountSlot: videoChannel?.id === 'dola-seedance-2-5' ? (job.accountSlot || 1) : null,
     prompt: job.prompt,
     error: ['failed','review'].includes(job.status) ? (job.publicError || '任务未完成') : null,
     failureCategory: ['failed','review'].includes(job.status) ? (job.failureCategory || null) : null,
@@ -90,7 +97,7 @@ function publicJob(job, options = {}) {
 function dryRunContract(job, options = {}) {
   const videoChannel = job.nodeType === 'video' ? resolveVideoChannel(job.videoChannel || 'h3') : null;
   const model = videoChannel
-    ? {id:videoChannel.model,label:videoChannel.label,provider:'runninghub',providerSubmitEnabled:false}
+    ? {id:videoChannel.model,label:videoChannel.label,provider:videoProvider(videoChannel),providerSubmitEnabled:false}
     : (MODELS[job.nodeType] || MODELS.image);
   const providerSubmitEnabled = options.providerSubmitEnabled === true ? true : model.providerSubmitEnabled;
   return {
@@ -113,6 +120,7 @@ function dryRunContract(job, options = {}) {
     aspectRatio: job.aspectRatio || '1:1',
     outputSize: job.nodeType === 'image' ? (job.outputSize || null) : null,
     durationSeconds: job.durationSeconds || null,
+    accountSlot: videoChannel?.id === 'dola-seedance-2-5' ? (job.accountSlot || 1) : null,
     promptPresent: Boolean(job.prompt),
     requestHash: job.requestHash,
     result: 'awaiting_authorization'
@@ -163,12 +171,16 @@ function createCanvasGenerationJobService(options = {}) {
     const aspectRatio = clean(input.aspectRatio || input.aspect_ratio || (nodeType === 'image' ? '9:16' : '1:1'), 16);
     const durationSeconds = Number(input.durationSeconds || input.duration_seconds || (nodeType === 'video' ? 5 : 0));
     const videoSpec = nodeType === 'video' ? resolveVideoChannel(input.videoChannel || input.model || 'h3') : null;
+    const accountSlot = Number(input.accountSlot || input.account_slot || 1);
     if (!projectId || !nodeId) throw jobError('CANVAS_JOB_INPUT_INVALID', '项目和节点不能为空', 422);
     if (!['redraw', 'script'].includes(projectKind)) throw jobError('CANVAS_JOB_PROJECT_KIND_INVALID', '项目类型无效', 422);
     if (!/^\d{1,2}:\d{1,2}$/.test(aspectRatio)) throw jobError('CANVAS_JOB_ASPECT_RATIO_INVALID', '画幅比例无效', 422);
-    if (nodeType === 'video' && (!Number.isFinite(durationSeconds) || durationSeconds < 4 || durationSeconds > 15)) throw jobError('CANVAS_JOB_DURATION_INVALID', '视频时长需在 4 到 15 秒之间', 422);
+    if (nodeType === 'video' && videoSpec?.id === 'dola-seedance-2-5' && !DOLA_ASPECT_RATIOS.has(aspectRatio)) throw jobError('CANVAS_DOLA_ASPECT_RATIO_UNSUPPORTED', 'Dola Seedance 2.5 不支持该画幅比例', 422);
+    if (nodeType === 'video' && videoSpec?.id === 'dola-seedance-2-5' && durationSeconds !== 30) throw jobError('CANVAS_DOLA_DURATION_REQUIRED', 'Dola Seedance 2.5 只支持严格 30 秒视频', 422);
+    if (nodeType === 'video' && videoSpec?.id !== 'dola-seedance-2-5' && (!Number.isFinite(durationSeconds) || durationSeconds < 4 || durationSeconds > 15)) throw jobError('CANVAS_JOB_DURATION_INVALID', '视频时长需在 4 到 15 秒之间', 422);
     if (nodeType === 'video' && !videoSpec) throw jobError('CANVAS_JOB_MODEL_INVALID', '视频模型尚未接入', 422);
-    if (!prompt && nodeType === 'video' && videoSpec.id === 'h3') throw jobError('CANVAS_JOB_PROMPT_REQUIRED', '视频节点需要填写提示词', 422);
+    if (nodeType === 'video' && videoSpec?.id === 'dola-seedance-2-5' && (!Number.isInteger(accountSlot) || accountSlot < 1 || accountSlot > 99)) throw jobError('CANVAS_DOLA_ACCOUNT_SLOT_INVALID', 'Dola 账号槽位无效', 422);
+    if (!prompt && nodeType === 'video' && ['h3','dola-seedance-2-5'].includes(videoSpec?.id)) throw jobError('CANVAS_JOB_PROMPT_REQUIRED', '视频节点需要填写提示词', 422);
     const imageSpec = nodeType === 'image'
       ? normalizeImage2Spec({model: input.imageChannel || input.model, resolution, aspectRatio, outputSize: input.outputSize || input.imageSize})
       : null;
@@ -182,7 +194,8 @@ function createCanvasGenerationJobService(options = {}) {
       outputSize: imageSpec?.outputSize || null,
       videoChannel: videoSpec?.id || null,
       videoChannelLabel: videoSpec?.label || null,
-      durationSeconds:nodeType === 'video' ? durationSeconds : null
+      durationSeconds:nodeType === 'video' ? durationSeconds : null,
+      accountSlot:videoSpec?.id === 'dola-seedance-2-5' ? accountSlot : null
     };
   }
 
@@ -229,6 +242,7 @@ function createCanvasGenerationJobService(options = {}) {
         aspectRatio: normalized.aspectRatio,
         outputSize: normalized.outputSize,
         durationSeconds: normalized.durationSeconds,
+        accountSlot: normalized.accountSlot,
         idempotencyKey,
         requestHash: hash,
         status: 'awaiting_authorization',
@@ -270,4 +284,4 @@ function createCanvasGenerationJobService(options = {}) {
   return {create, getOwned, listOwned, updateOwned, publicJob, dryRunContract, models: MODELS, constants: {filePath}};
 }
 
-module.exports = {createCanvasGenerationJobService, MODELS, publicJob, dryRunContract, requestHash};
+module.exports = {createCanvasGenerationJobService, MODELS, publicJob, dryRunContract, requestHash, DOLA_ASPECT_RATIOS};

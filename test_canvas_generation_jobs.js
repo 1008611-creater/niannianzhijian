@@ -54,6 +54,24 @@ async function run() {
     assert.equal(service.publicJob(animateAiApp.job).model, 'runninghub-animate-ai-app');
     assert.equal(service.publicJob(animateAiApp.job).videoChannelLabel, '动作迁移（AI 应用）');
 
+    const dola = await service.create({
+      ownerId:'USR-A',projectId:'NN-PROJECT-A',projectKind:'redraw',nodeId:'video-node-dola',nodeType:'video',
+      model:'dola-seedance-2-5',prompt:'角色站在雨夜街头，镜头缓慢推进',inputAssetIds:['image-001','audio-001','video-001'],
+      aspectRatio:'9:16',durationSeconds:30,accountSlot:2,idempotencyKey:'canvas-job-dola-0001'
+    });
+    assert.equal(dola.job.videoChannel, 'dola-seedance-2-5');
+    assert.equal(dola.job.durationSeconds, 30);
+    assert.equal(dola.job.accountSlot, 2);
+    assert.equal(service.publicJob(dola.job).model, 'dola-seedance-2-5');
+    await assert.rejects(
+      () => service.create({...dola.job,nodeId:'video-node-dola-invalid',durationSeconds:15,idempotencyKey:'canvas-job-dola-invalid-0001'}),
+      error => error.code === 'CANVAS_DOLA_DURATION_REQUIRED'
+    );
+    await assert.rejects(
+      () => service.create({...dola.job,nodeId:'video-node-dola-ratio-invalid',aspectRatio:'2:1',idempotencyKey:'canvas-job-dola-ratio-invalid-0001'}),
+      error => error.code === 'CANVAS_DOLA_ASPECT_RATIO_UNSUPPORTED'
+    );
+
     const repeat = await service.create(request);
     assert.equal(repeat.created, false);
     assert.equal(repeat.job.id, first.job.id);
@@ -67,7 +85,7 @@ async function run() {
     assert.equal(replacement.created, true);
     assert.notEqual(replacement.job.id, first.job.id);
     assert.match(replacement.job.idempotencyKey, /^canvas-job-0001\.retry-/);
-    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 7);
+    assert.equal((await service.listOwned('USR-A', 'NN-PROJECT-A')).length, 8);
     assert.equal((await service.listOwned('USR-B', 'NN-PROJECT-A')).length, 0);
     assert.equal(await service.getOwned('USR-B', 'NN-PROJECT-A', first.job.id), null);
 

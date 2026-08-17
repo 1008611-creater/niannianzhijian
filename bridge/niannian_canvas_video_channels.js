@@ -6,6 +6,11 @@ const CHANNELS = Object.freeze({
     model: 'minimax-h3',
     label: 'H3 生视频'
   }),
+  'dola-seedance-2-5': Object.freeze({
+    id: 'dola-seedance-2-5',
+    model: 'dola-seedance-2-5',
+    label: 'Dola Seedance 2.5（30秒）'
+  }),
   'animate-transfer': Object.freeze({
     id: 'animate-transfer',
     model: 'runninghub-animate-motion-transfer',
@@ -21,6 +26,9 @@ const CHANNELS = Object.freeze({
 const ALIASES = Object.freeze({
   h3: 'h3',
   'minimax-h3': 'h3',
+  dola: 'dola-seedance-2-5',
+  'dola-seedance-2-5': 'dola-seedance-2-5',
+  'seedance-2-5': 'dola-seedance-2-5',
   'animate-transfer': 'animate-transfer',
   'animate-motion-transfer': 'animate-transfer',
   'runninghub-animate': 'animate-transfer',
@@ -43,4 +51,9 @@ function isAnimateVideoChannel(value) {
   return channel?.id === 'animate-transfer' || channel?.id === 'animate-ai-app';
 }
 
-module.exports = {CHANNELS, resolveVideoChannel, isAnimateVideoChannel};
+function isDolaVideoChannel(value) {
+  const channel = typeof value === 'object' && value ? value.id : resolveVideoChannel(value);
+  return channel?.id === 'dola-seedance-2-5';
+}
+
+module.exports = {CHANNELS, resolveVideoChannel, isAnimateVideoChannel, isDolaVideoChannel};

@@ -59,6 +59,17 @@ async function main() {
           priceCredits: 20,
           resolutions: ['2k'],
           aspectRatios: ['9:16', '16:9', '1:1']
+        }, {
+          id: 'dola-seedance-2-5',
+          alias: 'dola-seedance-2-5',
+          label: 'Dola Seedance 2.5（30秒）',
+          kind: 'video',
+          providerKey: 'dola-desktop-api',
+          providerLabel: 'Dola',
+          enabled: true,
+          priceCredits: 0,
+          resolutions: ['720p'],
+          aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4']
         }]
       }
     };
@@ -84,10 +95,19 @@ async function main() {
       {value: '1:1', label: '1:1'}
     ]);
     assert.deepEqual(result.videoModels[0].meta.videoOptions.resolutionOptions, [{value: '2k', label: '2K'}]);
+    assert.deepEqual(result.videoModels[1].meta.videoOptions.sizeOptions, [
+      {value: '9:16', label: '9:16'},
+      {value: '16:9', label: '16:9'},
+      {value: '1:1', label: '1:1'},
+      {value: '4:3', label: '4:3'},
+      {value: '3:4', label: '3:4'}
+    ]);
+    assert.deepEqual(result.videoModels[1].meta.videoOptions.resolutionOptions, [{value: '720p', label: '720P'}]);
     assert.equal(result.health.byKind.find(item => item.kind === 'image').enabledModels, 1);
     assert.deepEqual(result.vendors, [
       {key: 'yunwu-image', name: '云雾', enabled: true, authType: 'none', hasApiKey: true},
-      {key: 'runninghub-consumer', name: 'RunningHub', enabled: true, authType: 'none', hasApiKey: true}
+      {key: 'runninghub-consumer', name: 'RunningHub', enabled: true, authType: 'none', hasApiKey: true},
+      {key: 'dola-desktop-api', name: 'Dola', enabled: true, authType: 'none', hasApiKey: true}
     ]);
     console.log('MODEL_CATALOG_WEB_FALLBACK_BROWSER_OK');
   } finally {
