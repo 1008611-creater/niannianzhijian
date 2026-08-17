@@ -525,6 +525,7 @@
   }
 
   var webProjectsStorageKey = 'niannian-web-projects-v1';
+  var webProjectDocumentPrefix = 'tapcanvas-open-workbench-project-v1:';
   function readWebProjects() {
     try {
       var stored = window.localStorage.getItem(webProjectsStorageKey);
@@ -535,6 +536,31 @@
   function writeWebProjects(projects) {
     try { window.localStorage.setItem(webProjectsStorageKey, JSON.stringify(projects.slice(0, 100))); } catch (_) {}
   }
+  function readLocalProjectDocument(id) {
+    try {
+      var stored = window.localStorage.getItem(webProjectDocumentPrefix + id);
+      var parsed = stored ? JSON.parse(stored) : null;
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch (_) { return null; }
+  }
+  function writeLocalProjectDocument(id, record) {
+    try { window.localStorage.setItem(webProjectDocumentPrefix + id, JSON.stringify(record)); } catch (_) {}
+  }
+  function projectPayload(record) {
+    if (!record || typeof record !== 'object') return null;
+    var payload = record.payload && typeof record.payload === 'object' ? record.payload : record;
+    return payload && payload.generationCanvas && typeof payload.generationCanvas === 'object' ? payload : null;
+  }
+  function projectDocumentHasContent(record) {
+    var payload = projectPayload(record);
+    if (!payload) return false;
+    var canvas = payload.generationCanvas || {};
+    if (Array.isArray(canvas.nodes) && canvas.nodes.length) return true;
+    if (Array.isArray(canvas.edges) && canvas.edges.length) return true;
+    if (Array.isArray(canvas.groups) && canvas.groups.length) return true;
+    if (payload.workbenchDocument || payload.timeline || payload.storyboardPlan) return true;
+    return false;
+  }
   function newWebProjectId() {
     var suffix = typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID().replace(/-/g, '')
@@ -542,6 +568,7 @@
     return 'NN-web-' + suffix.slice(0, 64);
   }
   var webProjects = readWebProjects();
+  var webProjectRecords = new Map();
   function projectThumbnailUrl(value) {
     return String(value || '').replace(/(\/api\/projects\/[^/]+\/assets\/CAS-[A-Za-z0-9-]+)\/download(?:\?[^#]*)?$/, '$1/thumbnail');
   }
@@ -607,6 +634,54 @@
     });
     return response.project || null;
   }
+  function projectDocumentHeaders(revision) {
+    return {
+      'content-type': 'application/json',
+      'x-niannian-project-kind': canvasProjectKind(),
+      'if-match': '"nomi-rev-' + Math.max(0, Number(revision) || 0) + '"'
+    };
+  }
+  function remoteProjectRecord(id, remote, fallback) {
+    var prior = fallback && typeof fallback === 'object' ? fallback : {};
+    var remoteProject = remote && remote.project && typeof remote.project === 'object' ? remote.project : {};
+    var document = remote && remote.document && typeof remote.document === 'object' ? remote.document : null;
+    if (!document) return null;
+    var updatedAt = Date.parse(remote.updatedAt || remoteProject.updatedAt || '') || Date.now();
+    return {
+      id: id,
+      name: remoteProject.name || prior.name || '未命名项目',
+      createdAt: Number(prior.createdAt) || updatedAt,
+      updatedAt: updatedAt,
+      revision: Math.max(0, Number(remote.revision) || 0),
+      savedAt: updatedAt,
+      version: 1,
+      payload: document
+    };
+  }
+  async function fetchProjectDocument(id) {
+    return api('/api/studio/projects/' + encodeURIComponent(id), {
+      headers: {'x-niannian-project-kind': canvasProjectKind()}
+    });
+  }
+  async function persistProjectDocument(id, record, expectedRevision) {
+    var payload = projectPayload(record);
+    if (!payload) throw new Error('画布文档不完整，无法保存');
+    return api('/api/studio/projects/' + encodeURIComponent(id), {
+      method: 'PUT',
+      headers: projectDocumentHeaders(expectedRevision),
+      body: JSON.stringify({document: payload})
+    });
+  }
+  function updateWebProjectFromRecord(record) {
+    if (!record || !record.id) return;
+    webProjectRecords.set(record.id, record);
+    var previous = webProjects.find(function (item) { return item.id === record.id; }) || null;
+    var next = projectSummary(record, previous);
+    next.revision = Math.max(0, Number(record.revision) || 0);
+    next.metadataSynced = previous ? previous.metadataSynced === true : false;
+    webProjects = [next].concat(webProjects.filter(function (item) { return item.id !== record.id; }));
+    writeWebProjects(webProjects);
+  }
   async function refreshProjectCoverCandidates(id) {
     var previous = webProjects.find(function (item) { return item.id === id; });
     if (!previous) throw new Error('项目不存在或尚未载入');
@@ -642,16 +717,75 @@
     create: function (record) {
       var now = Date.now();
       var created = Object.assign({}, record || {}, {id: newWebProjectId(), createdAt: now, updatedAt: now, revision: 0, savedAt: now, canvasOnly: true});
-      webProjects = [projectSummary(created, null)].concat(webProjects.filter(function (item) { return item.id !== created.id; }));
+      var summary = projectSummary(created, null);
+      created = Object.assign({}, created, {
+        thumbnail: summary.thumbnail,
+        thumbnailUrls: summary.thumbnailUrls,
+        autoThumbnailUrls: summary.autoThumbnailUrls,
+        autoCoverIndex: summary.autoCoverIndex,
+        coverMode: summary.coverMode
+      });
+      webProjects = [summary].concat(webProjects.filter(function (item) { return item.id !== created.id; }));
+      webProjectRecords.set(created.id, created);
+      writeLocalProjectDocument(created.id, created);
       writeWebProjects(webProjects);
       return created;
     },
-    read: function (id) { return webProjects.find(function (item) { return item.id === id; }) || null; },
+    read: function (id) {
+      var cached = webProjectRecords.get(id) || readLocalProjectDocument(id);
+      if (cached) {
+        webProjectRecords.set(id, cached);
+        return cached;
+      }
+      return webProjects.find(function (item) { return item.id === id; }) || null;
+    },
+    readAsync: async function (id) {
+      var local = webProjectRecords.get(id) || readLocalProjectDocument(id);
+      if (local) webProjectRecords.set(id, local);
+      try {
+        var remote = await fetchProjectDocument(id);
+        var remoteRecord = remoteProjectRecord(id, remote, local || webProjects.find(function (item) { return item.id === id; }));
+        if (!remoteRecord) return local || null;
+        // Server content always wins. A local document only fills the server-created
+        // empty shell, once, and the ETag prevents an overwrite from another page.
+        if (!projectDocumentHasContent(remoteRecord) && projectDocumentHasContent(local)) {
+          try {
+            var migrated = await persistProjectDocument(id, local, remoteRecord.revision);
+            remoteRecord = remoteProjectRecord(id, migrated, local) || local;
+            window.dispatchEvent(new CustomEvent('niannian-project-document-migrated', {detail:{projectId:id,revision:remoteRecord.revision}}));
+          } catch (error) {
+            if (Number(error && error.status) === 409) {
+              remote = await fetchProjectDocument(id);
+              remoteRecord = remoteProjectRecord(id, remote, local) || local;
+            } else {
+              window.dispatchEvent(new CustomEvent('niannian-project-document-error', {detail:{projectId:id,message:error.message || '画布迁移失败'}}));
+              return local || remoteRecord;
+            }
+          }
+        }
+        updateWebProjectFromRecord(remoteRecord);
+        return remoteRecord;
+      } catch (error) {
+        window.dispatchEvent(new CustomEvent('niannian-project-document-error', {detail:{projectId:id,message:error.message || '画布加载失败'}}));
+        return local || null;
+      }
+    },
     save: function (id, record) {
       var previous = webProjects.find(function (item) { return item.id === id; }) || null;
       var next = projectSummary(Object.assign({}, record || {}, {id: id, updatedAt: Date.now()}), previous);
       webProjects = [next].concat(webProjects.filter(function (item) { return item.id !== id; }));
+      webProjectRecords.set(id, record);
+      writeLocalProjectDocument(id, record);
       writeWebProjects(webProjects);
+      var expectedRevision = Math.max(0, (Number(record && record.revision) || 1) - 1);
+      persistProjectDocument(id, record, expectedRevision).then(function (saved) {
+        var remoteRecord = remoteProjectRecord(id, saved, record) || record;
+        updateWebProjectFromRecord(remoteRecord);
+        window.dispatchEvent(new CustomEvent('niannian-project-document-saved', {detail:{projectId:id,revision:remoteRecord.revision}}));
+      }).catch(function (error) {
+        var eventName = Number(error && error.status) === 409 ? 'niannian-project-document-conflict' : 'niannian-project-document-error';
+        window.dispatchEvent(new CustomEvent(eventName, {detail:{projectId:id,message:error.message || '画布保存失败'}}));
+      });
       if (!previous || previous.metadataSynced !== true || projectMetadataSignature(previous) !== projectMetadataSignature(next)) {
         next.metadataSynced = false;
         writeWebProjects(webProjects);
