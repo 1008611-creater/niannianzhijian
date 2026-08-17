@@ -30,6 +30,21 @@ function vaultReady(env) {
     && String(env.HTTPS_PROXY || env.https_proxy || '').trim();
 }
 
+function protectedProxyEnv(env) {
+  const proxy = String(env.HTTPS_PROXY || env.https_proxy || '').trim();
+  const token = String(env.AGENT_VAULT_TOKEN || '').trim();
+  const vault = String(env.AGENT_VAULT_VAULT || '').trim();
+  if (!proxy || !token || !vault) return env;
+  let url;
+  try { url = new URL(proxy); } catch { return env; }
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return env;
+  url.username = token;
+  url.password = vault;
+  // The authenticated proxy address exists only in the child process. It is
+  // never persisted, returned, or written to diagnostics.
+  return {...env, HTTPS_PROXY:url.toString(), HTTP_PROXY:url.toString()};
+}
+
 function execute(file, args, env) {
   return new Promise((resolve, reject) => {
     const child = spawn(file, args, {env, shell:false, windowsHide:true, stdio:['ignore', 'pipe', 'pipe']});
@@ -71,7 +86,7 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
     try {
       const args = [scriptPath, '--channel', 'yunwu', '--operation', preflight.payload.operation, '--prompt-file', promptPath, '--model', 'gpt-image-2-c', '--size', preflight.payload.size, '--asset-id', `canvas-${id}`, '--submit', '--output', outputPath, '--receipt', receiptPath];
       for (const referenceFile of referenceFiles) args.push('--reference-image', referenceFile);
-      result = await run(pythonPath, args, env);
+      result = await run(pythonPath, args, protectedProxyEnv(env));
     } catch (error) {
       await cleanup([promptPath, outputPath, receiptPath]);
       if (error?.code === 'ENOENT') throw adapterError('YUNWU_EXECUTOR_NOT_CONFIGURED', '云雾执行器尚未配置', 503);
@@ -101,4 +116,4 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
   return {dryRun, submit, query, constants:{generateEndpoint:'https://yunwu.ai/v1/images/generations', editEndpoint:'https://yunwu.ai/v1/images/edits', model:'gpt-image-2-c', generateOutputSize:GENERATE_OUTPUT_SIZE, editOutputSize:EDIT_OUTPUT_SIZE}};
 }
 
-module.exports = {createYunwuAgentVaultImage2Adapter, vaultReady, DEFAULT_PYTHON, DEFAULT_SCRIPT};
+module.exports = {createYunwuAgentVaultImage2Adapter, vaultReady, protectedProxyEnv, DEFAULT_PYTHON, DEFAULT_SCRIPT};

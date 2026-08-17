@@ -12,6 +12,16 @@ if (process.platform === 'win32') {
   assert.equal(adapter.DEFAULT_SCRIPT, path.join(__dirname, 'bridge', 'niannian_yunwu_image2_channel.py'));
 }
 
+const protectedProxy = adapter.protectedProxyEnv({
+  AGENT_VAULT_TOKEN:'protected-test-token',
+  AGENT_VAULT_VAULT:'niannian-production',
+  HTTPS_PROXY:'http://127.0.0.1:14322'
+});
+const protectedProxyUrl = new URL(protectedProxy.HTTPS_PROXY);
+assert.equal(decodeURIComponent(protectedProxyUrl.username), 'protected-test-token');
+assert.equal(decodeURIComponent(protectedProxyUrl.password), 'niannian-production');
+assert.equal(protectedProxy.HTTP_PROXY, protectedProxy.HTTPS_PROXY);
+
 async function run() {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'yunwu-adapter-platform-'));
   try {
