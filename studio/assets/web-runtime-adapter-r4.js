@@ -311,11 +311,13 @@
     };
   }
 
-  function listVendors() {
+  async function listVendors() {
+    if (!catalogState.models.length) await refreshCatalog();
     return catalogState.vendors.slice();
   }
 
-  function listModels(params) {
+  async function listModels(params) {
+    if (!catalogState.models.length) await refreshCatalog();
     var requested = String(params && params.kind || '').trim();
     return catalogState.models.filter(function (model) {
       return !requested || requested === model.kind || (requested === 'imageEdit' && model.kind === 'image') || (requested === 'chat' && model.kind === 'text');
