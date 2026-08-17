@@ -11,7 +11,7 @@ function runtimeError(code, message, httpStatus = 409) {
 
 function publicFailure(error) {
   if (error?.code === 'YUNWU_AGENT_VAULT_NOT_CONFIGURED') return '云雾图像渠道尚未配置，暂时不能提交。';
-  if (error?.code === 'YUNWU_EXECUTOR_UNAVAILABLE') return '云雾图像执行器不可用，已阻止本次提交。';
+  if (error?.code === 'YUNWU_EXECUTOR_NOT_CONFIGURED') return '云雾图像执行器尚未配置，暂时不能提交。';
   if (error?.code === 'YUNWU_NETWORK_UNCERTAIN') return '生成请求状态待确认，请稍后查看任务状态。';
   return '图像生成暂未完成，请检查输入后重试。';
 }

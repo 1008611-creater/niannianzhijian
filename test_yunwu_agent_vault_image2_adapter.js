@@ -43,7 +43,7 @@ async function run() {
     }});
     await assert.rejects(
       () => unavailable.submit({prompt:'执行器故障',output_size:'2160x3840'}, []),
-      error => error.code === 'YUNWU_EXECUTOR_UNAVAILABLE'
+      error => error.code === 'YUNWU_EXECUTOR_NOT_CONFIGURED'
     );
     console.log('YUNWU_AGENT_VAULT_IMAGE2_ADAPTER_CONTRACT_OK');
   } finally { await fsp.rm(root, {recursive:true,force:true}); }

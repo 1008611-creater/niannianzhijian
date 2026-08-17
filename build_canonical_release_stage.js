@@ -103,7 +103,7 @@ const runtimeFiles = [...new Set([
   'scripts/recover_step01_frame_evidence.js',
   'scripts/run_step03_worker.js',
   'bridge/niannian_step01_hq_runner.py',
-  'bridge/niannian_image2_channel.py',
+  'bridge/niannian_yunwu_image2_channel.py',
   'bridge/mac-employee-training/execute_step01_hq_full.py',
   'bridge/niannian_low_risk_policy.js',
   'bridge/niannian_shot_review.js',

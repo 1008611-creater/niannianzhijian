@@ -8,11 +8,12 @@ const path = require('path');
 const {spawn} = require('child_process');
 const {imageMime} = require('./niannian_runninghub_image_adapter');
 
-// The channel worker is packaged with the service.  The former defaults pointed
-// at a developer workstation and made every Linux deployment look like a
-// provider-network failure.
-const DEFAULT_SCRIPT = path.join(__dirname, 'niannian_image2_channel.py');
-const DEFAULT_PYTHON = process.platform === 'win32' ? 'python.exe' : 'python3';
+const DEFAULT_WINDOWS_SCRIPT = 'C:\\Users\\lsb\\.codex\\skills\\image2-skill\\scripts\\image2_channel.py';
+const DEFAULT_WINDOWS_PYTHON = 'C:\\Users\\lsb\\anaconda3\\python.exe';
+const DEFAULT_SCRIPT = process.platform === 'win32'
+  ? DEFAULT_WINDOWS_SCRIPT
+  : path.join(__dirname, 'niannian_yunwu_image2_channel.py');
+const DEFAULT_PYTHON = process.platform === 'win32' ? DEFAULT_WINDOWS_PYTHON : 'python3';
 const EDIT_CHANNEL = 'yunwu-gpt-image-2-c-edit';
 const EDIT_OUTPUT_SIZE = '3840x2160';
 const GENERATE_OUTPUT_SIZE = '2160x3840';
@@ -27,6 +28,21 @@ function adapterError(code, message, httpStatus = 502) {
 function vaultReady(env) {
   return ['AGENT_VAULT_ADDR', 'AGENT_VAULT_VAULT', 'AGENT_VAULT_TOKEN'].every(name => String(env[name] || '').trim())
     && String(env.HTTPS_PROXY || env.https_proxy || '').trim();
+}
+
+function protectedProxyEnv(env) {
+  const proxy = String(env.HTTPS_PROXY || env.https_proxy || '').trim();
+  const token = String(env.AGENT_VAULT_TOKEN || '').trim();
+  const vault = String(env.AGENT_VAULT_VAULT || '').trim();
+  if (!proxy || !token || !vault) return env;
+  let url;
+  try { url = new URL(proxy); } catch { return env; }
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return env;
+  url.username = token;
+  url.password = vault;
+  // The authenticated proxy address exists only in the child process. It is
+  // never persisted, returned, or written to diagnostics.
+  return {...env, HTTPS_PROXY:url.toString(), HTTP_PROXY:url.toString()};
 }
 
 function execute(file, args, env) {
@@ -59,13 +75,13 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
   async function cleanup(paths) { await Promise.all(paths.map(file => fsp.rm(file, {force:true}).catch(() => {}))); }
 
   function executionFailure(error) {
-    if (error?.code === 'ENOENT') return adapterError('YUNWU_EXECUTOR_UNAVAILABLE', '云雾图像执行器不可用', 503);
+    if (error?.code === 'ENOENT') return adapterError('YUNWU_EXECUTOR_NOT_CONFIGURED', '云雾执行器尚未配置', 503);
     return adapterError('YUNWU_NETWORK_UNCERTAIN', '云雾请求状态待确认');
   }
 
   function executionExitFailure(code) {
     if (code === 2) return adapterError('YUNWU_AGENT_VAULT_NOT_CONFIGURED', '云雾受保护代理会话尚未配置', 503);
-    if ([126, 127].includes(code)) return adapterError('YUNWU_EXECUTOR_UNAVAILABLE', '云雾图像执行器不可用', 503);
+    if ([126, 127].includes(code)) return adapterError('YUNWU_EXECUTOR_NOT_CONFIGURED', '云雾执行器尚未配置', 503);
     if (code === 5) return adapterError('YUNWU_NETWORK_UNCERTAIN', '云雾请求状态待确认');
     return adapterError('YUNWU_SUBMISSION_REJECTED', '云雾图像请求未通过');
   }
@@ -80,7 +96,7 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
     try {
       const args = [scriptPath, '--channel', 'yunwu', '--operation', preflight.payload.operation, '--prompt-file', promptPath, '--model', 'gpt-image-2-c', '--size', preflight.payload.size, '--asset-id', `canvas-${id}`, '--dry-run', '--receipt', receiptPath];
       for (const referenceFile of referenceFiles) args.push('--reference-image', referenceFile);
-      const result = await run(pythonPath, args, env);
+      const result = await run(pythonPath, args, protectedProxyEnv(env));
       if (result.code !== 0) throw executionExitFailure(result.code);
       return preflight;
     } catch (error) {
@@ -103,7 +119,7 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
     try {
       const args = [scriptPath, '--channel', 'yunwu', '--operation', preflight.payload.operation, '--prompt-file', promptPath, '--model', 'gpt-image-2-c', '--size', preflight.payload.size, '--asset-id', `canvas-${id}`, '--submit', '--output', outputPath, '--receipt', receiptPath];
       for (const referenceFile of referenceFiles) args.push('--reference-image', referenceFile);
-      result = await run(pythonPath, args, env);
+      result = await run(pythonPath, args, protectedProxyEnv(env));
     } catch (error) {
       await cleanup([promptPath, outputPath, receiptPath]);
       throw executionFailure(error);
@@ -130,4 +146,4 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
   return {dryRun, submit, query, constants:{generateEndpoint:'https://yunwu.ai/v1/images/generations', editEndpoint:'https://yunwu.ai/v1/images/edits', model:'gpt-image-2-c', generateOutputSize:GENERATE_OUTPUT_SIZE, editOutputSize:EDIT_OUTPUT_SIZE}};
 }
 
-module.exports = {createYunwuAgentVaultImage2Adapter, vaultReady};
+module.exports = {createYunwuAgentVaultImage2Adapter, vaultReady, protectedProxyEnv, DEFAULT_PYTHON, DEFAULT_SCRIPT};
