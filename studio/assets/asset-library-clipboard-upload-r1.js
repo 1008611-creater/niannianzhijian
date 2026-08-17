@@ -21,11 +21,7 @@
   }
 
   function assetLibraryInput() {
-    var inputs = Array.prototype.slice.call(document.querySelectorAll('input[type="file"]'));
-    return inputs.find(function (input) {
-      var accept = String(input.getAttribute('accept') || '').toLowerCase();
-      return accept.includes('image/') && (accept.includes('video/') || accept.includes('audio/'));
-    }) || inputs[0] || null;
+    return document.querySelector('input[data-niannian-canvas-asset-upload="true"]');
   }
 
   function assignClipboardFile(input, file) {

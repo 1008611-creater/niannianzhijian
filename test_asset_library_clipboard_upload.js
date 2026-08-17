@@ -5,12 +5,13 @@ const vm = require('node:vm');
 
 const source = fs.readFileSync(path.join(__dirname, 'studio', 'assets', 'asset-library-clipboard-upload-r1.js'), 'utf8');
 const indexHtml = fs.readFileSync(path.join(__dirname, 'studio', 'index.html'), 'utf8');
-assert.match(indexHtml, /asset-library-clipboard-upload-r1\.js\?v=20260817-clipboard-upload-r1/);
+assert.match(indexHtml, /asset-library-upload-contract-r2\.js\?v=20260817-upload-contract-r2/);
+assert.match(indexHtml, /asset-library-clipboard-upload-r1\.js\?v=20260817-clipboard-upload-r2/);
 const listeners = new Map();
 const dispatched = [];
 const imageFile = {name: 'clipboard-reference.png', type: 'image/png'};
 const assetInput = {
-  getAttribute(name) { return name === 'accept' ? 'image/*,video/*,audio/*' : null; },
+  getAttribute(name) { return name === 'data-niannian-canvas-asset-upload' ? 'true' : null; },
   dispatchEvent(event) { dispatched.push(event.type); },
   files: null
 };
@@ -28,7 +29,7 @@ class FakeEvent {
 
 const context = {
   window: {addEventListener(type, listener) { listeners.set(type, listener); }},
-  document: {querySelectorAll(selector) { assert.equal(selector, 'input[type="file"]'); return [assetInput]; }},
+  document: {querySelector(selector) { assert.equal(selector, 'input[data-niannian-canvas-asset-upload="true"]'); return assetInput; }},
   DataTransfer: FakeDataTransfer,
   Event: FakeEvent
 };
