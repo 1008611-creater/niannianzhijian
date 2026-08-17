@@ -1,1 +1,1 @@
-import{l as o}from"./proxy-B50diLEI-r4.js?v=20260816-studio-closure-r9";const r=[["path",{d:"M15 14l4 -4l-4 -4",key:"svg-0"}],["path",{d:"M19 10h-11a4 4 0 1 0 0 8h1",key:"svg-1"}]],t=o("outline","arrow-forward-up","ArrowForwardUp",r);export{t as I};
+import{l as o}from"./proxy-B50diLEI-r4.js?v=20260818-studio-cache-chain-r6";const r=[["path",{d:"M15 14l4 -4l-4 -4",key:"svg-0"}],["path",{d:"M19 10h-11a4 4 0 1 0 0 8h1",key:"svg-1"}]],t=o("outline","arrow-forward-up","ArrowForwardUp",r);export{t as I};

@@ -7,11 +7,11 @@ const path = require('path');
 const projectRoot = __dirname;
 const assetsRoot = path.join(projectRoot, 'studio', 'assets');
 const releaseTag = 'r(?:4|5|6)';
-const moduleCacheVersion = '20260817-generation-runtime-catalog-r3';
-const studioClosureCacheVersion = '20260816-studio-closure-r9';
+const moduleCacheVersion = '20260818-studio-cache-chain-r6';
+const studioClosureCacheVersion = moduleCacheVersion;
 const rootModuleName = 'index-M-8MrEH2-r28-19b89ec-r6.js';
 const generationControllerName = 'generationRunController-DH5v5RRt-r4.js';
-const generationControllerCacheVersion = '20260817-generation-runtime-catalog-r5';
+const generationControllerCacheVersion = moduleCacheVersion;
 const starts = ['index-M-8MrEH2-r28-19b89ec-r6.js', 'web-runtime-adapter-r4.js'];
 
 function localReferences(source) {
@@ -77,8 +77,10 @@ for (const name of reachable) {
   assert.doesNotMatch(source, /\?v=20260808-static-r[123](?:["')])/);
   assert.doesNotMatch(source, /\?v=20260809-static-r4(?:["')])/);
   assert.doesNotMatch(source, /\?v=20260811-static-r5(?:["')])/);
-  if (localReferences(source).some(dependency => dependency.endsWith('.js'))) {
-    assert.match(source, new RegExp(`\\?v=(?:${studioClosureCacheVersion}|${moduleCacheVersion})(?:["')])`), `Studio module is not in the current closure: ${name}`);
+  for (const dependency of localReferences(source)) {
+    if (!dependency.endsWith('.js')) continue;
+    const escapedDependency = dependency.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(source, new RegExp(`${escapedDependency}\\?v=${studioClosureCacheVersion}(?:["')])`), `Studio module is not in the current closure: ${name}`);
   }
   assert.doesNotMatch(source, /(?:index-M-8MrEH2-r28-19b89ec|NomiStudioApp-DDB0IgSO-r28-19b89ec)-r4\.js\?v=20260816-batch-group-feedback-r8/);
   assert.doesNotMatch(source, /(?:index-M-8MrEH2-r28-19b89ec|NomiStudioApp-DDB0IgSO-r28-19b89ec)-r4\.js\?v=20260816-persisted-image-r1/);
