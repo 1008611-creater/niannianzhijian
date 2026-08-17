@@ -1,0 +1,37 @@
+{
+  "schema_version": "niannian_shared_file_handoff_attestation_v1",
+  "review_id": "release-baseline-20260818-cross-project-assets",
+  "reviewed_at": "2026-08-18T04:10:03+08:00",
+  "authoritative_source_path": "E:\\codex\\niannianai\\niannianai",
+  "files": {
+    "server.js": "77c217a1229b7ee3007f52537aea4dc671cb252a57e2791c05b7aedc91091fb6",
+    "index.html": "38014a89dbdc4591e80ffbe69e0f050954af5366e5a3bccabcfcc0e5cd861723",
+    "app.js": "4a8ac9a9952f20fdc0363f2144c53977578a71b25ae09fdb855887f85dea4b51",
+    "product.css": "fafa35df7cea0d8abbc6f9cf7a6590a9f80ef63657bcaab9e1390ce4da02f028",
+    "styles.css": "d8254de1de1b0cddeee13301ee64a0e5605294980a9c8de384ea76625822a489",
+    "product-system.css": "e571291eab9acd8f808b7fc39e5585f630802862e6805f9872f6334441a9630a",
+    "hero-oil-paint.css": "0fcba9536da02a0f8843331f986f01dbb670e0d2c1b1ccd2226046ffc0f60cdd",
+    "sw.js": "292159030702c25198b9dadd6ac31b7f9981a858d4bb5ab23fde6de5e83396f2",
+    "bridge/niannian_controller_bridge.js": "64157f96db7f48c33dfe028263cd15138a109e15a194e0375a18ee0f89e427cc"
+  },
+  "evidence": [
+    {
+      "path": "release_baseline_review_evidence_20260818_cross_project_assets.json",
+      "sha256": "f22eb52b007c210787738a2d9089717b0ea7355ede452ee09277a6d8dfbd993b",
+      "covers": [
+        "server.js",
+        "index.html",
+        "app.js",
+        "product.css",
+        "styles.css",
+        "product-system.css",
+        "hero-oil-paint.css",
+        "sw.js",
+        "bridge/niannian_controller_bridge.js"
+      ]
+    }
+  ],
+  "production_parity_claimed": false,
+  "deployment_authorized": false,
+  "note": "This is a reviewed source baseline for isolated release staging. The active public release remains recorded separately and is not assumed to match."
+}

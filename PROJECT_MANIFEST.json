@@ -121,15 +121,15 @@
     },
     "shared_file_handoff_baseline": {
       "schema_version": "niannian_shared_file_handoff_baseline_v2",
-      "review_id": "release-baseline-20260818-commerce-control-plane",
-      "captured_at": "2026-08-18T00:21:30+08:00",
-      "capture_reason": "Reviewed commercial operations console changes: protected server billing and permission paths are covered by model catalog, billing recovery, administrator access, browser and full quality-gate evidence before isolated release staging.",
+      "review_id": "release-baseline-20260818-cross-project-assets",
+      "captured_at": "2026-08-18T04:10:03+08:00",
+      "capture_reason": "Reviewed cross-project asset reuse server endpoint and Studio root entry restoration; server behavior, asset catalog HTTP coverage, and browser fallback checks passed before isolated release staging.",
       "attestation": {
-        "path": "release_baseline_attestation_20260818_commerce_control_plane.json",
-        "sha256": "0c35a51d8f86a8a836c09a3109bf8943a37c2a577de0e1ba7d92a3773663816c"
+        "path": "release_baseline_attestation_20260818_cross_project_assets.json",
+        "sha256": "46ae669ffd7f029d5fe48ec932bc505bd1d072c930abe35e9eff7c73a3125f2b"
       },
       "files": {
-        "server.js": "4d6935d5c6094988372e3f02c5d454f24bc4e1c85354d7bd08ef9307580641f1",
+        "server.js": "77c217a1229b7ee3007f52537aea4dc671cb252a57e2791c05b7aedc91091fb6",
         "index.html": "38014a89dbdc4591e80ffbe69e0f050954af5366e5a3bccabcfcc0e5cd861723",
         "app.js": "4a8ac9a9952f20fdc0363f2144c53977578a71b25ae09fdb855887f85dea4b51",
         "product.css": "fafa35df7cea0d8abbc6f9cf7a6590a9f80ef63657bcaab9e1390ce4da02f028",
