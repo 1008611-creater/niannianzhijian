@@ -45,7 +45,7 @@ async function run() {
   assert.equal(dolaSave.status, 200);
   const dolaCatalogResponse = await fetch(`${baseUrl}/api/canvas/model-catalog`, {headers:headers('user-token')});
   const dolaCatalog = await dolaCatalogResponse.json();
-  assert.equal(dolaCatalog.catalog.models.some(item => item.id === 'dola-seedance-2-5'), true);
+  assert.equal(dolaCatalog.catalog.models.some(item => item.id === 'dola-seedance-2-5'), false);
   assert.equal(JSON.stringify(dolaCatalog).includes('NIANNIAN_DOLA_API_KEY'), false);
   const configuredStatus = await fetch(`${baseUrl}/api/canvas/provider-status`, {headers:headers('user-token')});
   const configuredBody = await configuredStatus.json();
