@@ -12,8 +12,9 @@
   var ledgerList = document.getElementById('ledgerList');
   var jobList = document.getElementById('jobList');
   var saveState = document.getElementById('saveState');
+  var currencyKpis = document.getElementById('currencyKpis');
   var creditAdjustmentForm = document.getElementById('creditAdjustmentForm');
-  var state = {providers: [], models: [], plans: [], tenantPlans: [], ledger: {entries: [], accountBalances: {}}, jobs: []};
+  var state = {providers: [], models: [], plans: [], tenantPlans: [], ledger: {entries: [], accountBalances: {}}, jobs: [], currency: null};
 
   function text(value) { return String(value == null ? '' : value); }
   function setStatus(message, tone) {
@@ -35,6 +36,24 @@
     row.textContent = message;
     container.appendChild(row);
   }
+  function renderCurrency() {
+    var currency = state.currency || {};
+    var metrics = [
+      ['可用积分', currency.availableCredits, '可继续提交的余额'],
+      ['待结算', currency.reservedCredits, '生成中或待复核'],
+      ['已消费', currency.settledCredits, '成功任务实际结算'],
+      ['已退款', currency.refundedCredits, '确定失败自动退回'],
+      ['异常', currency.anomalies ? currency.anomalies.length : 0, '需要管理员复核']
+    ];
+    currencyKpis.replaceChildren();
+    metrics.forEach(function (metric) {
+      var item = document.createElement('div');
+      var label = document.createElement('dt'); label.textContent = metric[0];
+      var value = document.createElement('dd'); value.textContent = String(Number(metric[1]) || 0);
+      var note = document.createElement('p'); note.textContent = metric[2];
+      item.append(label, value, note); currencyKpis.appendChild(item);
+    });
+  }
   function renderProviders() {
     if (!state.providers.length) return empty(providerList, '服务器尚未登记供应商。');
     providerList.replaceChildren();
@@ -42,7 +61,7 @@
       var fragment = providerTemplate.content.cloneNode(true);
       var row = fragment.querySelector('.provider-row');
       row.querySelector('h3').textContent = text(provider.label || provider.id);
-      row.querySelector('.provider-kind').textContent = provider.kind === 'video' ? '视频生成渠道' : '图像生成渠道';
+      row.querySelector('.provider-kind').textContent = provider.kind === 'video' ? '视频生成渠道' : (provider.kind === 'text' ? '编排模型渠道' : '图像生成渠道');
       var credential = row.querySelector('.credential-state');
       credential.textContent = provider.credentialConfigured ? '已配置' : '未配置';
       credential.className = 'credential-state ' + (provider.credentialConfigured ? 'state-good' : 'state-warn');
@@ -235,6 +254,8 @@
       state.tenantPlans = Array.isArray(summary.tenantPlans) ? summary.tenantPlans : [];
       state.ledger = summary.ledger || {entries: [], accountBalances: {}};
       state.jobs = Array.isArray(summary.jobs) ? summary.jobs : [];
+      state.currency = summary.currency || null;
+      renderCurrency();
       renderProviders();
       renderModels();
       renderPlans();

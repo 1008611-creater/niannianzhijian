@@ -7565,11 +7565,21 @@ async function handleCanvasSkillCompileApi(request, response, pathname, user) {
     if (request.headers['if-match'] !== canvasEtag(Number(record?.revision || 0))) throw Object.assign(new Error('画布已更新，请重新读取后再运行编排。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:412});
     const taskId = 'CPL-' + crypto.randomBytes(12).toString('hex');
     const idempotencyKey = canvasText(request.headers['idempotency-key'], 160) || null;
-    const started = await updateCanvasCompilerNode({user,owned,nodeId,mutate(node) {
+    const tenantId = modelControlPlaneModule.tenantForUser(user);
+    const catalog = await modelControlPlane.publicCatalogForTenant(tenantId);
+    const billingModel = catalog.models.find(item => item.id === 'mcgrox-compiler');
+    if (!billingModel) return json(response, 409, {code:'CANVAS_COMPILER_BILLING_NOT_CONFIGURED',error:'MCGrox 尚未在运营台发布积分价格',spendRequested:false});
+    const chargeRef = 'COMPILER:' + projectId + ':' + nodeId + ':' + taskId;
+    const reservation = await modelControlPlane.reserveCredits({tenantId,userId:user.id,jobId:chargeRef,idempotencyKey:chargeRef + ':reserve',amount:billingModel.priceCredits});
+    await updateCanvasCompilerNode({user,owned,nodeId,mutate(node) {
       node.status = 'running';
       node.taskRef = {id:taskId,idempotencyKey,status:'running'};
+      node.parameters = Object.assign({}, node.parameters || {}, {billing:{amount:billingModel.priceCredits,state:'reserved'}});
       node.recovery = {actions:['retry','repair_input'],lastAction:'compile'};
-    }});
+    }}).catch(async error => {
+      await modelControlPlane.refundCredits({reservationId:reservation.reservationId,reason:'compiler_task_persistence_failed',idempotencyKey:chargeRef + ':refund'});
+      throw error;
+    });
     try {
       const result = await canvasMcgroxCompiler.compile({
         skillKey:resolved.node.skillKey,
@@ -7580,19 +7590,22 @@ async function handleCanvasSkillCompileApi(request, response, pathname, user) {
       });
       const completed = await updateCanvasCompilerNode({user,owned,nodeId,expectedTaskId:taskId,mutate(node) {
         node.status = 'succeeded';
-        node.parameters = Object.assign({}, node.parameters || {}, {compiledOutputs:result.outputs, compiler:{provider:'mcgrox',model:result.model,completedAt:new Date().toISOString()}});
+        node.parameters = Object.assign({}, node.parameters || {}, {compiledOutputs:result.outputs, compiler:{provider:'mcgrox',model:result.model,completedAt:new Date().toISOString()},billing:{amount:billingModel.priceCredits,state:'settled'}});
         node.taskRef = {id:taskId,idempotencyKey,status:'succeeded'};
         node.recovery = {actions:['retry','repair_input'],lastAction:'compile_succeeded'};
       }});
       if (!completed) throw Object.assign(new Error('编排运行期间节点已被修改，请重新检查输入。'), {code:'CANVAS_COMPILER_STALE_TASK',httpStatus:409});
+      await modelControlPlane.settleCredits({reservationId:reservation.reservationId,amount:billingModel.priceCredits,idempotencyKey:chargeRef + ':settle'});
       const compiled = completed.document.nodes.find(item => item.id === nodeId);
       return json(response, 200, {code:'CANVAS_COMPILER_SUCCEEDED',revision:completed.revision,node:compiled,providerStatus,providerSubmitEnabled:true,spendRequested:true}, {ETag:canvasEtag(completed.revision),'Cache-Control':'no-store'});
     } catch (error) {
       await updateCanvasCompilerNode({user,owned,nodeId,expectedTaskId:taskId,mutate(node) {
         node.status = 'failed';
         node.taskRef = {id:taskId,idempotencyKey,status:'failed'};
+        node.parameters = Object.assign({}, node.parameters || {}, {billing:{amount:billingModel.priceCredits,state:'refunded'}});
         node.recovery = {actions:['retry','repair_input'],lastAction:'compile_failed'};
       }}).catch(() => {});
+      await modelControlPlane.refundCredits({reservationId:reservation.reservationId,reason:'compiler_failed',idempotencyKey:chargeRef + ':refund'}).catch(() => {});
       throw error;
     }
   } catch (error) {
@@ -8332,13 +8345,17 @@ async function handleModelControlApi(request, response, pathname, user) {
         'dola-desktop-api': {credentialConfigured:canvasProviderStatus.dolaCredentialConfigured, submitEnabled:canvasProviderStatus.dolaSubmitEnabled, credentialStorage:'服务器环境'}
       };
       const ledger = await modelControlPlane.auditCredits(user, {});
-      const jobs = await canvasGenerationJobService.listForCommerce({limit:50});
+      const usage = await modelControlPlane.usageSummary(user);
+      const canvasJobs = await canvasGenerationJobService.listForCommerce({limit:50});
+      const studioJobs = await nomiWebTaskStore.listForCommerce({limit:50});
+      const jobs = [...canvasJobs, ...studioJobs].sort((left, right) => String(right.updatedAt || right.createdAt || '').localeCompare(String(left.updatedAt || left.createdAt || ''))).slice(0, 50);
       json(response, 200, {
         schemaVersion:'niannian.commerce_admin.v1',
         providers:snapshot.providers.map(provider => ({...provider, ...(runtime[provider.id] || {credentialConfigured:false,submitEnabled:false,credentialStorage:'服务器环境'})})),
         models:snapshot.models,
         plans:snapshot.plans,
         tenantPlans:snapshot.tenantPlans,
+        currency:{unit:usage.unit, availableCredits:usage.availableCredits, grantedCredits:usage.grantedCredits, reservedCredits:usage.reservedCredits, settledCredits:usage.settledCredits, refundedCredits:usage.refundedCredits, accountCount:usage.accountCount, pendingReservations:usage.pendingReservations, anomalies:usage.anomalies},
         ledger:{mode:'team_shared_pool', settlement:'reserve_settle_refund', entries:ledger.entries.slice(-50).reverse(), accountBalances:ledger.accountBalances},
         jobs
       }, {'Cache-Control':'no-store'});
@@ -8368,8 +8385,20 @@ function studioTaskResult(record) {
     kind:'text_to_video',
     status:record.status,
     assets:record.assets || [],
+    credit:{amount:Number(record.creditAmount) || 0, state:record.creditState || 'not_reserved'},
     ...(record.error ? {error:record.error} : {})
   };
+}
+
+async function settleNomiWebTaskCredits(record, user) {
+  if (!record?.creditReservationId || record.creditState !== 'reserved' || !['succeeded', 'failed'].includes(record.status)) return record;
+  const settled = record.status === 'succeeded';
+  if (settled) {
+    await modelControlPlane.settleCredits({reservationId:record.creditReservationId, amount:record.creditAmount, idempotencyKey:record.id + ':settle'});
+  } else {
+    await modelControlPlane.refundCredits({reservationId:record.creditReservationId, reason:'provider_failed', idempotencyKey:record.id + ':refund'});
+  }
+  return nomiWebTaskStore.updateOwnedTask(user.id, record.projectId, record.id, {creditState:settled ? 'settled' : 'refunded'});
 }
 
 // Nomi 网页画布与历史自建 #canvas 使用同一个物理 JSON 文件，但必须使用
@@ -9301,26 +9330,44 @@ async function handleStudioTaskApi(request, response, pathname, user) {
       };
       const draft = nomiWebH3.dryRun(h3Input);
       const idempotencyKey = canvasText(body.request?.extras?.idempotencyKey, 200);
-      const claimed = await nomiWebTaskStore.claimTask({
-        ownerId:user.id, projectId, projectKind:owned.projectKind, grantId, nodeId, idempotencyKey,
-        submitted:{
-          mode:draft.mode,
-          modelKey:canvasText(body.request?.extras?.modelKey, 160),
-          prompt:h3Input.prompt,
-          inputAssetIds:{images:images.map(asset => asset.id),audio:audio.map(asset => asset.id),videos:videos.map(asset => asset.id)},
-          parameters:{aspectRatio:draft.target.aspectRatio,durationSeconds:draft.target.durationSeconds,width:draft.target.width,height:draft.target.height}
-        }
-      });
-      if (!claimed.created) return json(response, 202, {result:studioTaskResult(claimed.task),idempotent:true});
+      const tenantId = modelControlPlaneModule.tenantForUser(user);
+      const catalog = await modelControlPlane.publicCatalogForTenant(tenantId);
+      const catalogModel = catalog.models.find(item => item.kind === 'video' && ['minimax-h3', 'minimax-h3-fl2va'].includes(String(item.id).toLowerCase()));
+      if (!catalogModel) return json(response, 409, {code:'CANVAS_MODEL_NOT_ENABLED',error:'H3 模型尚未由管理员启用'});
+      const chargeRef = 'STUDIO:' + projectId + ':' + nodeId + ':' + idempotencyKey;
+      const reservation = await modelControlPlane.reserveCredits({tenantId,userId:user.id,jobId:chargeRef,idempotencyKey:chargeRef + ':reserve',amount:catalogModel.priceCredits});
+      let claimed;
+      try {
+        claimed = await nomiWebTaskStore.claimTask({
+          ownerId:user.id, projectId, projectKind:owned.projectKind, grantId, nodeId, idempotencyKey, tenantId,
+          submitted:{
+            mode:draft.mode,
+            modelKey:canvasText(body.request?.extras?.modelKey, 160),
+            prompt:h3Input.prompt,
+            inputAssetIds:{images:images.map(asset => asset.id),audio:audio.map(asset => asset.id),videos:videos.map(asset => asset.id)},
+            parameters:{aspectRatio:draft.target.aspectRatio,durationSeconds:draft.target.durationSeconds,width:draft.target.width,height:draft.target.height}
+          }
+        });
+      } catch (error) {
+        await modelControlPlane.refundCredits({reservationId:reservation.reservationId,reason:'task_persistence_rejected',idempotencyKey:chargeRef + ':refund'});
+        throw error;
+      }
+      if (!claimed.created) {
+        await modelControlPlane.refundCredits({reservationId:reservation.reservationId,reason:'idempotent_task_reused',idempotencyKey:chargeRef + ':refund'});
+        return json(response, 202, {result:studioTaskResult(claimed.task),idempotent:true});
+      }
+      let record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, claimed.task.id, {tenantId,creditReservationId:reservation.reservationId,creditAmount:catalogModel.priceCredits,creditState:'reserved'});
       try {
         const submitted = await nomiWebH3.submit(h3Input);
-        const record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, claimed.task.id, {status:'queued',workflowId:submitted.workflowId,providerTaskId:submitted.taskId,submittedAt:new Date().toISOString()});
+        record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, claimed.task.id, {status:'queued',workflowId:submitted.workflowId,providerTaskId:submitted.taskId,submittedAt:new Date().toISOString()});
         return json(response, 202, {result:studioTaskResult(record)});
       } catch (error) {
-        const publicError = error?.code === 'RUNNINGHUB_PROVIDER_REJECTED'
+        const rejected = error?.code === 'RUNNINGHUB_PROVIDER_REJECTED';
+        const publicError = rejected
           ? '视频渠道拒绝了当前工作流请求，请检查 H3 工作流参数。'
           : '视频提交状态尚未确认，请稍后在当前项目中重新读取。';
-        const record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, claimed.task.id, {status:'recoverable',providerErrorCode:error.providerCode || null,error:publicError});
+        record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, claimed.task.id, {status:rejected ? 'failed' : 'recoverable',providerErrorCode:error.providerCode || null,error:publicError});
+        if (rejected) record = await settleNomiWebTaskCredits(record, user);
         return json(response, error.httpStatus || 502, {code:error.code || 'STUDIO_TASK_SUBMIT_FAILED',error:error.message || '视频提交失败',result:studioTaskResult(record)});
       }
     } catch (error) {
@@ -9341,14 +9388,19 @@ async function handleStudioTaskApi(request, response, pathname, user) {
           const asset = await downloadStudioGeneratedVideo(user, owned, current.videoUrls[0], record.id, record.parameters);
           await writeNomiGeneratedVideoResult(user, owned, record.nodeId, asset);
           record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, record.id, {status:'succeeded',outputAssetIds:[asset.id],assets:[{type:'video',assetId:asset.id,url:asset.downloadUrl}],completedAt:new Date().toISOString(),error:null});
+          record = await settleNomiWebTaskCredits(record, user);
         } else {
-          record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, record.id, {status:current.status,error:current.status === 'failed' ? '视频生成失败，请检查提示词或稍后重试。' : null});
+          const failed = current.status === 'failed';
+          record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, record.id, {status:failed ? 'failed' : current.status,error:failed ? '视频生成失败，请检查提示词或稍后重试。' : null});
+          record = await settleNomiWebTaskCredits(record, user);
         }
       } catch (error) {
-        const publicError = error?.code === 'RUNNINGHUB_PROVIDER_REJECTED'
+        const rejected = error?.code === 'RUNNINGHUB_PROVIDER_REJECTED';
+        const publicError = rejected
           ? '视频渠道拒绝了当前工作流请求，请检查 H3 工作流参数。'
           : '视频状态读取失败，请稍后重新打开当前项目。';
-        record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, record.id, {status:'recoverable',providerErrorCode:error.providerCode || null,error:publicError});
+        record = await nomiWebTaskStore.updateOwnedTask(user.id, projectId, record.id, {status:rejected ? 'failed' : 'recoverable',providerErrorCode:error.providerCode || null,error:publicError});
+        if (rejected) record = await settleNomiWebTaskCredits(record, user);
       }
     }
     return json(response, 200, {vendor:'runninghub',result:studioTaskResult(record)});

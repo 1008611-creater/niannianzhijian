@@ -164,11 +164,14 @@ function createModelControlPlane(options = {}) {
       if (!h3Provider) { config.providers.push({id: 'runninghub-consumer', label: 'RunningHub', kind: 'video', enabled: false, secretRef: 'agent-vault://runninghub/h3', baseUrl: '', updatedAt: new Date().toISOString()}); changed = true; }
       const dolaProvider = config.providers.find(item => item.id === 'dola-desktop-api');
       if (!dolaProvider) { config.providers.push({id: 'dola-desktop-api', label: 'Dola', kind: 'video', enabled: false, secretRef: 'env://NIANNIAN_DOLA_API_KEY', baseUrl: '', updatedAt: new Date().toISOString()}); changed = true; }
+      const compilerProvider = config.providers.find(item => item.id === 'mcgrox-server');
+      if (!compilerProvider) { config.providers.push({id: 'mcgrox-server', label: 'MCGrox 编排服务', kind: 'text', enabled: false, secretRef: 'agent-vault://mcgrox/compiler', baseUrl: '', updatedAt: new Date().toISOString()}); changed = true; }
       const defaults = [
         {id: 'yunwu-gpt-image-2-c', label: '云雾 Image2 竖版 4K', kind: 'image', providerId: 'yunwu-agent-vault', providerLabel: '云雾', priceCredits: 10, resolutions: ['4k'], aspectRatios: ['9:16'], outputSizes: {'4k': '2160x3840'}},
         {id: 'yunwu-gpt-image-2-c-edit', label: '云雾 Image2 图改图 4K', kind: 'image', providerId: 'yunwu-agent-vault', providerLabel: '云雾', priceCredits: 12, resolutions: ['4k'], aspectRatios: ['16:9'], outputSizes: {'4k': '3840x2160'}},
         {id: 'minimax-h3', label: 'H3 生视频', kind: 'video', providerId: 'runninghub-consumer', providerLabel: 'RunningHub', priceCredits: 20, resolutions: ['2k'], aspectRatios: ['9:16', '16:9', '1:1'], outputSizes: {}},
-        {id: 'dola-seedance-2-5', label: 'Dola Seedance 2.5（30秒）', kind: 'video', providerId: 'dola-desktop-api', providerLabel: 'Dola', priceCredits: 0, resolutions: ['720p'], aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'], outputSizes: {}}
+        {id: 'dola-seedance-2-5', label: 'Dola Seedance 2.5（30秒）', kind: 'video', providerId: 'dola-desktop-api', providerLabel: 'Dola', priceCredits: 0, resolutions: ['720p'], aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'], outputSizes: {}},
+        {id: 'mcgrox-compiler', label: 'MCGrox 编排模型', kind: 'text', providerId: 'mcgrox-server', providerLabel: 'MCGrox', priceCredits: 1, resolutions: [], aspectRatios: [], outputSizes: {}}
       ];
       for (const item of defaults) {
         if (!config.models.some(model => model.id === item.id)) { config.models.push({...item, tenantId: 'default', enabled: false, updatedAt: new Date().toISOString()}); changed = true; }
@@ -404,7 +407,41 @@ function createModelControlPlane(options = {}) {
     return {schemaVersion:ledger.schemaVersion, entries, accountBalances:Object.fromEntries(Object.entries(ledger.accounts).filter(([key]) => !tenantId || key === tenantId))};
   }
 
-  return {ensureDefaults, publicCatalogForTenant, adminSnapshot, upsertModel, upsertProvider, upsertPlan, assignTenantPlan, accountBalance, tenantAccount, reserveCredits, settleCredits: input => settleOrRefund(input, 'settle'), refundCredits: input => settleOrRefund(input, 'refund'), creditAdmin, auditCredits, isAdmin, requireAdmin, constants: {configPath: configStore.filePath, ledgerPath: ledgerStore.filePath, welcomeCredits}};
+  async function usageSummary(user, env = process.env) {
+    requireAdmin(user, env);
+    const ledger = await ledgerStore.read();
+    normalizeLedger(ledger);
+    const entries = Array.isArray(ledger.entries) ? ledger.entries : [];
+    const finalByReservation = new Map();
+    for (const entry of entries) {
+      if (entry.reservationId && (entry.type === 'settle' || entry.type === 'refund')) finalByReservation.set(entry.reservationId, entry);
+    }
+    const reservations = entries.filter(entry => entry.type === 'reserve');
+    const pendingReservations = reservations.filter(entry => !finalByReservation.has(entry.reservationId));
+    const sum = (items, predicate = () => true) => items.reduce((total, item) => predicate(item) ? total + Math.max(0, Number(item.amount) || 0) : total, 0);
+    const positiveGrants = entries.filter(entry => ['welcome_grant', 'monthly_plan_grant', 'admin_adjustment'].includes(entry.type) && Number(entry.amount) > 0);
+    const settled = entries.filter(entry => entry.type === 'settle');
+    const refunded = entries.filter(entry => entry.type === 'refund');
+    const anomalies = [];
+    for (const reservation of reservations) {
+      const finals = entries.filter(entry => entry.reservationId === reservation.reservationId && ['settle', 'refund'].includes(entry.type));
+      if (finals.length > 1) anomalies.push({reservationId: reservation.reservationId, reason: '重复结算'});
+      if (Number(reservation.amount) < 0) anomalies.push({reservationId: reservation.reservationId, reason: '负数预留'});
+    }
+    return {
+      unit: 'NN_CREDIT',
+      accountCount: Object.keys(ledger.accounts || {}).length,
+      availableCredits: Object.values(ledger.accounts || {}).reduce((total, value) => total + (Number(value) || 0), 0),
+      grantedCredits: sum(positiveGrants),
+      reservedCredits: sum(pendingReservations),
+      settledCredits: sum(settled),
+      refundedCredits: sum(refunded),
+      pendingReservations: pendingReservations.length,
+      anomalies
+    };
+  }
+
+  return {ensureDefaults, publicCatalogForTenant, adminSnapshot, upsertModel, upsertProvider, upsertPlan, assignTenantPlan, accountBalance, tenantAccount, reserveCredits, settleCredits: input => settleOrRefund(input, 'settle'), refundCredits: input => settleOrRefund(input, 'refund'), creditAdmin, auditCredits, usageSummary, isAdmin, requireAdmin, constants: {configPath: configStore.filePath, ledgerPath: ledgerStore.filePath, welcomeCredits}};
 }
 
 module.exports = {createModelControlPlane, tenantForUser, isAdmin, requireAdmin};

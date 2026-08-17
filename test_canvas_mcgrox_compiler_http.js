@@ -12,7 +12,7 @@ const port = 25400 + crypto.randomInt(500);
 const baseUrl = 'http://127.0.0.1:' + port;
 const dataRoot = path.join(os.tmpdir(), 'niannian-mcgrox-compiler-http-' + process.pid + '-' + Date.now());
 const token = 'mcgrox-compiler-http-token';
-const user = {id:'USR-MCGROX-COMPILER',email:'mcgrox-compiler@example.test',status:'active'};
+const user = {id:'USR-MCGROX-COMPILER',email:'mcgrox-compiler@example.test',status:'active',role:'admin',tenantId:'TEN-MCGROX'};
 const project = {id:'NN-MCGROX-COMPILER-01',ownerId:user.id,name:'MCGrox compiler chain',projectKind:'redraw',canvasOnly:true,status:'ready',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),runtime:{}};
 let server;
 
@@ -50,6 +50,9 @@ async function run() {
   ]);
   server = spawn(process.execPath, ['server.js'], {cwd:root,env:{...process.env,PORT:String(port),DATA_DIR:dataRoot,NIANNIAN_RUNNINGHUB_SUBMIT:'off',NIANNIAN_GPT_API_KEY:'test-only',NIANNIAN_GPT56_MODEL:'gpt-5.6',NIANNIAN_GPT_API_BASE_URL:'https://mcgrox.test',NODE_OPTIONS:'--require=' + path.join(root, 'test_canvas_mcgrox_compiler_fetch_stub.js')},stdio:['ignore','pipe','pipe']});
   await waitForServer();
+  await request('/api/admin/model-config/provider', {method:'PUT',headers:headers({'content-type':'application/json'}),body:JSON.stringify({id:'mcgrox-server',label:'MCGrox 编排服务',kind:'text',enabled:true})});
+  await request('/api/admin/model-config/model', {method:'PUT',headers:headers({'content-type':'application/json'}),body:JSON.stringify({id:'mcgrox-compiler',label:'MCGrox 编排模型',kind:'text',providerId:'mcgrox-server',providerLabel:'MCGrox',tenantId:'default',enabled:true,priceCredits:1})});
+  await request('/api/admin/credits/adjust', {method:'POST',headers:headers({'content-type':'application/json'}),body:JSON.stringify({tenantId:user.tenantId,amount:20,reason:'compiler test grant'})});
   let current = await request('/api/canvas/documents/redraw/' + project.id, {headers:headers()});
   let saved = await request('/api/canvas/documents/redraw/' + project.id, {method:'PUT',headers:headers({'content-type':'application/json','if-match':current.response.headers.get('etag')}),body:JSON.stringify({document:documentFixture()})});
   assert.equal(saved.response.status, 200, JSON.stringify(saved.body));
