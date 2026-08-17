@@ -65,16 +65,16 @@ function redactedProvider(provider) {
     kind: provider.kind,
     enabled: provider.enabled === true,
     baseUrlConfigured: Boolean(provider.baseUrl),
-    secretRef: provider.secretRef || null,
     updatedAt: provider.updatedAt || null
   };
 }
 
-function publicCatalog(models, tenantId) {
+function publicCatalog(models, providers, tenantId) {
+  const enabledProviderIds = new Set((providers || []).filter(item => item.enabled === true).map(item => item.id));
   return {
     schemaVersion: 'niannian.canvas_model_catalog.v1',
     tenantId,
-    models: models.filter(item => (item.tenantId === tenantId || item.tenantId === 'default') && item.enabled === true).map(item => ({
+    models: models.filter(item => (item.tenantId === tenantId || item.tenantId === 'default') && item.enabled === true && enabledProviderIds.has(item.providerId)).map(item => ({
       id: item.id,
       label: item.label,
       kind: item.kind,
@@ -87,13 +87,29 @@ function publicCatalog(models, tenantId) {
   };
 }
 
+function teamAccountKey(tenantId) {
+  return clean(tenantId, 120);
+}
+
+function normalizeLedger(ledger) {
+  if (ledger.schemaVersion === 'niannian.credit_ledger.v2') return false;
+  const sharedAccounts = {};
+  for (const [key, value] of Object.entries(ledger.accounts || {})) {
+    const tenantId = String(key).split(':')[0];
+    sharedAccounts[tenantId] = Number(sharedAccounts[tenantId] || 0) + Number(value || 0);
+  }
+  ledger.schemaVersion = 'niannian.credit_ledger.v2';
+  ledger.accounts = sharedAccounts;
+  return true;
+}
+
 function createModelControlPlane(options = {}) {
   const configStore = atomicStore(path.resolve(options.configPath), {schemaVersion: 'niannian.model_control_config.v1', providers: [], models: []});
-  const ledgerStore = atomicStore(path.resolve(options.ledgerPath), {schemaVersion: 'niannian.credit_ledger.v1', accounts: {}, entries: []});
+  const ledgerStore = atomicStore(path.resolve(options.ledgerPath), {schemaVersion: 'niannian.credit_ledger.v2', accounts: {}, entries: []});
   const welcomeCredits = Math.max(0, Math.min(100000, Math.floor(Number(options.welcomeCredits || 0)) || 0));
 
-  function ensureAccount(ledger, tenantId, userId) {
-    const accountKey = tenantId + ':' + userId;
+  function ensureTeamAccount(ledger, tenantId, userId) {
+    const accountKey = teamAccountKey(tenantId);
     if (Object.hasOwn(ledger.accounts, accountKey)) return {accountKey, created:false, balance:Number(ledger.accounts[accountKey] || 0)};
     ledger.accounts[accountKey] = welcomeCredits;
     if (welcomeCredits > 0) {
@@ -129,13 +145,15 @@ function createModelControlPlane(options = {}) {
   async function publicCatalogForTenant(tenantId) {
     await ensureDefaults();
     const config = await configStore.read();
-    return publicCatalog(config.models, tenantId);
+    return publicCatalog(config.models, config.providers, tenantId);
   }
 
   async function adminSnapshot(user, env = process.env) {
     requireAdmin(user, env);
     await ensureDefaults();
     const config = await configStore.read();
+    // Provider credentials are server-only. The administrator UI receives a
+    // configuration state, never a secret name, reference, or credential value.
     return {schemaVersion: config.schemaVersion, providers: config.providers.map(redactedProvider), models: config.models.map(item => ({...item, secretRef: undefined}))};
   }
 
@@ -158,21 +176,36 @@ function createModelControlPlane(options = {}) {
     requireAdmin(user, env);
     const id = clean(input.id, 120);
     if (!id) throw controlError('PROVIDER_ID_REQUIRED', '供应商标识不能为空', 422);
-    const provider = {id, label: clean(input.label || id, 160), kind: clean(input.kind, 30), enabled: input.enabled === true, baseUrl: clean(input.baseUrl, 500), secretRef: clean(input.secretRef, 300), updatedAt: new Date().toISOString()};
+    let saved = null;
     await configStore.withLock(async () => {
       const config = await configStore.read();
       const index = config.providers.findIndex(item => item.id === id);
-      if (index < 0) config.providers.push(provider); else config.providers[index] = {...config.providers[index], ...provider};
+      const existing = index < 0 ? {} : config.providers[index];
+      // Keep protected server-side fields when the browser only changes a
+      // provider's release state. Missing fields must never erase a vault map.
+      const provider = {
+        ...existing,
+        id,
+        label: input.label === undefined ? clean(existing.label || id, 160) : clean(input.label || id, 160),
+        kind: input.kind === undefined ? clean(existing.kind, 30) : clean(input.kind, 30),
+        enabled: input.enabled === undefined ? existing.enabled === true : input.enabled === true,
+        baseUrl: input.baseUrl === undefined ? clean(existing.baseUrl, 500) : clean(input.baseUrl, 500),
+        secretRef: input.secretRef === undefined ? clean(existing.secretRef, 300) : clean(input.secretRef, 300),
+        updatedAt: new Date().toISOString()
+      };
+      if (index < 0) config.providers.push(provider); else config.providers[index] = provider;
       await configStore.write(config);
+      saved = provider;
     });
-    return redactedProvider(provider);
+    return redactedProvider(saved);
   }
 
   async function accountBalance(tenantId, userId) {
     return ledgerStore.withLock(async () => {
       const ledger = await ledgerStore.read();
-      const account = ensureAccount(ledger, tenantId, userId);
-      if (account.created) await ledgerStore.write(ledger);
+      const migrated = normalizeLedger(ledger);
+      const account = ensureTeamAccount(ledger, tenantId, userId);
+      if (migrated || account.created) await ledgerStore.write(ledger);
       return account.balance;
     });
   }
@@ -182,10 +215,14 @@ function createModelControlPlane(options = {}) {
     if (!tenantId || !userId || !jobId || !idempotencyKey || !Number.isFinite(amount)) throw controlError('CREDIT_RESERVATION_INVALID', '积分预留参数无效', 422);
     return ledgerStore.withLock(async () => {
       const ledger = await ledgerStore.read();
-      const existing = ledger.entries.find(item => item.type === 'reserve' && item.idempotencyKey === idempotencyKey && item.userId === userId);
-      if (existing) return {reservationId: existing.reservationId, idempotent: true, balance: Number(ledger.accounts[tenantId + ':' + userId] || 0)};
-      const account = ensureAccount(ledger, tenantId, userId);
+      normalizeLedger(ledger);
+      const existing = ledger.entries.find(item => item.type === 'reserve' && item.idempotencyKey === idempotencyKey && item.userId === userId && item.tenantId === tenantId);
+      const account = ensureTeamAccount(ledger, tenantId, userId);
       const accountKey = account.accountKey; const balance = account.balance;
+      if (existing) {
+        if (account.created) await ledgerStore.write(ledger);
+        return {reservationId: existing.reservationId, idempotent: true, balance};
+      }
       if (balance < amount) throw controlError('CREDIT_INSUFFICIENT', '积分余额不足', 402);
       ledger.accounts[accountKey] = balance - amount;
       const reservationId = 'CR-' + crypto.randomBytes(12).toString('hex');
@@ -199,11 +236,14 @@ function createModelControlPlane(options = {}) {
     const reservationId = clean(input.reservationId, 160); const key = clean(input.idempotencyKey || (reservationId + ':' + type), 240);
     return ledgerStore.withLock(async () => {
       const ledger = await ledgerStore.read();
+      normalizeLedger(ledger);
       const reservation = ledger.entries.find(item => item.type === 'reserve' && item.reservationId === reservationId);
       if (!reservation) throw controlError('CREDIT_RESERVATION_NOT_FOUND', '积分预留不存在', 404);
       const existing = ledger.entries.find(item => item.idempotencyKey === key && item.reservationId === reservationId && item.type === type);
-      if (existing) return {idempotent: true, balance: Number(ledger.accounts[reservation.tenantId + ':' + reservation.userId] || 0)};
-      const accountKey = reservation.tenantId + ':' + reservation.userId;
+      const accountKey = ensureTeamAccount(ledger, reservation.tenantId, reservation.userId).accountKey;
+      if (existing) return {idempotent: true, balance: Number(ledger.accounts[accountKey] || 0)};
+      const finalized = ledger.entries.find(item => item.reservationId === reservationId && ['settle','refund'].includes(item.type));
+      if (finalized) throw controlError('CREDIT_RESERVATION_FINALIZED', '积分预留已完成结算，不能重复变更', 409);
       const amount = type === 'refund' ? reservation.amount : Math.max(0, Math.ceil(Number(input.amount ?? reservation.amount)));
       if (type === 'settle' && amount < reservation.amount) ledger.accounts[accountKey] = Number(ledger.accounts[accountKey] || 0) + (reservation.amount - amount);
       if (type === 'settle' && amount > reservation.amount) throw controlError('CREDIT_SETTLE_OVER_RESERVATION', '结算积分不能超过预留积分', 409);
@@ -219,17 +259,18 @@ function createModelControlPlane(options = {}) {
     const tenantId = clean(input.tenantId, 120); const userId = clean(input.userId, 120); const amount = Math.floor(Number(input.amount));
     if (!tenantId || !userId || !Number.isFinite(amount) || amount === 0) throw controlError('CREDIT_ADJUSTMENT_INVALID', '积分调整参数无效', 422);
     return ledgerStore.withLock(async () => {
-      const ledger = await ledgerStore.read(); const key = tenantId + ':' + userId; ledger.accounts[key] = Number(ledger.accounts[key] || 0) + amount; ledger.entries.push({id: 'LE-' + crypto.randomBytes(10).toString('hex'), type: 'admin_adjustment', tenantId, userId, amount, reason: clean(input.reason, 240), createdAt: new Date().toISOString()}); await ledgerStore.write(ledger); return {tenantId, userId, balance: ledger.accounts[key]};
+      const ledger = await ledgerStore.read(); normalizeLedger(ledger); const key = ensureTeamAccount(ledger, tenantId, userId).accountKey; ledger.accounts[key] = Number(ledger.accounts[key] || 0) + amount; ledger.entries.push({id: 'LE-' + crypto.randomBytes(10).toString('hex'), type: 'admin_adjustment', tenantId, userId, amount, reason: clean(input.reason, 240), createdAt: new Date().toISOString()}); await ledgerStore.write(ledger); return {tenantId, userId, balance: ledger.accounts[key]};
     });
   }
 
   async function auditCredits(user, filters = {}, env = process.env) {
     requireAdmin(user, env);
     const ledger = await ledgerStore.read();
+    normalizeLedger(ledger);
     const tenantId = clean(filters.tenantId, 120);
     const userId = clean(filters.userId, 120);
     const entries = ledger.entries.filter(item => (!tenantId || item.tenantId === tenantId) && (!userId || item.userId === userId)).map(item => ({...item}));
-    return {schemaVersion:ledger.schemaVersion, entries, accountBalances:Object.fromEntries(Object.entries(ledger.accounts).filter(([key]) => (!tenantId || key.startsWith(tenantId + ':')) && (!userId || key.endsWith(':' + userId))))};
+    return {schemaVersion:ledger.schemaVersion, entries, accountBalances:Object.fromEntries(Object.entries(ledger.accounts).filter(([key]) => !tenantId || key === tenantId))};
   }
 
   return {ensureDefaults, publicCatalogForTenant, adminSnapshot, upsertModel, upsertProvider, accountBalance, reserveCredits, settleCredits: input => settleOrRefund(input, 'settle'), refundCredits: input => settleOrRefund(input, 'refund'), creditAdmin, auditCredits, isAdmin, requireAdmin, constants: {configPath: configStore.filePath, ledgerPath: ledgerStore.filePath, welcomeCredits}};

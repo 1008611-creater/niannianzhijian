@@ -8199,7 +8199,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         else if (canvasVideoChannels.isAnimateVideoChannel(job.videoChannel) && canvasAnimateRuntime.enabled) job = await canvasAnimateRuntime.reconcile(user.id, projectId, jobId);
         else if (canvasH3Runtime.enabled) job = await canvasH3Runtime.reconcile(user.id, projectId, jobId);
       }
-      if (job.creditReservationId && ['succeeded','failed','review'].includes(job.status) && job.creditState === 'reserved') {
+      if (job.creditReservationId && ['succeeded','failed'].includes(job.status) && job.creditState === 'reserved') {
         if (job.status === 'succeeded') await modelControlPlane.settleCredits({reservationId:job.creditReservationId, amount:job.creditAmount, idempotencyKey:job.id + ':settle'});
         else await modelControlPlane.refundCredits({reservationId:job.creditReservationId, reason:'provider_failed', idempotencyKey:job.id + ':refund'});
         job = await canvasGenerationJobService.updateOwned(user.id, projectId, jobId, {creditState:job.status === 'succeeded' ? 'settled' : 'refunded'});
@@ -8238,7 +8238,12 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       const catalogModel = catalog.models.find(item => item.id === (job.nodeType === 'image' ? job.imageChannel || job.model : job.videoChannel || job.model));
       if (!catalogModel || catalogModel.enabled !== true) return json(response, 409, {code:'CANVAS_MODEL_NOT_ENABLED',error:'当前模型尚未由管理员启用'});
       const reservation = await modelControlPlane.reserveCredits({tenantId:modelControlPlaneModule.tenantForUser(user),userId:user.id,jobId:job.id,idempotencyKey:job.id + ':reserve',amount:catalogModel.priceCredits});
-      job = await canvasGenerationJobService.updateOwned(user.id, projectId, jobId, {tenantId:modelControlPlaneModule.tenantForUser(user),creditReservationId:reservation.reservationId,creditAmount:catalogModel.priceCredits,creditState:'reserved'});
+      try {
+        job = await canvasGenerationJobService.updateOwned(user.id, projectId, jobId, {tenantId:modelControlPlaneModule.tenantForUser(user),creditReservationId:reservation.reservationId,creditAmount:catalogModel.priceCredits,creditState:'reserved'});
+      } catch (error) {
+        await modelControlPlane.refundCredits({reservationId:reservation.reservationId,reason:'job_persistence_failed',idempotencyKey:job.id + ':refund'});
+        throw error;
+      }
       if (job.nodeType === 'image') {
         let submitted;
         try { submitted = await canvasImage2Runtime.submit(user.id, projectId, jobId); }
@@ -8295,8 +8300,23 @@ async function handleModelControlApi(request, response, pathname, user) {
   if (request.method === 'GET' && pathname === '/api/canvas/model-catalog') {
     json(response, 200, {catalog:await browserCanvasModelCatalog(user)}, {'Cache-Control':'no-store'}); return true;
   }
-  if (!pathname.startsWith('/api/admin/model-config') && !pathname.startsWith('/api/admin/credits')) return false;
+  if (!pathname.startsWith('/api/admin/model-config') && !pathname.startsWith('/api/admin/credits') && pathname !== '/api/admin/commerce/summary') return false;
   try {
+    if (request.method === 'GET' && pathname === '/api/admin/commerce/summary') {
+      const snapshot = await modelControlPlane.adminSnapshot(user);
+      const runtime = {
+        'yunwu-agent-vault': {credentialConfigured:canvasProviderStatus.yunwuSubmitEnabled, submitEnabled:canvasProviderStatus.imageSubmitEnabled, credentialStorage:'服务器保险库'},
+        'runninghub-consumer': {credentialConfigured:canvasProviderStatus.h3CredentialConfigured, submitEnabled:canvasProviderStatus.videoSubmitEnabled, credentialStorage:'服务器环境'},
+        'dola-desktop-api': {credentialConfigured:canvasProviderStatus.dolaCredentialConfigured, submitEnabled:canvasProviderStatus.dolaSubmitEnabled, credentialStorage:'服务器环境'}
+      };
+      json(response, 200, {
+        schemaVersion:'niannian.commerce_admin.v1',
+        providers:snapshot.providers.map(provider => ({...provider, ...(runtime[provider.id] || {credentialConfigured:false,submitEnabled:false,credentialStorage:'服务器环境'})})),
+        models:snapshot.models,
+        ledger:{mode:'team_shared_pool', settlement:'reserve_settle_refund'}
+      }, {'Cache-Control':'no-store'});
+      return true;
+    }
     if (request.method === 'GET' && pathname === '/api/admin/model-config') { json(response, 200, await modelControlPlane.adminSnapshot(user)); return true; }
     if (request.method === 'PUT' && pathname === '/api/admin/model-config/provider') { json(response, 200, {provider:await modelControlPlane.upsertProvider(user, await readBodyJson(request))}); return true; }
     if (request.method === 'PUT' && pathname === '/api/admin/model-config/model') { json(response, 200, {model:await modelControlPlane.upsertModel(user, await readBodyJson(request))}); return true; }
@@ -10081,10 +10101,24 @@ async function serveStatic(request, response, pathname) {
   }
 }
 
+async function serveRestrictedCommerce(request, response, pathname) {
+  if (pathname !== '/admin/commerce' && !pathname.startsWith('/admin/commerce/')) return false;
+  const user = await currentUser(request);
+  if (!user || !modelControlPlane.isAdmin(user)) {
+    response.writeHead(user ? 403 : 401, {'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'});
+    response.end(user ? '仅服务器管理员可访问商业运营台' : '请先登录');
+    return true;
+  }
+  const normalized = pathname === '/admin/commerce' ? '/admin/commerce/' : pathname;
+  await serveStatic(request, response, normalized);
+  return true;
+}
+
 const server = http.createServer(async (request, response) => {
   const pathname = decodeURIComponent(new URL(request.url, 'http://127.0.0.1').pathname);
   try {
     if (pathname.startsWith('/api/')) return await handleApi(request, response, pathname);
+    if (await serveRestrictedCommerce(request, response, pathname)) return;
     return await serveStatic(request, response, pathname);
   } catch (error) {
     if(response.headersSent){if(!response.destroyed)response.destroy();return;}
