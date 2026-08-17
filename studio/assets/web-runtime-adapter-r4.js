@@ -163,7 +163,7 @@
     // Server model catalog is the only browser-facing configuration surface.
     // It contains enabled models and prices, never provider URLs or credentials.
     if (status.modelCatalog && Array.isArray(status.modelCatalog.models)) {
-      var catalogModels = status.modelCatalog.models.filter(function (item) { return item && item.enabled === true; });
+      var catalogModels = status.modelCatalog.models.filter(function (item) { return item && item.enabled !== false; });
       var catalogVendors = [];
       var catalogModelsPublic = catalogModels.map(function (item) {
         // The node stores providerKey, while providerLabel is display-only and may be non-ASCII.
