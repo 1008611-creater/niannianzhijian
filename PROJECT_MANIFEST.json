@@ -112,21 +112,24 @@
         "docs/step02-runtime-contract/step02-revision.schema.json",
         "docs/step02-runtime-contract/api-fixtures.json",
         "scripts/probe_step02_mcgrox.js",
+        "admin/commerce/index.html",
+        "admin/commerce/commerce.css",
+        "admin/commerce/commerce.js",
         "package.json",
         "package-lock.json"
       ]
     },
     "shared_file_handoff_baseline": {
       "schema_version": "niannian_shared_file_handoff_baseline_v2",
-      "review_id": "release-baseline-20260817-canonical-main-commerce",
-      "captured_at": "2026-08-17T22:45:00+08:00",
-      "capture_reason": "Recomputed the protected shared-file baseline from canonical main at 41601a4 before the commercial model operations release; this record does not claim online parity or authorize deployment.",
+      "review_id": "release-baseline-20260818-commerce-control-plane",
+      "captured_at": "2026-08-18T00:21:30+08:00",
+      "capture_reason": "Reviewed commercial operations console changes: protected server billing and permission paths are covered by model catalog, billing recovery, administrator access, browser and full quality-gate evidence before isolated release staging.",
       "attestation": {
-        "path": "release_baseline_attestation_20260817_canonical_main_commerce.json",
-        "sha256": "226be68eab55510a71ea0615902524d8c75a79bf888fe3909ac2e431cc313f6c"
+        "path": "release_baseline_attestation_20260818_commerce_control_plane.json",
+        "sha256": "0c35a51d8f86a8a836c09a3109bf8943a37c2a577de0e1ba7d92a3773663816c"
       },
       "files": {
-        "server.js": "5b062272888fdf671d6cc2b303f15ed143332bb42f4cf93e407350ce42859abd",
+        "server.js": "4d6935d5c6094988372e3f02c5d454f24bc4e1c85354d7bd08ef9307580641f1",
         "index.html": "38014a89dbdc4591e80ffbe69e0f050954af5366e5a3bccabcfcc0e5cd861723",
         "app.js": "4a8ac9a9952f20fdc0363f2144c53977578a71b25ae09fdb855887f85dea4b51",
         "product.css": "fafa35df7cea0d8abbc6f9cf7a6590a9f80ef63657bcaab9e1390ce4da02f028",

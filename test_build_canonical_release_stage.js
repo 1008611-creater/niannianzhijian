@@ -55,7 +55,9 @@ try {
   assert.equal(packageManifest.files.includes('canvas.css'), false);
   assert.equal(packageManifest.files.includes('nomi-canvas-entry.js'), false);
   assert.equal(packageManifest.files.includes('mvp.js'), false);
-  assert.equal(packageManifest.files.includes('admin/commerce/index.html'), false);
+  assert(packageManifest.files.includes('admin/commerce/index.html'));
+  assert(packageManifest.files.includes('admin/commerce/commerce.css'));
+  assert(packageManifest.files.includes('admin/commerce/commerce.js'));
   assert(packageManifest.files.includes('studio/index.html'));
   assert(packageManifest.files.includes('director-desk/index.html'));
   assert(packageManifest.files.some(file => file.startsWith('studio/assets/')));

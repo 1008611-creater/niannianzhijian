@@ -69,12 +69,13 @@ function redactedProvider(provider) {
   };
 }
 
-function publicCatalog(models, providers, tenantId) {
+function publicCatalog(models, providers, tenantId, allowedModelIds = []) {
   const enabledProviderIds = new Set((providers || []).filter(item => item.enabled === true).map(item => item.id));
+  const allowed = new Set((allowedModelIds || []).filter(Boolean));
   return {
-    schemaVersion: 'niannian.canvas_model_catalog.v1',
+    schemaVersion: 'niannian.canvas_model_catalog.v2',
     tenantId,
-    models: models.filter(item => (item.tenantId === tenantId || item.tenantId === 'default') && item.enabled === true && enabledProviderIds.has(item.providerId)).map(item => ({
+    models: models.filter(item => (item.tenantId === tenantId || item.tenantId === 'default') && item.enabled === true && enabledProviderIds.has(item.providerId) && (!allowed.size || allowed.has(item.id))).map(item => ({
       id: item.id,
       label: item.label,
       kind: item.kind,
@@ -89,6 +90,32 @@ function publicCatalog(models, providers, tenantId) {
       outputSizes: item.outputSizes || {}
     }))
   };
+}
+
+function normalizePlan(input) {
+  const id = clean(input?.id, 120);
+  if (!id) throw controlError('PLAN_ID_REQUIRED', '套餐标识不能为空', 422);
+  const modelIds = [...new Set((Array.isArray(input.modelIds) ? input.modelIds : []).map(item => clean(item, 120)).filter(Boolean))].slice(0, 80);
+  const monthlyCredits = Math.max(0, Math.floor(Number(input.monthlyCredits || 0)) || 0);
+  const monthlyPriceCny = Math.max(0, Number(input.monthlyPriceCny || 0) || 0);
+  return {
+    id,
+    label: clean(input.label || id, 160),
+    audience: clean(input.audience || 'creator', 40),
+    monthlyCredits,
+    monthlyPriceCny,
+    modelIds,
+    published: input.published === true,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function tenantPlanFor(config, tenantId) {
+  const assignments = Array.isArray(config.tenantPlans) ? config.tenantPlans : [];
+  const assignment = assignments.find(item => item.tenantId === tenantId && item.status === 'active') || null;
+  if (!assignment) return null;
+  const plan = (config.plans || []).find(item => item.id === assignment.planId) || null;
+  return plan ? {assignment, plan} : null;
 }
 
 function teamAccountKey(tenantId) {
@@ -108,7 +135,7 @@ function normalizeLedger(ledger) {
 }
 
 function createModelControlPlane(options = {}) {
-  const configStore = atomicStore(path.resolve(options.configPath), {schemaVersion: 'niannian.model_control_config.v1', providers: [], models: []});
+  const configStore = atomicStore(path.resolve(options.configPath), {schemaVersion: 'niannian.model_control_config.v2', providers: [], models: [], plans: [], tenantPlans: []});
   const ledgerStore = atomicStore(path.resolve(options.ledgerPath), {schemaVersion: 'niannian.credit_ledger.v2', accounts: {}, entries: []});
   const welcomeCredits = Math.max(0, Math.min(100000, Math.floor(Number(options.welcomeCredits || 0)) || 0));
 
@@ -125,14 +152,18 @@ function createModelControlPlane(options = {}) {
   async function ensureDefaults() {
     await configStore.withLock(async () => {
       const config = await configStore.read();
+      let changed = false;
+      if (config.schemaVersion !== 'niannian.model_control_config.v2') { config.schemaVersion = 'niannian.model_control_config.v2'; changed = true; }
       if (!Array.isArray(config.providers)) config.providers = [];
       if (!Array.isArray(config.models)) config.models = [];
+      if (!Array.isArray(config.plans)) { config.plans = []; changed = true; }
+      if (!Array.isArray(config.tenantPlans)) { config.tenantPlans = []; changed = true; }
       const provider = config.providers.find(item => item.id === 'yunwu-agent-vault');
-      if (!provider) config.providers.push({id: 'yunwu-agent-vault', label: '云雾', kind: 'image', enabled: false, secretRef: 'agent-vault://yunwu/image2', baseUrl: '', updatedAt: new Date().toISOString()});
+      if (!provider) { config.providers.push({id: 'yunwu-agent-vault', label: '云雾', kind: 'image', enabled: false, secretRef: 'agent-vault://yunwu/image2', baseUrl: '', updatedAt: new Date().toISOString()}); changed = true; }
       const h3Provider = config.providers.find(item => item.id === 'runninghub-consumer');
-      if (!h3Provider) config.providers.push({id: 'runninghub-consumer', label: 'RunningHub', kind: 'video', enabled: false, secretRef: 'agent-vault://runninghub/h3', baseUrl: '', updatedAt: new Date().toISOString()});
+      if (!h3Provider) { config.providers.push({id: 'runninghub-consumer', label: 'RunningHub', kind: 'video', enabled: false, secretRef: 'agent-vault://runninghub/h3', baseUrl: '', updatedAt: new Date().toISOString()}); changed = true; }
       const dolaProvider = config.providers.find(item => item.id === 'dola-desktop-api');
-      if (!dolaProvider) config.providers.push({id: 'dola-desktop-api', label: 'Dola', kind: 'video', enabled: false, secretRef: 'env://NIANNIAN_DOLA_API_KEY', baseUrl: '', updatedAt: new Date().toISOString()});
+      if (!dolaProvider) { config.providers.push({id: 'dola-desktop-api', label: 'Dola', kind: 'video', enabled: false, secretRef: 'env://NIANNIAN_DOLA_API_KEY', baseUrl: '', updatedAt: new Date().toISOString()}); changed = true; }
       const defaults = [
         {id: 'yunwu-gpt-image-2-c', label: '云雾 Image2 竖版 4K', kind: 'image', providerId: 'yunwu-agent-vault', providerLabel: '云雾', priceCredits: 10, resolutions: ['4k'], aspectRatios: ['9:16'], outputSizes: {'4k': '2160x3840'}},
         {id: 'yunwu-gpt-image-2-c-edit', label: '云雾 Image2 图改图 4K', kind: 'image', providerId: 'yunwu-agent-vault', providerLabel: '云雾', priceCredits: 12, resolutions: ['4k'], aspectRatios: ['16:9'], outputSizes: {'4k': '3840x2160'}},
@@ -140,16 +171,25 @@ function createModelControlPlane(options = {}) {
         {id: 'dola-seedance-2-5', label: 'Dola Seedance 2.5（30秒）', kind: 'video', providerId: 'dola-desktop-api', providerLabel: 'Dola', priceCredits: 0, resolutions: ['720p'], aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'], outputSizes: {}}
       ];
       for (const item of defaults) {
-        if (!config.models.some(model => model.id === item.id)) config.models.push({...item, tenantId: 'default', enabled: false, updatedAt: new Date().toISOString()});
+        if (!config.models.some(model => model.id === item.id)) { config.models.push({...item, tenantId: 'default', enabled: false, updatedAt: new Date().toISOString()}); changed = true; }
       }
-      await configStore.write(config);
+      const plans = [
+        {id:'creator-monthly', label:'个人创作者月度套餐', audience:'creator', monthlyCredits:0, monthlyPriceCny:0, modelIds:[], published:false},
+        {id:'team-monthly', label:'小团队月度套餐', audience:'team', monthlyCredits:0, monthlyPriceCny:0, modelIds:[], published:false}
+      ];
+      for (const plan of plans) {
+        if (!config.plans.some(item => item.id === plan.id)) { config.plans.push({...plan, updatedAt:new Date().toISOString()}); changed = true; }
+      }
+      if (changed) await configStore.write(config);
     });
   }
 
   async function publicCatalogForTenant(tenantId) {
     await ensureDefaults();
     const config = await configStore.read();
-    return publicCatalog(config.models, config.providers, tenantId);
+    const plan = tenantPlanFor(config, tenantId);
+    if (plan) await grantMonthlyPlanCredits(tenantId, plan.plan);
+    return publicCatalog(config.models, config.providers, tenantId, plan?.plan?.modelIds || []);
   }
 
   async function adminSnapshot(user, env = process.env) {
@@ -158,7 +198,13 @@ function createModelControlPlane(options = {}) {
     const config = await configStore.read();
     // Provider credentials are server-only. The administrator UI receives a
     // configuration state, never a secret name, reference, or credential value.
-    return {schemaVersion: config.schemaVersion, providers: config.providers.map(redactedProvider), models: config.models.map(item => ({...item, secretRef: undefined}))};
+    return {
+      schemaVersion: config.schemaVersion,
+      providers: config.providers.map(redactedProvider),
+      models: config.models.map(item => ({...item, secretRef: undefined})),
+      plans: config.plans.map(item => ({...item})),
+      tenantPlans: config.tenantPlans.map(item => ({...item}))
+    };
   }
 
   async function upsertModel(user, input, env = process.env) {
@@ -204,6 +250,44 @@ function createModelControlPlane(options = {}) {
     return redactedProvider(saved);
   }
 
+  async function upsertPlan(user, input, env = process.env) {
+    requireAdmin(user, env);
+    const plan = normalizePlan(input);
+    await configStore.withLock(async () => {
+      const config = await configStore.read();
+      if (!Array.isArray(config.plans)) config.plans = [];
+      const knownModelIds = new Set((config.models || []).map(item => item.id));
+      if (plan.modelIds.some(modelId => !knownModelIds.has(modelId))) {
+        throw controlError('PLAN_MODEL_NOT_FOUND', '套餐包含未登记的模型', 422);
+      }
+      const index = config.plans.findIndex(item => item.id === plan.id);
+      if (index < 0) config.plans.push(plan); else config.plans[index] = {...config.plans[index], ...plan};
+      await configStore.write(config);
+    });
+    return plan;
+  }
+
+  async function assignTenantPlan(user, input, env = process.env) {
+    requireAdmin(user, env);
+    const tenantId = clean(input.tenantId, 120);
+    const planId = clean(input.planId, 120);
+    if (!tenantId || !planId) throw controlError('TENANT_PLAN_INVALID', '团队和套餐不能为空', 422);
+    let assignment;
+    await configStore.withLock(async () => {
+      const config = await configStore.read();
+      const plan = (config.plans || []).find(item => item.id === planId);
+      if (!plan) throw controlError('PLAN_NOT_FOUND', '套餐不存在', 404);
+      const status = input.status === 'inactive' ? 'inactive' : 'active';
+      if (status === 'active' && plan.published !== true) throw controlError('PLAN_NOT_PUBLISHED', '只有已发布套餐可以分配给用户', 422);
+      if (!Array.isArray(config.tenantPlans)) config.tenantPlans = [];
+      assignment = {tenantId, planId, status, updatedAt:new Date().toISOString()};
+      const index = config.tenantPlans.findIndex(item => item.tenantId === tenantId);
+      if (index < 0) config.tenantPlans.push(assignment); else config.tenantPlans[index] = assignment;
+      await configStore.write(config);
+    });
+    return assignment;
+  }
+
   async function accountBalance(tenantId, userId) {
     return ledgerStore.withLock(async () => {
       const ledger = await ledgerStore.read();
@@ -212,6 +296,45 @@ function createModelControlPlane(options = {}) {
       if (migrated || account.created) await ledgerStore.write(ledger);
       return account.balance;
     });
+  }
+
+  function currentBillingPeriod() {
+    return new Date().toISOString().slice(0, 7);
+  }
+
+  async function grantMonthlyPlanCredits(tenantId, plan) {
+    const amount = Math.max(0, Math.floor(Number(plan?.monthlyCredits || 0)) || 0);
+    if (!amount || plan?.published !== true) return null;
+    const period = currentBillingPeriod();
+    const idempotencyKey = `monthly-plan:${tenantId}:${plan.id}:${period}`;
+    return ledgerStore.withLock(async () => {
+      const ledger = await ledgerStore.read();
+      normalizeLedger(ledger);
+      const existing = ledger.entries.find(item => item.type === 'monthly_plan_grant' && item.idempotencyKey === idempotencyKey);
+      const account = ensureTeamAccount(ledger, tenantId, 'SYSTEM-PLAN');
+      if (existing) {
+        if (account.created) await ledgerStore.write(ledger);
+        return {idempotent:true, amount:existing.amount, period, balance:Number(ledger.accounts[account.accountKey] || 0)};
+      }
+      ledger.accounts[account.accountKey] = Number(ledger.accounts[account.accountKey] || 0) + amount;
+      ledger.entries.push({id:'LE-' + crypto.randomBytes(10).toString('hex'), type:'monthly_plan_grant', tenantId, userId:'SYSTEM-PLAN', amount, planId:plan.id, period, idempotencyKey, reason:'monthly_plan_entitlement', createdAt:new Date().toISOString()});
+      await ledgerStore.write(ledger);
+      return {idempotent:false, amount, period, balance:ledger.accounts[account.accountKey]};
+    });
+  }
+
+  async function tenantAccount(user) {
+    const tenantId = tenantForUser(user);
+    await ensureDefaults();
+    const config = await configStore.read();
+    const currentPlan = tenantPlanFor(config, tenantId);
+    if (currentPlan) await grantMonthlyPlanCredits(tenantId, currentPlan.plan);
+    const balance = await accountBalance(tenantId, user.id);
+    return {
+      tenantId,
+      balance,
+      plan:currentPlan ? {id:currentPlan.plan.id, label:currentPlan.plan.label, audience:currentPlan.plan.audience, monthlyCredits:currentPlan.plan.monthlyCredits} : null
+    };
   }
 
   async function reserveCredits(input) {
@@ -260,10 +383,14 @@ function createModelControlPlane(options = {}) {
 
   async function creditAdmin(user, input, env = process.env) {
     requireAdmin(user, env);
-    const tenantId = clean(input.tenantId, 120); const userId = clean(input.userId, 120); const amount = Math.floor(Number(input.amount));
+    const tenantId = clean(input.tenantId, 120); const userId = clean(input.userId || 'SYSTEM-ADMIN', 120); const amount = Math.floor(Number(input.amount));
     if (!tenantId || !userId || !Number.isFinite(amount) || amount === 0) throw controlError('CREDIT_ADJUSTMENT_INVALID', '积分调整参数无效', 422);
     return ledgerStore.withLock(async () => {
-      const ledger = await ledgerStore.read(); normalizeLedger(ledger); const key = ensureTeamAccount(ledger, tenantId, userId).accountKey; ledger.accounts[key] = Number(ledger.accounts[key] || 0) + amount; ledger.entries.push({id: 'LE-' + crypto.randomBytes(10).toString('hex'), type: 'admin_adjustment', tenantId, userId, amount, reason: clean(input.reason, 240), createdAt: new Date().toISOString()}); await ledgerStore.write(ledger); return {tenantId, userId, balance: ledger.accounts[key]};
+      const ledger = await ledgerStore.read(); normalizeLedger(ledger); const key = ensureTeamAccount(ledger, tenantId, userId).accountKey;
+      const nextBalance = Number(ledger.accounts[key] || 0) + amount;
+      if (nextBalance < 0) throw controlError('CREDIT_ADJUSTMENT_INSUFFICIENT', '调整后团队积分不能小于零', 409);
+      ledger.accounts[key] = nextBalance;
+      ledger.entries.push({id: 'LE-' + crypto.randomBytes(10).toString('hex'), type: 'admin_adjustment', tenantId, userId, amount, reason: clean(input.reason, 240), createdAt: new Date().toISOString()}); await ledgerStore.write(ledger); return {tenantId, userId, balance: ledger.accounts[key]};
     });
   }
 
@@ -277,7 +404,7 @@ function createModelControlPlane(options = {}) {
     return {schemaVersion:ledger.schemaVersion, entries, accountBalances:Object.fromEntries(Object.entries(ledger.accounts).filter(([key]) => !tenantId || key === tenantId))};
   }
 
-  return {ensureDefaults, publicCatalogForTenant, adminSnapshot, upsertModel, upsertProvider, accountBalance, reserveCredits, settleCredits: input => settleOrRefund(input, 'settle'), refundCredits: input => settleOrRefund(input, 'refund'), creditAdmin, auditCredits, isAdmin, requireAdmin, constants: {configPath: configStore.filePath, ledgerPath: ledgerStore.filePath, welcomeCredits}};
+  return {ensureDefaults, publicCatalogForTenant, adminSnapshot, upsertModel, upsertProvider, upsertPlan, assignTenantPlan, accountBalance, tenantAccount, reserveCredits, settleCredits: input => settleOrRefund(input, 'settle'), refundCredits: input => settleOrRefund(input, 'refund'), creditAdmin, auditCredits, isAdmin, requireAdmin, constants: {configPath: configStore.filePath, ledgerPath: ledgerStore.filePath, welcomeCredits}};
 }
 
 module.exports = {createModelControlPlane, tenantForUser, isAdmin, requireAdmin};

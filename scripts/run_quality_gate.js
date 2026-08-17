@@ -20,6 +20,8 @@ const tests = [
   'test_nomi_h3_multiref_contract.js',
   'test_nomi_h3_result_delivery_http.js',
   'test_canvas_generation_http.js',
+  'test_commerce_admin_console.js',
+  'test_commerce_billing_recovery_http.js',
   'test_canvas_assets_http.js',
   'test_canvas_generated_video_assets.js',
   'test_project_library_rows.js',

@@ -44,12 +44,20 @@ async function main() {
     await page.goto(baseUrl + '/admin/commerce/', {waitUntil:'networkidle'});
     await page.getByRole('heading', {name:'商业运营台'}).waitFor({state:'visible'});
     await page.getByRole('heading', {name:'用户可用模型'}).waitFor({state:'visible'});
+    await page.getByRole('heading', {name:'月度套餐', exact:true}).waitFor({state:'visible'});
+    await page.getByRole('button', {name:'记入积分'}).waitFor({state:'visible'});
+    await page.getByRole('heading', {name:'计费与任务追踪', exact:true}).waitFor({state:'visible'});
     await page.getByText('服务器配置已读取').waitFor({state:'visible'});
     assert.equal(await page.locator('body').innerText().then(text => text.includes('agent-vault://')), false);
     const price = page.locator('.model-row').filter({hasText:'云雾 Image2 竖版 4K'}).getByRole('spinbutton');
     await price.fill('19');
     await page.locator('.model-row').filter({hasText:'云雾 Image2 竖版 4K'}).getByRole('button', {name:'保存'}).click();
     await page.getByText('模型目录已保存，用户下次读取画布目录时生效').waitFor({state:'visible'});
+    const planRow = page.locator('.plan-row').filter({hasText:'个人创作者月度套餐'});
+    await planRow.locator('.plan-price').fill('39');
+    await planRow.locator('.plan-credits').fill('120');
+    await planRow.getByRole('button', {name:'保存'}).click();
+    await page.getByText('月度套餐已保存').waitFor({state:'visible'});
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
     const desktopShot = path.join(screenshotDir, 'commerce-desktop.png');
     await page.screenshot({path:desktopShot, fullPage:true});
@@ -62,7 +70,7 @@ async function main() {
     assert.deepEqual(pageErrors, []);
     await context.close();
     await browser.close(); browser = null;
-    console.log(JSON.stringify({ok:true,desktopShot,mobileShot,verified:['管理员可读取运营台','模型价格可保存','页面不显示保险库引用','桌面与移动端无横向溢出','未提交供应商生成']}));
+    console.log(JSON.stringify({ok:true,desktopShot,mobileShot,verified:['管理员可读取运营台','模型价格可保存','月度套餐可保存','团队积分入口可用','页面不显示保险库引用','桌面与移动端无横向溢出','未提交供应商生成']}));
   } finally {
     if (browser) await browser.close();
     server.kill();

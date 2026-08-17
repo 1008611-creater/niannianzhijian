@@ -8109,6 +8109,7 @@ async function handleCanvasTextApi(request, response, pathname, user) {
 }
 
 async function publicCanvasGenerationResponse(job, user) {
+  job = await settleCanvasGenerationCredits(job, user);
   const providerSubmitEnabled = canvasGenerationSubmitEnabled(job);
   return {
     job:canvasGenerationJobService.publicJob(job, {providerSubmitEnabled}),
@@ -8116,6 +8117,15 @@ async function publicCanvasGenerationResponse(job, user) {
     providerStatus:await browserCanvasProviderStatus(user),
     spendRequested:false
   };
+}
+
+async function settleCanvasGenerationCredits(job, user) {
+  if (!job?.creditReservationId || job.creditState !== 'reserved' || !['succeeded', 'failed'].includes(job.status)) return job;
+  const settled = job.status === 'succeeded';
+  await (settled
+    ? modelControlPlane.settleCredits({reservationId:job.creditReservationId, amount:job.creditAmount, idempotencyKey:job.id + ':settle'})
+    : modelControlPlane.refundCredits({reservationId:job.creditReservationId, reason:'provider_failed', idempotencyKey:job.id + ':refund'}));
+  return canvasGenerationJobService.updateOwned(user.id, job.projectId, job.id, {creditState:settled ? 'settled' : 'refunded'});
 }
 
 async function handleCanvasGenerationApi(request, response, pathname, user) {
@@ -8199,11 +8209,6 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         else if (canvasVideoChannels.isAnimateVideoChannel(job.videoChannel) && canvasAnimateRuntime.enabled) job = await canvasAnimateRuntime.reconcile(user.id, projectId, jobId);
         else if (canvasH3Runtime.enabled) job = await canvasH3Runtime.reconcile(user.id, projectId, jobId);
       }
-      if (job.creditReservationId && ['succeeded','failed'].includes(job.status) && job.creditState === 'reserved') {
-        if (job.status === 'succeeded') await modelControlPlane.settleCredits({reservationId:job.creditReservationId, amount:job.creditAmount, idempotencyKey:job.id + ':settle'});
-        else await modelControlPlane.refundCredits({reservationId:job.creditReservationId, reason:'provider_failed', idempotencyKey:job.id + ':refund'});
-        job = await canvasGenerationJobService.updateOwned(user.id, projectId, jobId, {creditState:job.status === 'succeeded' ? 'settled' : 'refunded'});
-      }
       return json(response, 200, await publicCanvasGenerationResponse(job, user));
     }
     if (jobId && action === 'dry-run' && request.method === 'POST') {
@@ -8227,6 +8232,9 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       let job = await canvasGenerationJobService.getOwned(user.id, projectId, jobId);
       if (!job) return json(response, 404, {code:'CANVAS_JOB_NOT_FOUND',error:'任务不存在'});
       if (body.confirmProviderSpend !== true) return json(response, 422, {code:'CANVAS_PROVIDER_AUTHORIZATION_REQUIRED',error:'请明确确认本次生成会调用已配置的图像渠道'});
+      if (job.status !== 'awaiting_authorization') {
+        return json(response, 409, {code:'CANVAS_JOB_ALREADY_AUTHORIZED',error:'该生成任务已进入服务端处理或已结束，请创建新的重试任务。',job:canvasGenerationJobService.publicJob(job, {providerSubmitEnabled:canvasGenerationSubmitEnabled(job)})});
+      }
       if (job.nodeType === 'image' && !canvasGenerationSubmitEnabled(job)) return json(response, 409, {code:'CANVAS_PROVIDER_SUBMIT_DISABLED',error:'所选图像渠道尚未启用，当前任务仅完成准备'});
       if (job.nodeType === 'video') {
         const selectedRuntime = canvasVideoChannels.isDolaVideoChannel(job.videoChannel)
@@ -8236,7 +8244,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       }
       const catalog = await modelControlPlane.publicCatalogForTenant(modelControlPlaneModule.tenantForUser(user));
       const catalogModel = catalog.models.find(item => item.id === (job.nodeType === 'image' ? job.imageChannel || job.model : job.videoChannel || job.model));
-      if (!catalogModel || catalogModel.enabled !== true) return json(response, 409, {code:'CANVAS_MODEL_NOT_ENABLED',error:'当前模型尚未由管理员启用'});
+      if (!catalogModel) return json(response, 409, {code:'CANVAS_MODEL_NOT_ENABLED',error:'当前模型尚未由管理员启用'});
       const reservation = await modelControlPlane.reserveCredits({tenantId:modelControlPlaneModule.tenantForUser(user),userId:user.id,jobId:job.id,idempotencyKey:job.id + ':reserve',amount:catalogModel.priceCredits});
       try {
         job = await canvasGenerationJobService.updateOwned(user.id, projectId, jobId, {tenantId:modelControlPlaneModule.tenantForUser(user),creditReservationId:reservation.reservationId,creditAmount:catalogModel.priceCredits,creditState:'reserved'});
@@ -8300,7 +8308,10 @@ async function handleModelControlApi(request, response, pathname, user) {
   if (request.method === 'GET' && pathname === '/api/canvas/model-catalog') {
     json(response, 200, {catalog:await browserCanvasModelCatalog(user)}, {'Cache-Control':'no-store'}); return true;
   }
-  if (!pathname.startsWith('/api/admin/model-config') && !pathname.startsWith('/api/admin/credits') && pathname !== '/api/admin/commerce/summary') return false;
+  if (request.method === 'GET' && pathname === '/api/commerce/account') {
+    json(response, 200, {account:await modelControlPlane.tenantAccount(user), catalog:await browserCanvasModelCatalog(user)}, {'Cache-Control':'no-store'}); return true;
+  }
+  if (!pathname.startsWith('/api/admin/model-config') && !pathname.startsWith('/api/admin/credits') && !pathname.startsWith('/api/admin/commerce') && pathname !== '/api/admin/commerce/summary') return false;
   try {
     if (request.method === 'GET' && pathname === '/api/admin/commerce/summary') {
       const snapshot = await modelControlPlane.adminSnapshot(user);
@@ -8309,17 +8320,29 @@ async function handleModelControlApi(request, response, pathname, user) {
         'runninghub-consumer': {credentialConfigured:canvasProviderStatus.h3CredentialConfigured, submitEnabled:canvasProviderStatus.videoSubmitEnabled, credentialStorage:'服务器环境'},
         'dola-desktop-api': {credentialConfigured:canvasProviderStatus.dolaCredentialConfigured, submitEnabled:canvasProviderStatus.dolaSubmitEnabled, credentialStorage:'服务器环境'}
       };
+      const ledger = await modelControlPlane.auditCredits(user, {});
+      const jobs = await canvasGenerationJobService.listForCommerce({limit:50});
       json(response, 200, {
         schemaVersion:'niannian.commerce_admin.v1',
         providers:snapshot.providers.map(provider => ({...provider, ...(runtime[provider.id] || {credentialConfigured:false,submitEnabled:false,credentialStorage:'服务器环境'})})),
         models:snapshot.models,
-        ledger:{mode:'team_shared_pool', settlement:'reserve_settle_refund'}
+        plans:snapshot.plans,
+        tenantPlans:snapshot.tenantPlans,
+        ledger:{mode:'team_shared_pool', settlement:'reserve_settle_refund', entries:ledger.entries.slice(-50).reverse(), accountBalances:ledger.accountBalances},
+        jobs
       }, {'Cache-Control':'no-store'});
       return true;
     }
     if (request.method === 'GET' && pathname === '/api/admin/model-config') { json(response, 200, await modelControlPlane.adminSnapshot(user)); return true; }
-    if (request.method === 'PUT' && pathname === '/api/admin/model-config/provider') { json(response, 200, {provider:await modelControlPlane.upsertProvider(user, await readBodyJson(request))}); return true; }
+    if (request.method === 'PUT' && pathname === '/api/admin/model-config/provider') {
+      const input = await readBodyJson(request);
+      // Keys, vault references and supplier endpoints are server deployment
+      // settings. A browser can only change a provider's public release state.
+      json(response, 200, {provider:await modelControlPlane.upsertProvider(user, {id:input.id, label:input.label, kind:input.kind, enabled:input.enabled})}); return true;
+    }
     if (request.method === 'PUT' && pathname === '/api/admin/model-config/model') { json(response, 200, {model:await modelControlPlane.upsertModel(user, await readBodyJson(request))}); return true; }
+    if (request.method === 'PUT' && pathname === '/api/admin/commerce/plan') { json(response, 200, {plan:await modelControlPlane.upsertPlan(user, await readBodyJson(request))}); return true; }
+    if (request.method === 'PUT' && pathname === '/api/admin/commerce/tenant-plan') { json(response, 200, {assignment:await modelControlPlane.assignTenantPlan(user, await readBodyJson(request))}); return true; }
     if (request.method === 'POST' && pathname === '/api/admin/credits/adjust') { json(response, 200, {account:await modelControlPlane.creditAdmin(user, await readBodyJson(request))}); return true; }
     if (request.method === 'GET' && pathname === '/api/admin/credits/ledger') { const search = new URL(request.url, 'http://127.0.0.1').searchParams; json(response, 200, await modelControlPlane.auditCredits(user, {tenantId:search.get('tenantId'), userId:search.get('userId')})); return true; }
     json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'}); return true;

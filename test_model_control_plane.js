@@ -47,6 +47,25 @@ async function run() {
   assert.equal(await welcomePlane.accountBalance(other.tenantId, other.id), 10);
   const welcomeAudit = await welcomePlane.auditCredits(admin, {tenantId:other.tenantId, userId:other.id});
   assert.equal(welcomeAudit.entries.filter(entry => entry.type === 'welcome_grant').length, 1);
+
+  const subscriptionPlane = createModelControlPlane({configPath:path.join(root, 'subscription-config.json'), ledgerPath:path.join(root, 'subscription-ledger.json')});
+  await subscriptionPlane.upsertProvider(admin, {id:'yunwu-agent-vault', label:'云雾', kind:'image', enabled:true});
+  await subscriptionPlane.upsertModel(admin, {id:'image-basic', label:'基础生图', kind:'image', providerId:'yunwu-agent-vault', providerLabel:'云雾', enabled:true, priceCredits:8});
+  await subscriptionPlane.upsertModel(admin, {id:'image-hidden', label:'隐藏生图', kind:'image', providerId:'yunwu-agent-vault', providerLabel:'云雾', enabled:true, priceCredits:12});
+  await assert.rejects(() => subscriptionPlane.upsertPlan(admin, {id:'bad-plan', label:'错误套餐', modelIds:['not-registered'], published:true}), error => error.code === 'PLAN_MODEL_NOT_FOUND');
+  await subscriptionPlane.upsertPlan(admin, {id:'creator-plan', label:'个人套餐', audience:'creator', monthlyCredits:30, monthlyPriceCny:39, modelIds:['image-basic'], published:true});
+  await subscriptionPlane.upsertPlan(admin, {id:'draft-plan', label:'草稿套餐', modelIds:['image-basic'], published:false});
+  await assert.rejects(() => subscriptionPlane.assignTenantPlan(admin, {tenantId:'tenant-sub', planId:'draft-plan', status:'active'}), error => error.code === 'PLAN_NOT_PUBLISHED');
+  await subscriptionPlane.assignTenantPlan(admin, {tenantId:'tenant-sub', planId:'creator-plan', status:'active'});
+  const subscriber = {id:'USR-SUB', tenantId:'tenant-sub'};
+  const firstAccount = await subscriptionPlane.tenantAccount(subscriber);
+  const secondAccount = await subscriptionPlane.tenantAccount(subscriber);
+  assert.equal(firstAccount.balance, 30);
+  assert.equal(secondAccount.balance, 30, '同一自然月套餐积分只能发放一次');
+  const subscriberCatalog = await subscriptionPlane.publicCatalogForTenant('tenant-sub');
+  assert.deepEqual(subscriberCatalog.models.map(model => model.id), ['image-basic']);
+  const subscriptionAudit = await subscriptionPlane.auditCredits(admin, {tenantId:'tenant-sub'});
+  assert.equal(subscriptionAudit.entries.filter(entry => entry.type === 'monthly_plan_grant').length, 1);
   await fs.rm(root, {recursive:true, force:true});
   console.log('MODEL_CONTROL_PLANE_CONTRACT_OK');
 }

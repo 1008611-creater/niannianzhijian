@@ -13,7 +13,7 @@
         <a class="brand-link" href="/" aria-label="返回念念 AI 首页">念念 AI</a>
         <div class="commerce-topbar__title">
           <h1 id="pageTitle">商业运营台</h1>
-          <p>模型发布、价格与服务器配置状态</p>
+          <p>供应商、模型、套餐、团队积分与生成任务</p>
         </div>
         <a class="return-link" href="/studio/#/studio">返回工作台</a>
       </header>
@@ -21,7 +21,7 @@
       <section class="commerce-intro" aria-labelledby="introTitle">
         <div>
           <h2 id="introTitle">模型发布</h2>
-          <p>用户只会看到已发布模型与积分价格。密钥始终留在服务器保险库或服务器环境中。</p>
+          <p>运营配置只在服务器生效；普通用户只读取已发布模型、价格和团队可用积分。</p>
         </div>
         <p class="save-state" id="saveState" role="status" aria-live="polite">正在读取服务器配置</p>
       </section>
@@ -45,13 +45,46 @@
       <section class="ledger-section" aria-labelledby="ledgerTitle">
         <div class="section-heading">
           <h2 id="ledgerTitle">计费执行规则</h2>
-          <p>本阶段只展示已启用的服务端规则，不开放人工输入积分或套餐价格。</p>
+          <p>积分在供应商提交前预留；确定失败自动退回，未知结果进入复核。</p>
         </div>
         <dl class="ledger-facts">
           <div><dt>团队额度</dt><dd>同一团队共用积分池</dd></div>
           <div><dt>扣费时机</dt><dd>提交生成前冻结积分</dd></div>
           <div><dt>失败处理</dt><dd>提交失败或任务失败自动退款</dd></div>
         </dl>
+      </section>
+
+      <section class="plan-section" aria-labelledby="planTitle">
+        <div class="section-heading">
+          <h2 id="planTitle">月度套餐</h2>
+          <p>套餐先在运营台维护，发布后才可作为用户可购买的方案。</p>
+        </div>
+        <div class="plan-list" id="planList" aria-live="polite"></div>
+      </section>
+
+      <section class="team-section" aria-labelledby="teamTitle">
+        <div class="section-heading">
+          <h2 id="teamTitle">团队额度与套餐</h2>
+          <p>同一团队共享一份余额；套餐切换不会修改历史流水。</p>
+        </div>
+        <form class="credit-adjustment" id="creditAdjustmentForm">
+          <label><span>团队标识</span><input name="tenantId" type="text" autocomplete="off" maxlength="120" required></label>
+          <label><span>积分调整</span><input name="amount" type="number" inputmode="numeric" step="1" required></label>
+          <label><span>调整原因</span><input name="reason" type="text" autocomplete="off" maxlength="240" required></label>
+          <button class="save-button" type="submit">记入积分</button>
+        </form>
+        <div class="team-list" id="teamList" aria-live="polite"></div>
+      </section>
+
+      <section class="trace-section" aria-labelledby="traceTitle">
+        <div class="section-heading">
+          <h2 id="traceTitle">计费与任务追踪</h2>
+          <p>仅显示任务、状态、积分和结果关联，不显示提示词、密钥或供应商原始响应。</p>
+        </div>
+        <div class="trace-grid">
+          <div><h3>最近积分流水</h3><div class="trace-list" id="ledgerList" aria-live="polite"></div></div>
+          <div><h3>最近生成任务</h3><div class="trace-list" id="jobList" aria-live="polite"></div></div>
+        </div>
       </section>
     </main>
     <template id="providerTemplate">
@@ -74,6 +107,23 @@
         <label class="price-field"><span>用户价格（积分）</span><input type="number" min="0" step="1" inputmode="numeric"></label>
         <label class="switch-control"><input type="checkbox"><span aria-hidden="true"></span><b>发布给用户</b></label>
         <button type="button" class="save-button">保存</button>
+      </article>
+    </template>
+    <template id="planTemplate">
+      <article class="plan-row">
+        <div class="plan-row__identity"><h3></h3><p></p></div>
+        <label class="price-field"><span>月度价格（元）</span><input class="plan-price" type="number" min="0" step="0.01" inputmode="decimal"></label>
+        <label class="price-field"><span>月度积分</span><input class="plan-credits" type="number" min="0" step="1" inputmode="numeric"></label>
+        <label class="model-scope"><span>可用模型</span><input class="plan-models" type="text" autocomplete="off"></label>
+        <label class="switch-control"><input type="checkbox"><span aria-hidden="true"></span><b>发布套餐</b></label>
+        <button type="button" class="save-button">保存</button>
+      </article>
+    </template>
+    <template id="teamTemplate">
+      <article class="team-row">
+        <div><h3 class="team-id"></h3><p class="team-balance"></p></div>
+        <label class="plan-select"><span>当前套餐</span><select></select></label>
+        <button type="button" class="save-button">保存套餐</button>
       </article>
     </template>
     <script src="./commerce.js"></script>

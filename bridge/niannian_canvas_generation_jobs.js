@@ -86,6 +86,10 @@ function publicJob(job, options = {}) {
     durationSeconds: job.durationSeconds || null,
     accountSlot: videoChannel?.id === 'dola-seedance-2-5' ? (job.accountSlot || 1) : null,
     prompt: job.prompt,
+    credit: {
+      amount: Number(job.creditAmount || 0),
+      state: clean(job.creditState || 'not_reserved', 40)
+    },
     error: ['failed','review'].includes(job.status) ? (job.publicError || '任务未完成') : null,
     failureCategory: ['failed','review'].includes(job.status) ? (job.failureCategory || null) : null,
     createdAt: job.createdAt,
@@ -268,6 +272,35 @@ function createCanvasGenerationJobService(options = {}) {
     return jobs.filter(item => item.ownerId === ownerId && item.projectId === projectId).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   }
 
+  async function listForCommerce(options = {}) {
+    const tenantId = clean(options.tenantId, 120);
+    const limit = Math.max(1, Math.min(200, Number(options.limit || 50)));
+    const jobs = await readAll();
+    return jobs
+      .filter(item => !tenantId || item.tenantId === tenantId)
+      .sort((a, b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)))
+      .slice(0, limit)
+      .map(item => ({
+        id:item.id,
+        tenantId:item.tenantId,
+        ownerId:item.ownerId,
+        projectId:item.projectId,
+        nodeId:item.nodeId,
+        nodeType:item.nodeType,
+        model:item.nodeType === 'image' ? item.imageChannel : item.videoChannel,
+        status:item.status,
+        providerSubmitState:item.providerSubmitState || null,
+        providerTaskId:item.providerTaskId || null,
+        creditAmount:Number(item.creditAmount || 0),
+        creditState:item.creditState || 'not_reserved',
+        outputAssetIds:Array.isArray(item.outputAssetIds) ? item.outputAssetIds : [],
+        failureCategory:item.failureCategory || null,
+        createdAt:item.createdAt,
+        updatedAt:item.updatedAt,
+        completedAt:item.completedAt || null
+      }));
+  }
+
   async function updateOwned(ownerId, projectId, jobId, update) {
     return withWriteLock(async () => {
       const jobs = await readAll();
@@ -281,7 +314,7 @@ function createCanvasGenerationJobService(options = {}) {
     });
   }
 
-  return {create, getOwned, listOwned, updateOwned, publicJob, dryRunContract, models: MODELS, constants: {filePath}};
+  return {create, getOwned, listOwned, listForCommerce, updateOwned, publicJob, dryRunContract, models: MODELS, constants: {filePath}};
 }
 
 module.exports = {createCanvasGenerationJobService, MODELS, publicJob, dryRunContract, requestHash, DOLA_ASPECT_RATIOS};
