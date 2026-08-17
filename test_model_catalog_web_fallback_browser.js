@@ -23,6 +23,9 @@ async function main() {
   const generationController = require('node:fs').readFileSync(root + '/studio/assets/generationRunController-DH5v5RRt-r4.js', 'utf8');
   assert.match(generationController, /window\.nomiDesktop\?\.modelCatalog\?\.listVendors/);
   assert.match(generationController, /window\.nomiDesktop\?\.modelCatalog\?\.listModels/);
+  assert.match(generationController, /webCatalogModels as In,webCatalogVendors as Dn/);
+  assert.match(generationController, /const s=\(\)=>Dn\(\)\.catch\(/);
+  assert.match(generationController, /const i=\(\)=>In\(ct\(e\)\)\.catch\(/);
   const assetsDir = root + '/studio/assets';
   const cacheUsers = require('node:fs').readdirSync(assetsDir).filter(name => name.endsWith('.js')).map(name => require('node:fs').readFileSync(assetsDir + '/' + name, 'utf8')).filter(source => source.includes('modelCatalogCache-C1hWiSJp-r4.js?v=20260817-generation-spec-r1')).join('\n');
   assert.match(cacheUsers, /NomiStudioApp|useDedupedModelSelect|Generation|Creation|Canvas|applyCanvasToolCall/);
