@@ -31,7 +31,11 @@
   window.addEventListener('hashchange', applyRouteGate);
   window.addEventListener('popstate', applyRouteGate);
   new MutationObserver(function () {
-    if (root.classList.contains('nomi-project-route-pending') && document.querySelector('.nomi-studio-app')) {
+    // Either resolved workspace is a usable route. Do not leave mobile users on a blank gate.
+    if (
+      root.classList.contains('nomi-project-route-pending') &&
+      document.querySelector('.nomi-studio-app, .nomi-library-page')
+    ) {
       root.classList.remove('nomi-project-route-pending');
       if (timeoutId) window.clearTimeout(timeoutId);
       timeoutId = 0;
