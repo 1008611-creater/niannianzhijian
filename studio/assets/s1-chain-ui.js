@@ -185,37 +185,20 @@
       card.className = 's1-node'; card.dataset.node = 'h3'; card.dataset.status = 'draft';
       card.innerHTML = '<div class="s1-meta"><span>Skill 节点 · minimaxh3skill</span><small data-node-status>draft</small></div><h3>H3 生视频</h3><p>接收视频提示词与关键帧参考，生成任务始终由念念服务端创建、轮询并回库。</p><div class="s1-ports"><div class="s1-port-group input"><small>输入</small><button type="button" class="s1-port-handle s1-input-port" data-s1-input-node="s3-h3-video" data-s1-input-port="prompt" title="拖入 prompt 输出">prompt</button><button type="button" class="s1-port-handle s1-input-port" data-s1-input-node="s3-h3-video" data-s1-input-port="image_asset" title="拖入 image_asset 输出">image_asset</button></div><div class="s1-port-group output"><small>输出</small><button type="button" class="s1-port-handle s1-output-port" data-s1-output-node="s3-h3-video" data-s1-output-port="video_asset" title="从此端口拖到兼容输入">video_asset</button></div></div><div class="s1-assets" data-s3-assets><span>正在读取关键帧参考...</span></div><label class="s1-row"><span>提示词</span><input data-s3-prompt placeholder="描述镜头运动和画面连续性" style="flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:7px"></label><div class="s1-row"><span>规格</span><select data-s3-aspect><option value="9:16">9:16</option><option value="16:9">16:9</option></select><select data-s3-duration><option value="5">5 秒</option><option value="10">10 秒</option><option value="15">15 秒</option></select></div><div class="s1-status" data-s3-status>未创建任务；先保存 H3 节点合同。</div><div class="s1-preview" data-s3-preview>结果预览：等待 H3 产物</div><div class="s1-row"><button type="button" data-s3-create class="s1-secondary">保存 H3 节点</button><button type="button" data-s3-dry disabled>准备任务</button></div>';
       nodesEl.insertBefore(card, panel.querySelector('[data-s1-context]'));
-      var menu = panel.querySelector('[data-s1-context]');
-      if (menu && !menu.querySelector('[data-s1-add-generation="h3"]')) {
-        var h3Button = document.createElement('button');
-        h3Button.type = 'button'; h3Button.dataset.s1AddGeneration = 'h3'; h3Button.textContent = '生成节点 · H3 生视频';
-        menu.appendChild(h3Button);
-      }
     }
     installH3NodeCard();
-    function upgradeLegacySkillCard(key, skillLabel) {
-      var card = panel.querySelector('[data-node="' + key + '"]');
-      if (!card || card.classList.contains('s1-legacy-skill-node')) return;
-      var meta = card.querySelector('.s1-meta');
-      if (!meta) return;
-      card.classList.add('s1-skill-node', 's1-legacy-skill-node');
-      meta.classList.add('s1-skill-head');
-      meta.dataset.s1DragHandle = 'true';
-      meta.setAttribute('role', 'button');
-      meta.setAttribute('tabindex', '0');
-      meta.setAttribute('aria-label', '拖动 ' + skillLabel + ' 节点');
-      var label = meta.querySelector('span');
-      if (label) label.textContent = skillLabel;
-      var status = meta.querySelector('[data-node-status]');
-      if (status) status.classList.add('s1-skill-version');
-      // Legacy source-chain cards must use the same selection/deletion contract
-      // as dynamically created Skill cards, even before the first document read.
-      ensureDeleteControl(card);
+    // Retire the old source-chain prototype. New canvases must only contain
+    // nodes explicitly added by the user from the native menu or Skill menu.
+    function retireLegacyCards() {
+      ['source', 'step01', 'step02', 'image2', 'h3'].forEach(function (key) {
+        var card = panel.querySelector('[data-node="' + key + '"]');
+        if (card) { card.hidden = true; card.setAttribute('aria-hidden', 'true'); }
+      });
+      var title = panel.querySelector('.s1-chain-title');
+      if (title) title.hidden = true;
+      panel.querySelectorAll('.s1-edge').forEach(function (edge) { edge.hidden = true; });
     }
-    upgradeLegacySkillCard('step01', 'Skill 节点 · mx-shortdrama-01');
-    upgradeLegacySkillCard('step02', 'Skill 节点 · mx-shortdrama-02');
-    upgradeLegacySkillCard('image2', 'Skill 节点 · image2-storyboard-video');
-    upgradeLegacySkillCard('h3', 'Skill 节点 · minimaxh3skill');
+    retireLegacyCards();
     var h3Card = panel.querySelector('[data-node="h3"]');
     var h3Prompt = panel.querySelector('[data-s3-prompt]');
     var h3Aspect = panel.querySelector('[data-s3-aspect]');
@@ -231,7 +214,6 @@
     var nodeById = Object.create(null);
     var selectedNodeId = null;
     var canvasDocument = {nodes:[], edges:[], viewport:{x:0,y:0,zoom:1}};
-    var sourceChainDraftOpen = false;
     var step01PollTimer = null;
     var nodeIds = {source:'s1-source-input',step01:'s1-step01-analysis',step02:'s1-step02-timeline',image2:'s2-image2-keyframe',h3:'s3-h3-video'};
     var championSpecs = {
@@ -671,21 +653,15 @@
     function renderNodes(nodes) {
       canvasDocument.nodes = Array.isArray(nodes) ? nodes : [];
       nodeById = Object.fromEntries(canvasDocument.nodes.map(function (node) { return [node.id,node]; }));
-      panel.dataset.s1Empty = sourceChainDraftOpen || canvasDocument.nodes.some(function (node) { return /^s1-|^s2-|^s3-|^skill-/.test(String(node && node.id || '')); }) ? 'false' : 'true';
-      var deletedNodeIds = canvasDocument.deletedNodeIds || [];
-      var hasVisibleSourceChainNode = false;
+      panel.dataset.s1Empty = canvasDocument.nodes.some(championSpecFor) ? 'false' : 'true';
       Object.keys(nodeIds).forEach(function (key) {
         var card = panel.querySelector('[data-node="' + key + '"]');
         if (!card) return;
         card.dataset.nodeId = nodeIds[key];
-        var documentOwnsNode = Boolean(nodeById[nodeIds[key]]);
-        var visible = !deletedNodeIds.includes(nodeIds[key]) && (sourceChainDraftOpen || documentOwnsNode);
-        card.hidden = !visible;
-        if (visible) ensureDeleteControl(card);
-        if (visible) hasVisibleSourceChainNode = true;
+        card.hidden = true;
+        card.setAttribute('aria-hidden', 'true');
       });
-      panel.querySelector('.s1-chain-title').hidden = !hasVisibleSourceChainNode;
-      panel.querySelectorAll('.s1-edge').forEach(function (edge) { edge.hidden = !hasVisibleSourceChainNode; });
+      retireLegacyCards();
       var chainNodes = (Array.isArray(nodes) ? nodes : []).filter(function (node) { return /^s1-/.test(node.id); });
       chainReady = chainNodes.some(function (node) { return node.id === 's1-source-input' && node.status === 'ready'; });
       chainNodes.forEach(function (node) { var key = node.id === 's1-source-input' ? 'source' : node.id === 's1-step01-analysis' ? 'step01' : 'step02'; var card = panel.querySelector('[data-node="' + key + '"]'); if (!card) return; card.dataset.status = node.status; var status = card.querySelector('[data-node-status]'); if (status) status.textContent = node.status; });
@@ -900,18 +876,13 @@
       group.dataset.s1SkillToolbar = 'true';
       group.setAttribute('aria-label', '转绘 Skill 节点');
       group.style.cssText = 'display:grid;gap:3px;margin-top:3px;padding-top:5px;border-top:1px solid rgba(90,64,42,.14)';
-      [{key:'s1-chain',label:'原片链',title:'打开原片转绘链'},{key:'screenwriter',label:'编剧',title:'添加编剧 Skill 节点'},{key:'chaoge-assets-trial',label:'资产',title:'添加资产方案 Skill 节点'},{key:'shotlist-builder',label:'分镜',title:'添加分镜 Skill 节点'},{key:'hell-grind',label:'镜头',title:'添加镜头提示 Skill 节点'}].forEach(function (item) {
+      [{key:'screenwriter',label:'编剧',title:'添加编剧 Skill 节点'},{key:'chaoge-assets-trial',label:'资产',title:'添加资产方案 Skill 节点'},{key:'shotlist-builder',label:'分镜',title:'添加分镜 Skill 节点'},{key:'hell-grind',label:'镜头',title:'添加镜头提示 Skill 节点'}].forEach(function (item) {
         var button = document.createElement('button');
         button.type = 'button'; button.textContent = item.label; button.title = item.title; button.setAttribute('aria-label', item.title);
         button.style.cssText = 'height:28px;padding:0 4px;border:0;border-radius:5px;background:transparent;color:var(--nomi-ink-60,#6d5947);cursor:pointer;font:600 10px/1 Inter,system-ui,sans-serif;white-space:nowrap';
         button.addEventListener('mouseenter', function () { button.style.background = 'rgba(90,64,42,.07)'; });
         button.addEventListener('mouseleave', function () { button.style.background = 'transparent'; });
         button.addEventListener('click', function () {
-          if (item.key === 's1-chain') {
-            sourceChainDraftOpen = true;
-            renderNodes(canvasDocument.nodes);
-            return;
-          }
           panel.dataset.s1Empty = 'false';
           createChampionNode(item.key, {x:180,y:180}).catch(function (error) { setStatus((error.code ? error.code + ': ' : '') + (error.message || '添加节点失败'), true); });
         });

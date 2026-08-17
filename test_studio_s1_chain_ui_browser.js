@@ -50,10 +50,6 @@ async function main() {
   let browser;
   try {
     await waitForHealth(baseUrl);
-    const mp4 = Buffer.alloc(32); mp4.writeUInt32BE(32, 0); mp4.write('ftyp', 4, 'ascii'); mp4.write('isom', 8, 'ascii');
-    const form = new FormData(); form.append('kind', 'reference_video'); form.append('asset', new Blob([mp4], {type:'video/mp4'}), 'source.mp4');
-    const upload = await fetch(baseUrl + '/api/projects/' + project.id + '/assets', {method:'POST',headers:{cookie:'niannian_session=' + token,'x-niannian-project-kind':'redraw'},body:form});
-    assert.equal(upload.status, 201, 'test source video must upload');
     browser = await chromium.launch({headless:true});
     const context = await browser.newContext({viewport:{width:1440,height:900}});
     await context.addCookies([{name:'niannian_session',value:token,url:baseUrl}]);
@@ -71,18 +67,8 @@ async function main() {
     assert.equal(await panel.getByRole('heading', {name:'原片到关键帧'}).isVisible(), false, 'new projects must not show default S1 cards');
     assert.ok(await page.getByRole('button', {name:'添加文本节点'}).count() >= 1, 'original text node control must remain');
     assert.ok(await page.getByRole('button', {name:'添加图片节点'}).count() >= 1, 'original image node control must remain');
-    await page.getByRole('button', {name:'打开原片转绘链'}).click();
-    await assert.rejects(panel.getByRole('button', {name:'创建节点链'}).click({timeout:300}), /Timeout|intercepted/, 'create remains disabled until all source gates pass');
-    await panel.getByRole('radio', {name:/source\.mp4/}).check();
-    await panel.getByRole('checkbox', {name:/我确认拥有/}).check();
-    await panel.locator('[data-s1-preflight]').selectOption('passed');
-    await panel.getByRole('button', {name:'创建节点链'}).click();
-    await panel.getByText('已创建 3 个节点和 2 条依赖边。').waitFor();
-    await panel.getByText('输出 source_asset：source.mp4。').waitFor();
-    await panel.getByText('输入 source_video：已连接 原片输入.source_asset。').waitFor();
-    await panel.getByText('输入 evidence_manifest：等待 Step01.evidence_manifest。').waitFor();
-    assert.equal(await panel.locator('.s1-node').count(), 5);
-    await panel.locator('[data-node="image2"]').getByText('Image2 关键帧生成').waitFor();
+    assert.equal(await page.getByRole('button', {name:'打开原片转绘链'}).count(), 0, 'retired source-chain prototype must not have an entry point');
+    assert.equal(await panel.locator('[data-node]:not([hidden])').count(), 0, 'retired source-chain cards must not be shown for a new canvas');
     const flow = panel.locator('.s1-chain-flow');
     await canvas.click({button:'right', position:{x:1080, y:180}});
     await panel.getByRole('button', {name:'编剧 · Screenwriter'}).waitFor();
@@ -129,23 +115,6 @@ async function main() {
     await screenwriterCard.getByText('核心输入已齐全，可在文本模型配置完成后请求编排。').waitFor();
     await screenwriterCard.getByRole('button', {name:'生成交付包'}).click();
     await screenwriterCard.getByText('MCGrox 服务端执行器未就绪；节点输入已保留，可在服务恢复后重试。').waitFor();
-    await flow.click({button:'right', position:{x:1180, y:370}});
-    await panel.getByRole('button', {name:'生成节点 · H3 生视频'}).click();
-    await panel.getByRole('heading', {name:'H3 生视频', exact:true}).waitFor();
-    await panel.locator('[data-s3-prompt]').fill('雨夜人物缓慢前行，镜头稳定跟拍。');
-    await panel.getByRole('button', {name:'保存 H3 节点'}).click();
-    await panel.getByText('H3 节点已保存。').waitFor();
-    const hellVideoPrompt = panel.locator('[data-champion-node]').filter({hasText:'镜头提示编译'}).locator('[data-s1-output-port="video_prompt"]');
-    const h3PromptInput = panel.locator('[data-node="h3"] [data-s1-input-port="prompt"]');
-    await hellVideoPrompt.scrollIntoViewIfNeeded();
-    await hellVideoPrompt.click();
-    await h3PromptInput.scrollIntoViewIfNeeded();
-    await h3PromptInput.click();
-    await page.waitForTimeout(180);
-    const h3ConnectedDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
-    assert.ok(h3ConnectedDocument.document.edges.some(edge => edge.sourcePort === 'video_prompt' && edge.target === 's3-h3-video' && edge.targetPort === 'prompt'), 'Hell Grind video prompt must persist into the H3 input port');
-    await panel.locator('[data-s3-dry]').click();
-    await panel.getByText('等待 Hell Grind 完成 video_prompt 编译后再准备 H3 任务。').waitFor();
     await panel.getByRole('heading', {name:'剧本编排', exact:true}).waitFor();
     await panel.getByRole('heading', {name:'镜头提示编译', exact:true}).waitFor();
     const screenplayOutput = panel.locator('[data-champion-node]').filter({hasText:'剧本编排'}).locator('[data-s1-output-port="screenplay"]');
@@ -178,7 +147,7 @@ async function main() {
     await openGenerationCanvas(page);
     await page.locator('#s1-chain-canvas [data-champion-node]').first().waitFor({state:'visible'});
     assert.equal(await page.locator('#s1-chain-canvas [data-champion-node]').count(), 4, 'champion nodes must survive a reload after dragging');
-    assert.equal(await page.locator('#s1-chain-canvas [data-node="h3"]').count(), 1, 'H3 node must survive a reload after right-click creation');
+    assert.equal(await page.locator('#s1-chain-canvas [data-node]:not([hidden])').count(), 0, 'retired prototype nodes must remain hidden after a reload');
     const reloadedDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
     const persistedChampion = reloadedDocument.document.nodes.find(node => node.id === championNodeId);
     assert.ok(persistedChampion && persistedChampion.position.x >= beforeDragPosition.x + 100, 'champion node position must persist after a reload: ' + JSON.stringify(persistedChampion && persistedChampion.position));
@@ -192,7 +161,6 @@ async function main() {
     const afterDeleteDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
     assert.equal(afterDeleteDocument.document.nodes.some(node => node.id === championNodeId), false, 'Delete must persist node removal');
     assert.equal(afterDeleteDocument.document.edges.some(edge => edge.source === championNodeId || edge.target === championNodeId), false, 'Delete must remove incident edges');
-    assert.equal(await panel.locator('[data-s2-dry]').isDisabled(), true, 'Image2 preparation stays disabled before the node is saved');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'desktop must not overflow');
     await page.setViewportSize({width:390,height:844});
     await page.reload({waitUntil:'networkidle'});
@@ -202,7 +170,7 @@ async function main() {
     assert.deepEqual(consoleErrors, []);
     await context.close();
     await browser.close(); browser = null;
-    console.log(JSON.stringify({ok:true,verified:['desktop S1 panel selects a project video and creates persistent port bindings','right click creates four persisted orchestration Skill nodes and the H3 generation node','each orchestration node saves a core input and receives a server readiness result','MCGrox compiler preflight keeps input recoverable when server configuration is absent','new nodes use the same draggable canvas card contract','compatible ports create persisted visual edges including Hell Grind to H3','H3 blocks until the upstream compiler emits video_prompt','creation is disabled until rights and preflight pass','mobile S1 panel stays within viewport','no provider task is sent']}));
+    console.log(JSON.stringify({ok:true,verified:['new canvases do not render the retired default source-chain prototype','the original node controls remain available','right click creates four persisted orchestration Skill nodes','each orchestration node saves a core input and receives a server readiness result','new nodes use the same draggable canvas card contract','compatible ports create persisted visual edges','selected Skill nodes persist deletion','desktop and mobile stay within their viewports','no provider task is sent']}));
   } finally {
     if (browser) await browser.close();
     server.kill();
