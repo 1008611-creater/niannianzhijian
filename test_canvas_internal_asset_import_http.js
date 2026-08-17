@@ -80,9 +80,17 @@ async function run() {
   assert.equal(replay.body.node.id, first.body.node.id);
 
   const renamed = await importAsset(image, 'character', '苏晚棠-正式资产');
-  assert.equal(renamed.response.status, 201);
+  assert.equal(renamed.response.status, 200);
   assert.equal(renamed.body.asset.id, first.body.asset.id);
   assert.equal(renamed.body.node.title, '苏晚棠-正式资产');
+
+  const recategorized = await importAsset(image, 'scene', '顾家餐厅到玄关连续空间');
+  assert.equal(recategorized.response.status, 200);
+  assert.equal(recategorized.body.asset.id, first.body.asset.id);
+  assert.equal(recategorized.body.node.id, first.body.node.id);
+  assert.equal(recategorized.body.node.title, '顾家餐厅到玄关连续空间');
+  assert.equal(recategorized.body.node.categoryId, 'scenes');
+  assert.equal(recategorized.body.node.meta.assetRole, 'scene');
 
   const studio = await fetch(`${baseUrl}/api/studio/projects/NN-INTERNAL-ASSET`, {headers:headers('internal-asset-token',{'x-niannian-project-kind':'redraw'})});
   const studioBody = await studio.json();
@@ -90,8 +98,9 @@ async function run() {
   const node = studioBody.document.generationCanvas.nodes.find(item => item.id === first.body.node.id);
   assert.ok(node);
   assert.equal(node.result.assetId, first.body.asset.id);
-  assert.equal(node.title, '苏晚棠-正式资产');
-  assert.equal(node.categoryId, 'characters');
+  assert.equal(node.title, '顾家餐厅到玄关连续空间');
+  assert.equal(node.categoryId, 'scenes');
+  assert.equal(node.meta.assetRole, 'scene');
 
   const assetList = await fetch(`${baseUrl}/api/projects/NN-INTERNAL-ASSET/assets`, {headers:headers('internal-asset-token',{'x-niannian-project-kind':'redraw'})});
   const listed = await assetList.json();

@@ -7912,12 +7912,16 @@ async function attachInternalCanvasAssetNode(owned, asset, input) {
     const nodes = document.generationCanvas.nodes;
     const existing = nodes.find(node => node?.meta?.canvasAssetId === asset.id || node?.result?.assetId === asset.id);
     if (existing) {
-      if (existing.title === title) return {node:existing,revision:Number(current?.revision || 0),created:false,updatedAt:current?.updatedAt || null};
+      const meta = existing.meta && typeof existing.meta === 'object' && !Array.isArray(existing.meta) ? existing.meta : {};
+      const needsUpdate = existing.title !== title || existing.categoryId !== category.categoryId || meta.canvasAssetId !== asset.id || meta.assetRole !== category.role || meta.fileName !== asset.originalName;
+      if (!needsUpdate) return {node:existing,revision:Number(current?.revision || 0),created:false,updatedAt:current?.updatedAt || null};
       existing.title = title;
+      existing.categoryId = category.categoryId;
+      existing.meta = {...meta,source:'project-asset',canvasAssetId:asset.id,assetRole:category.role,fileName:asset.originalName};
       const record = {...current,revision:Number(current?.revision || 0) + 1,document,updatedAt:new Date().toISOString()};
       documents[key] = record;
       await writeCanvasDocuments(documents);
-      return {node:existing,revision:record.revision,created:true,updatedAt:record.updatedAt};
+      return {node:existing,revision:record.revision,created:false,updatedAt:record.updatedAt};
     }
     const node = internalCanvasAssetNode(asset, title, category.categoryId, category.role);
     const index = nodes.filter(item => item?.categoryId === category.categoryId).length;
