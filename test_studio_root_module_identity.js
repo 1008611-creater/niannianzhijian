@@ -9,6 +9,7 @@ const assetsRoot = path.join(projectRoot, 'studio', 'assets');
 const releaseTag = 'r(?:4|5|6)';
 const moduleCacheVersion = '20260817-generation-runtime-catalog-r2';
 const studioClosureCacheVersion = '20260816-studio-closure-r9';
+const rootModuleName = 'index-M-8MrEH2-r28-19b89ec-r6.js';
 const starts = ['index-M-8MrEH2-r28-19b89ec-r6.js', 'web-runtime-adapter-r4.js'];
 
 function localReferences(source) {
@@ -66,12 +67,14 @@ for (const name of reachable) {
   if (!name.endsWith('.js')) continue;
   const source = fs.readFileSync(path.join(assetsRoot, name), 'utf8');
   assertCanonicalQueries(source);
+  const rootModuleVersions = [...source.matchAll(new RegExp(`${rootModuleName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\?v=([^"')]+)`, 'g'))].map(match => match[1]);
+  assert.deepEqual([...new Set(rootModuleVersions)], rootModuleVersions.length ? [moduleCacheVersion] : [], `mixed root module identity: ${name}`);
   assert.doesNotMatch(source, /index-M-8MrEH2-r27\.js|NomiStudioApp-DDB0IgSO-r27\.js/);
   assert.doesNotMatch(source, /\?v=20260808-static-r[123](?:["')])/);
   assert.doesNotMatch(source, /\?v=20260809-static-r4(?:["')])/);
   assert.doesNotMatch(source, /\?v=20260811-static-r5(?:["')])/);
   if (localReferences(source).some(dependency => dependency.endsWith('.js'))) {
-    assert.match(source, new RegExp(`\\?v=${studioClosureCacheVersion}(?:["')])`), `Studio module is not in the current closure: ${name}`);
+    assert.match(source, new RegExp(`\\?v=(?:${studioClosureCacheVersion}|${moduleCacheVersion})(?:["')])`), `Studio module is not in the current closure: ${name}`);
   }
   assert.doesNotMatch(source, /(?:index-M-8MrEH2-r28-19b89ec|NomiStudioApp-DDB0IgSO-r28-19b89ec)-r4\.js\?v=20260816-batch-group-feedback-r8/);
   assert.doesNotMatch(source, /(?:index-M-8MrEH2-r28-19b89ec|NomiStudioApp-DDB0IgSO-r28-19b89ec)-r4\.js\?v=20260816-persisted-image-r1/);
