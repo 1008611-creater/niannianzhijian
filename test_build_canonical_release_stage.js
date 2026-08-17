@@ -55,6 +55,7 @@ try {
   assert.equal(packageManifest.files.includes('canvas.css'), false);
   assert.equal(packageManifest.files.includes('nomi-canvas-entry.js'), false);
   assert.equal(packageManifest.files.includes('mvp.js'), false);
+  assert.equal(packageManifest.files.includes('admin/commerce/index.html'), false);
   assert(packageManifest.files.includes('studio/index.html'));
   assert(packageManifest.files.includes('director-desk/index.html'));
   assert(packageManifest.files.some(file => file.startsWith('studio/assets/')));
@@ -87,6 +88,24 @@ try {
     result.gate.static_resource_closure.missing_optional_css_assets,
     []
   );
+  const scopedRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'niannian-release-stage-scoped-'));
+  try {
+    const scopedCandidate = buildStage(path.join(scopedRoot, 'candidate'), {
+      release_id: 'release-stage-materialization-check',
+      parent_release_id: 'release-stage-parent',
+      scope: 'verify allowed files are packaged',
+      allowed_files: ['admin/commerce/index.html', 'admin/commerce/commerce.js', 'admin/commerce/commerce.css']
+    });
+    const scopedManifest = JSON.parse(fs.readFileSync(scopedCandidate.package_manifest, 'utf8'));
+    assert(scopedManifest.files.includes('admin/commerce/index.html'));
+    assert(scopedManifest.files.includes('admin/commerce/commerce.js'));
+    assert(scopedManifest.files.includes('admin/commerce/commerce.css'));
+    const activation = JSON.parse(fs.readFileSync(scopedCandidate.release_activation, 'utf8'));
+    assert.equal(activation.schema_version, 'niannian_release_activation_v2');
+    assert.deepEqual(activation.protected_contracts, ['step01_public_ui_v1']);
+  } finally {
+    fs.rmSync(scopedRoot, { recursive:true, force:true });
+  }
   process.stdout.write(JSON.stringify({ ok:true, file_count:result.file_count, total_bytes:result.total_bytes, verified:['isolated staging', 'deployment-host dependency materialization contract', 'active brand asset derived from current HTML', 'exact package manifest', 'release gate', 'local runtime data and node_modules excluded'] }) + '\n');
 } finally {
   fs.rmSync(temporaryRoot, { recursive:true, force:true });
