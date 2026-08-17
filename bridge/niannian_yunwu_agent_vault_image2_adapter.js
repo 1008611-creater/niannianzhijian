@@ -56,7 +56,14 @@ function protectedProxyEnv(env) {
   url.password = vault;
   // The authenticated proxy address exists only in the child process. It is
   // never persisted, returned, or written to diagnostics.
-  return {...env, HTTPS_PROXY:url.toString(), HTTP_PROXY:url.toString()};
+  const authenticatedProxy = url.toString();
+  return {
+    ...env,
+    HTTPS_PROXY:authenticatedProxy,
+    HTTP_PROXY:authenticatedProxy,
+    https_proxy:authenticatedProxy,
+    http_proxy:authenticatedProxy
+  };
 }
 
 function execute(file, args, env) {

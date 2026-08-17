@@ -5,12 +5,15 @@ const fsp = require('fs').promises;
 const os = require('os');
 const path = require('path');
 const sharp = require('sharp');
-const {createYunwuAgentVaultImage2Adapter} = require('./bridge/niannian_yunwu_agent_vault_image2_adapter');
+const {createYunwuAgentVaultImage2Adapter, protectedProxyEnv} = require('./bridge/niannian_yunwu_agent_vault_image2_adapter');
 
 async function run() {
   const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'niannian-yunwu-agent-vault-'));
   try {
     const env = {AGENT_VAULT_ADDR:'http://127.0.0.1:14321',AGENT_VAULT_VAULT:'niannian-production',AGENT_VAULT_TOKEN:'protected-test-token',HTTPS_PROXY:'http://127.0.0.1:14322'};
+    const authenticatedEnv = protectedProxyEnv({...env,https_proxy:'http://127.0.0.1:14322'});
+    assert.equal(authenticatedEnv.https_proxy, authenticatedEnv.HTTPS_PROXY);
+    assert.equal(authenticatedEnv.http_proxy, authenticatedEnv.HTTP_PROXY);
     let editArgs = null;
     const adapter = createYunwuAgentVaultImage2Adapter({env, tempRoot:root, run:async (_python, args) => {
       if (args.includes('edit')) editArgs = args;
