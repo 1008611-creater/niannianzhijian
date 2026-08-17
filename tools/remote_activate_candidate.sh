@@ -5,10 +5,12 @@ stage_root="${1:?stage root is required}"
 rollback_root="${2:?rollback root is required}"
 runtime_verifier="${3:?runtime verifier is required}"
 origin_url="http://127.0.0.1:18083"
+approved_link="/opt/niannian-ai-approved"
 
 old_app="$(readlink -f /opt/niannian-ai)"
 old_static="$(readlink -f /var/www/niannian-ai)"
 old_current="$(readlink -f /opt/niannian-ai-current)"
+old_approved="$(readlink -f "$approved_link" 2>/dev/null || true)"
 test -d "$old_app"
 test -d "$old_static"
 test -d "$old_current"
@@ -18,6 +20,12 @@ systemctl is-active --quiet niannian-ai.service
 curl --connect-timeout 3 --max-time 5 -fsS "$origin_url/api/health" >/dev/null
 
 rollback() {
+  if [ -n "$old_approved" ]; then
+    ln -s "$old_approved" "$approved_link.next"
+    mv -Tf "$approved_link.next" "$approved_link"
+  else
+    rm -f "$approved_link"
+  fi
   ln -s "$old_app" /opt/niannian-ai.next
   mv -Tf /opt/niannian-ai.next /opt/niannian-ai
   ln -s "$old_static" /var/www/niannian-ai.next
@@ -47,7 +55,12 @@ cp -a /etc/systemd/system/niannian-ai.service "$rollback_root/niannian-ai.servic
 printf '%s\n' "$old_app" >"$rollback_root/old-app-target.txt"
 printf '%s\n' "$old_static" >"$rollback_root/old-static-target.txt"
 printf '%s\n' "$old_current" >"$rollback_root/old-current-target.txt"
+printf '%s\n' "$old_approved" >"$rollback_root/old-approved-target.txt"
 
+# Publish the approved target before switching consumer links. The guard may
+# observe any individual link change, so it must already agree on the target.
+ln -s "$stage_root/package" "$approved_link.next"
+mv -Tf "$approved_link.next" "$approved_link"
 ln -s "$stage_root/package" /opt/niannian-ai.next
 mv -Tf /opt/niannian-ai.next /opt/niannian-ai
 ln -s "$stage_root/package" /var/www/niannian-ai.next
