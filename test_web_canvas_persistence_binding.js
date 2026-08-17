@@ -25,6 +25,10 @@ assert.match(source, /window\.dispatchEvent\(new Event\("nomi-canvas-mutated"\)\
 assert.doesNotMatch(source, /window\.addEventListener\("nomi-canvas-mutated",q\)/);
 assert.doesNotMatch(source, /N\.persistProject\(s,ir\(\)\)/);
 assert.match(source, /function by\(e\).*?for\(;n&&e\.isActive\(\);\)/s);
+assert.match(
+  source,
+  /async function fv\(e,t\).*?await Promise\.all\(l\.map\(async\(\{node:E,file:C,kind:b\}\)=>\{await hl\(E\.id,C,b,\{uploadFile:a,recoverFile:s,probeVideoDuration:o\}\)\|\|\(S\+=1\)\}\)\);G\.getState\(\)\.commitPersistedChange\(\);return\{created:l,/s,
+);
 assert.match(baseNodeSource, /uploadStatus:"uploaded",localOnly:!1\}\)\}\),r\(\)\}\)/);
 assert.match(baseNodeSource, /P!==t&&\(i\(e,\{title:P\}\),x\(\)\)/);
 assert.match(source, /platform!==\"web\"&&n===\"image\"/);
