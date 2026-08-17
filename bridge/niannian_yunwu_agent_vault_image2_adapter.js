@@ -8,8 +8,11 @@ const path = require('path');
 const {spawn} = require('child_process');
 const {imageMime} = require('./niannian_runninghub_image_adapter');
 
-const DEFAULT_SCRIPT = 'C:\\Users\\lsb\\.codex\\skills\\image2-skill\\scripts\\image2_channel.py';
-const DEFAULT_PYTHON = 'C:\\Users\\lsb\\anaconda3\\python.exe';
+// The channel worker is packaged with the service.  The former defaults pointed
+// at a developer workstation and made every Linux deployment look like a
+// provider-network failure.
+const DEFAULT_SCRIPT = path.join(__dirname, 'niannian_image2_channel.py');
+const DEFAULT_PYTHON = process.platform === 'win32' ? 'python.exe' : 'python3';
 const EDIT_CHANNEL = 'yunwu-gpt-image-2-c-edit';
 const EDIT_OUTPUT_SIZE = '3840x2160';
 const GENERATE_OUTPUT_SIZE = '2160x3840';
@@ -43,7 +46,7 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
   const tempRoot = String(options.tempRoot || path.join(os.tmpdir(), 'niannian-canvas-yunwu'));
   const run = options.run || execute;
 
-  function dryRun(task, referenceFiles = []) {
+  function validate(task, referenceFiles = []) {
     const isEdit = referenceFiles.length > 0;
     if (isEdit && (referenceFiles.length > 16 || task.image_channel !== EDIT_CHANNEL)) throw adapterError('YUNWU_IMAGE_REFERENCE_INVALID', '云雾图改图需要一至十六张参考图和图改图通道', 422);
     if (!isEdit && referenceFiles.length) throw adapterError('YUNWU_IMAGE_REFERENCE_INVALID', '云雾图改图参考图无效', 422);
@@ -55,8 +58,41 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
 
   async function cleanup(paths) { await Promise.all(paths.map(file => fsp.rm(file, {force:true}).catch(() => {}))); }
 
+  function executionFailure(error) {
+    if (error?.code === 'ENOENT') return adapterError('YUNWU_EXECUTOR_UNAVAILABLE', '云雾图像执行器不可用', 503);
+    return adapterError('YUNWU_NETWORK_UNCERTAIN', '云雾请求状态待确认');
+  }
+
+  function executionExitFailure(code) {
+    if (code === 2) return adapterError('YUNWU_AGENT_VAULT_NOT_CONFIGURED', '云雾受保护代理会话尚未配置', 503);
+    if ([126, 127].includes(code)) return adapterError('YUNWU_EXECUTOR_UNAVAILABLE', '云雾图像执行器不可用', 503);
+    if (code === 5) return adapterError('YUNWU_NETWORK_UNCERTAIN', '云雾请求状态待确认');
+    return adapterError('YUNWU_SUBMISSION_REJECTED', '云雾图像请求未通过');
+  }
+
+  async function dryRun(task, referenceFiles = []) {
+    const preflight = validate(task, referenceFiles);
+    const id = crypto.randomUUID();
+    await fsp.mkdir(tempRoot, {recursive:true});
+    const promptPath = path.join(tempRoot, `${id}.prompt.txt`);
+    const receiptPath = path.join(tempRoot, `${id}.receipt.json`);
+    await fsp.writeFile(promptPath, String(task.prompt || ''), 'utf8');
+    try {
+      const args = [scriptPath, '--channel', 'yunwu', '--operation', preflight.payload.operation, '--prompt-file', promptPath, '--model', 'gpt-image-2-c', '--size', preflight.payload.size, '--asset-id', `canvas-${id}`, '--dry-run', '--receipt', receiptPath];
+      for (const referenceFile of referenceFiles) args.push('--reference-image', referenceFile);
+      const result = await run(pythonPath, args, env);
+      if (result.code !== 0) throw executionExitFailure(result.code);
+      return preflight;
+    } catch (error) {
+      if (error?.code?.startsWith('YUNWU_')) throw error;
+      throw executionFailure(error);
+    } finally {
+      await cleanup([promptPath, receiptPath]);
+    }
+  }
+
   async function submit(task, referenceFiles = []) {
-    const preflight = dryRun(task, referenceFiles);
+    const preflight = await dryRun(task, referenceFiles);
     const id = crypto.randomUUID();
     await fsp.mkdir(tempRoot, {recursive:true});
     const promptPath = path.join(tempRoot, `${id}.prompt.txt`);
@@ -68,16 +104,14 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
       const args = [scriptPath, '--channel', 'yunwu', '--operation', preflight.payload.operation, '--prompt-file', promptPath, '--model', 'gpt-image-2-c', '--size', preflight.payload.size, '--asset-id', `canvas-${id}`, '--submit', '--output', outputPath, '--receipt', receiptPath];
       for (const referenceFile of referenceFiles) args.push('--reference-image', referenceFile);
       result = await run(pythonPath, args, env);
-    } catch {
+    } catch (error) {
       await cleanup([promptPath, outputPath, receiptPath]);
-      throw adapterError('YUNWU_NETWORK_UNCERTAIN', '云雾请求状态待确认');
+      throw executionFailure(error);
     }
     await fsp.rm(promptPath, {force:true});
     if (result.code === 0) return {taskId:`local-${id}`, payload:{outputPath, receiptPath}};
     await cleanup([outputPath, receiptPath]);
-    if (result.code === 2) throw adapterError('YUNWU_AGENT_VAULT_NOT_CONFIGURED', '云雾受保护代理会话尚未配置', 503);
-    if (result.code === 5) throw adapterError('YUNWU_NETWORK_UNCERTAIN', '云雾请求状态待确认');
-    throw adapterError('YUNWU_SUBMISSION_REJECTED', '云雾图像请求未通过');
+    throw executionExitFailure(result.code);
   }
 
   async function query(taskId, payload) {
