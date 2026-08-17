@@ -1,1 +1,1 @@
-import{l as a}from"./proxy-B50diLEI-r4.js?v=20260818-studio-cache-chain-r6";const e=[["path",{d:"M20 5v14l-12 -7l12 -7",key:"svg-0"}],["path",{d:"M4 5l0 14",key:"svg-1"}]],t=a("outline","player-skip-back","PlayerSkipBack",e);export{t as I};
+import{l as a}from"./proxy-B50diLEI-r4.js?v=20260818-studio-cache-chain-r7";const e=[["path",{d:"M20 5v14l-12 -7l12 -7",key:"svg-0"}],["path",{d:"M4 5l0 14",key:"svg-1"}]],t=a("outline","player-skip-back","PlayerSkipBack",e);export{t as I};
