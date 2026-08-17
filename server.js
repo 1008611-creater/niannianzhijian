@@ -63,6 +63,7 @@ const canvasMcgroxCompilerModule = require('./bridge/niannian_canvas_mcgrox_comp
 const canvasS1Chain = require('./bridge/niannian_canvas_s1_chain');
 const canvasImage2Node = require('./bridge/niannian_canvas_image2_node');
 const canvasH3Node = require('./bridge/niannian_canvas_h3_node');
+const canvasStoryboardGroups = require('./bridge/niannian_canvas_storyboard_groups');
 const nomiSkillChain = require('./bridge/niannian_nomi_skill_chain');
 const nomiRunningHubH3 = require('./bridge/niannian_nomi_runninghub_h3');
 const h3MediaValidation = require('./bridge/niannian_h3_media_validation');
@@ -6953,6 +6954,8 @@ function normalizeCanvasDocument(value, project) {
         taskId:canvasText(sourceData.taskId, 160) || null,
         assetIds,
         inputAssetIds,
+        firstFrameAssetId:canvasText(sourceData.firstFrameAssetId, 120) || null,
+        storyboardGroupId:canvasText(sourceData.storyboardGroupId || node.groupId, 120) || null,
         status,
         title:canvasText(sourceData.title || type, 120) || type,
         prompt:canvasText(sourceData.prompt, 4000),
@@ -7487,7 +7490,7 @@ async function handleCanvasImage2NodeApi(request, response, pathname, user) {
       if (request.headers['if-match'] !== canvasEtag(currentRevision)) throw Object.assign(new Error('画布已在其他页面更新，请先重新载入。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:412});
       const currentDocument = normalizeCanvasDocument(current?.document, project);
       const prior = currentDocument.nodes.find(node => node.id === canvasImage2Node.IMAGE2_NODE_ID) || null;
-      const node = canvasImage2Node.createImage2Node({projectId, referenceAssetIds, existingNode:{...prior, data:{...(prior?.data || {}), prompt:body.prompt, imageChannel:body.imageChannel, resolution:body.resolution, aspectRatio:body.aspectRatio, outputSize:body.outputSize}}});
+      const node = canvasImage2Node.createImage2Node({projectId, referenceAssetIds, existingNode:{...prior, data:{...(prior?.data || {}), prompt:body.prompt, imageChannel:body.imageChannel, resolution:body.resolution, aspectRatio:body.aspectRatio, outputSize:body.outputSize, storyboardGroupId:body.storyboardGroupId || prior?.data?.storyboardGroupId || null}}});
       const document = normalizeCanvasDocument({...currentDocument, nodes:[...currentDocument.nodes.filter(item => item.id !== node.id), node]}, project);
       const revision = currentRevision + 1;
       const record = {schemaVersion:'niannian.canvas-document.v1',projectId:project.id,projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
@@ -7527,7 +7530,8 @@ async function handleCanvasH3NodeApi(request, response, pathname, user) {
       if (request.headers['if-match'] !== canvasEtag(currentRevision)) throw Object.assign(new Error('画布已在其他页面更新，请先重新载入。'), {code:'CANVAS_REVISION_CONFLICT',httpStatus:412});
       const currentDocument = normalizeCanvasDocument(current?.document, project);
       const prior = currentDocument.nodes.find(node => node.id === canvasH3Node.H3_NODE_ID) || null;
-      const node = canvasH3Node.createH3Node({projectId, referenceAssetIds, existingNode:{...prior, data:{...(prior?.data || {}), prompt:body.prompt, aspectRatio:body.aspectRatio, durationSeconds:body.durationSeconds}}});
+      const defaults = canvasStoryboardGroups.resolveProjectGenerationDefaults(project);
+      const node = canvasH3Node.createH3Node({projectId, referenceAssetIds, existingNode:{...prior, data:{...(prior?.data || {}), prompt:body.prompt, aspectRatio:defaults.aspectRatio, durationSeconds:defaults.durationSeconds, storyboardGroupId:body.storyboardGroupId || prior?.data?.storyboardGroupId || null}}});
       const document = normalizeCanvasDocument({...currentDocument,nodes:[...currentDocument.nodes.filter(item => item.id !== node.id),node]}, project);
       const revision = currentRevision + 1;
       const record = {schemaVersion:'niannian.canvas-document.v1',projectId:project.id,projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
@@ -8076,6 +8080,48 @@ async function generationNodeForProject(project, projectKind, nodeId) {
   return (await generationNodeContextForProject(project, projectKind, nodeId))?.node || null;
 }
 
+function canvasAssetIdsFromNode(node) {
+  const meta = node?.meta && typeof node.meta === 'object' && !Array.isArray(node.meta) ? node.meta : {};
+  const data = node?.data && typeof node.data === 'object' && !Array.isArray(node.data) ? node.data : {};
+  const values = [
+    ...(Array.isArray(data.assetIds) ? data.assetIds : []),
+    ...(Array.isArray(data.inputAssetIds) ? data.inputAssetIds : []),
+    ...(Array.isArray(meta.assetIds) ? meta.assetIds : []),
+    ...(Array.isArray(meta.inputAssetIds) ? meta.inputAssetIds : []),
+    data.firstFrameAssetId,
+    meta.firstFrameAssetId,
+    data.canvasAssetId,
+    meta.canvasAssetId,
+    node?.result?.assetId,
+    node?.result?.assetRefId
+  ];
+  return [...new Set(values.map(value => canvasText(value, 120)).filter(value => /^CAS-[a-f0-9]{24}$/.test(value)))].slice(0, 24);
+}
+
+async function canvasGenerationInputAssetIds({project, projectKind, nodeId, node, body}) {
+  if (Object.prototype.hasOwnProperty.call(body, 'inputAssetIds')) {
+    return [...new Set((Array.isArray(body.inputAssetIds) ? body.inputAssetIds : [])
+      .map(value => canvasText(value, 120)).filter(Boolean))].slice(0, 24);
+  }
+  const collected = new Set(canvasAssetIdsFromNode(node));
+  const documents = await readCanvasDocuments();
+  const record = nomiRecordForProject(documents[nomiDocumentKey(projectKind, project.id)], project, projectKind);
+  const canvas = record?.document?.generationCanvas;
+  if (!canvas || !Array.isArray(canvas.nodes) || !Array.isArray(canvas.edges)) return [...collected];
+  const targetIds = new Set([canvasText(nodeId, 160)]);
+  if (node?.skillKey || node?.data?.skillKey) targetIds.add(nomiSkillChain.projectedId(node));
+  if (node?.meta?.sourceNodeId) targetIds.add(canvasText(node.meta.sourceNodeId, 160));
+  const nodeById = new Map(canvas.nodes.map(item => [canvasText(item?.id, 160), item]));
+  for (const edge of canvas.edges) {
+    const target = canvasText(edge?.target, 160);
+    const mode = canvasText(edge?.mode, 40);
+    if (!targetIds.has(target) || !['first_frame','reference','character_ref','style_ref','composition_ref'].includes(mode)) continue;
+    const source = nodeById.get(canvasText(edge?.source, 160));
+    for (const assetId of canvasAssetIdsFromNode(source)) collected.add(assetId);
+  }
+  return [...collected].slice(0, 24);
+}
+
 function canvasGenerationSubmitEnabled(jobOrNodeType) {
   const nodeType = typeof jobOrNodeType === 'string' ? jobOrNodeType : jobOrNodeType?.nodeType;
   if (nodeType === 'video') {
@@ -8225,11 +8271,15 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       if (!['image','video'].includes(nodeType)) return json(response, 422, {code:'CANVAS_NODE_NOT_GENERATABLE',error:'该节点不能创建生成任务'});
       const compiledPrompt = generationContext?.document ? canvasSkillNodes.resolveCompiledPrompt(generationContext.document, nodeId) : null;
       const requestedModel = canvasText(body.model || node.data?.model || node.data?.modelKey || node.model, 80);
+      const requestedVideoChannel = nodeType === 'video' ? canvasVideoChannels.resolveVideoChannel(requestedModel || 'h3') : null;
+      const h3Defaults = requestedVideoChannel?.id === 'h3'
+        ? canvasStoryboardGroups.resolveProjectGenerationDefaults(owned.project)
+        : null;
       if (nodeType === 'video' && requestedModel && !canvasVideoChannels.resolveVideoChannel(requestedModel)) return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'模型与当前节点类型不匹配'});
       if (nodeType === 'image' && requestedModel && !canvasImage2Channels.resolveImage2Channel(requestedModel)) {
         return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'请选择已接入的 Image2 作图渠道'});
       }
-      const inputAssetIds = [...new Set((Array.isArray(body.inputAssetIds) ? body.inputAssetIds : (node.data?.assetIds || [])).map(value => canvasText(value, 120)).filter(Boolean))].slice(0, 24);
+      const inputAssetIds = await canvasGenerationInputAssetIds({project:owned.project, projectKind:owned.projectKind, nodeId, node, body});
       for (const assetId of inputAssetIds) {
         // Historical canvas documents may contain pre-CAS asset references. Keep those readable;
         // every new project asset created by this API uses CAS IDs and is ownership-checked.
@@ -8253,7 +8303,9 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         outputSize:nodeType === 'image'
           ? canvasText(body.outputSize || body.imageSize || node.data?.outputSize || node.data?.imageSize || '', 32) || null
           : null,
-        aspectRatio:nodeType === 'image' && ['yunwu-gpt-image-2-c','yunwu-gpt-image-2-c-edit'].includes(requestedModel)
+        aspectRatio:h3Defaults
+          ? h3Defaults.aspectRatio
+          : (nodeType === 'image' && ['yunwu-gpt-image-2-c','yunwu-gpt-image-2-c-edit'].includes(requestedModel)
           ? (requestedModel === 'yunwu-gpt-image-2-c-edit' ? '16:9' : '9:16')
           : canvasText(
             body.aspectRatio
@@ -8261,8 +8313,10 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
                 ? (node.data?.aspectRatio && node.data.aspectRatio !== '1:1' ? node.data.aspectRatio : '9:16')
                 : node.data?.aspectRatio || '1:1'),
             16
-          ),
-        durationSeconds:body.durationSeconds || body.duration_seconds || node.data?.durationSeconds || node.data?.duration_seconds || (requestedModel === 'dola-seedance-2-5' ? 30 : (nodeType === 'video' ? 5 : 0)),
+          )),
+        durationSeconds:h3Defaults
+          ? h3Defaults.durationSeconds
+          : (body.durationSeconds || body.duration_seconds || node.data?.durationSeconds || node.data?.duration_seconds || (requestedModel === 'dola-seedance-2-5' ? 30 : (nodeType === 'video' ? 5 : 0))),
         accountSlot:body.accountSlot || body.account_slot || node.data?.accountSlot || node.data?.account_slot || 1,
         idempotencyKey:request.headers['idempotency-key']
       });
@@ -8564,7 +8618,7 @@ async function handleWorkbenchCanvasProjectApi(request, response, pathname, user
         const documents = await readCanvasDocuments();
         const current = nomiRecordForProject(documents[key], project, 'redraw');
         if (current) return current;
-        const created = {schemaVersion:'niannian.nomi-project-document.v1',projectId:project.id,projectKind:'redraw',ownerId:user.id,revision:0,document:{generationCanvas:{nodes:[],edges:[]}},updatedAt:new Date().toISOString()};
+        const created = {schemaVersion:'niannian.nomi-project-document.v1',projectId:project.id,projectKind:'redraw',ownerId:user.id,revision:0,document:normalizeNomiProjectDocument({generationCanvas:{nodes:[],edges:[]}}),updatedAt:new Date().toISOString()};
         documents[key] = created;
         await writeCanvasDocuments(documents);
         return created;
@@ -8636,6 +8690,7 @@ function normalizeNomiProjectDocument(value) {
   // schema requires an array; repairing it here keeps legacy nodes readable.
   if (!Array.isArray(canvas.groups)) canvas.groups = [];
   if (canvas.selectedNodeIds !== undefined && !Array.isArray(canvas.selectedNodeIds)) canvas.selectedNodeIds = [];
+  document.generationCanvas = canvasStoryboardGroups.normalizeGenerationCanvas(canvas);
   return document;
 }
 
@@ -9375,10 +9430,11 @@ async function handleStudioTaskApi(request, response, pathname, user) {
       const images = await resolveStudioProjectAssets(user, owned, input.reference_image_asset_ids || input.reference_image_urls || [], 'reference_image');
       const audio = await resolveStudioProjectAssets(user, owned, input.reference_audio_asset_ids || input.reference_audio_urls || [], 'reference_audio');
       const videos = await resolveStudioProjectAssets(user, owned, input.reference_video_asset_ids || input.reference_video_urls || [], 'reference_video');
+      const projectDefaults = canvasStoryboardGroups.resolveProjectGenerationDefaults(owned.project);
       const h3Input = {
         prompt:canvasText(body.request?.prompt, 4000),
-        aspectRatio:canvasText(input.aspect_ratio || body.request?.extras?.aspectRatio || '16:9', 16),
-        durationSeconds:Number(input.duration_seconds || body.request?.extras?.durationSeconds || 5),
+        aspectRatio:canvasText(input.aspect_ratio || body.request?.extras?.aspectRatio || projectDefaults.aspectRatio, 16),
+        durationSeconds:Number(input.duration_seconds || body.request?.extras?.durationSeconds || projectDefaults.durationSeconds),
         width:Number(input.width || body.request?.width) || undefined,
         height:Number(input.height || body.request?.height) || undefined,
         images, audio, videos

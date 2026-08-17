@@ -6,7 +6,7 @@ const H3_NODE_ID = 's3-h3-video';
 const PORTS = Object.freeze({
   inputPorts: Object.freeze([
     {id:'prompt', type:'prompt', required:true},
-    {id:'image_asset', type:'image_asset', required:false, multiple:true}
+    {id:'image_asset', type:'image_asset', required:true, multiple:true}
   ]),
   outputPorts: Object.freeze([{id:'video_asset', type:'video_asset', required:false}])
 });
@@ -28,9 +28,10 @@ function createH3Node({projectId, referenceAssetIds = [], existingNode = null} =
   const prompt = clean(priorData.prompt || prior.prompt, 4000);
   const aspectRatio = clean(priorData.aspectRatio || prior.aspectRatio || '9:16', 16);
   const durationSeconds = Math.max(4, Math.min(15, Number(priorData.durationSeconds || prior.durationSeconds || 5)));
-  const parameters = {model:'h3', aspectRatio, durationSeconds, providerSubmitRequested:false, gateState:'awaiting_user_authorization'};
-  const assetRefs = assetIds.map(assetId => ({assetId, projectId, role:'reference_asset'}));
-  const status = prompt ? 'ready' : 'draft';
+  const firstFrameAssetId = assetIds[0] || null;
+  const parameters = {model:'h3', aspectRatio, durationSeconds, firstFrameAssetId, providerSubmitRequested:false, gateState:'awaiting_user_authorization'};
+  const assetRefs = assetIds.map((assetId, index) => ({assetId, projectId, role:index === 0 ? 'first_frame' : 'reference_asset'}));
+  const status = prompt && firstFrameAssetId ? 'ready' : 'blocked';
   const description = '使用已编译的视频提示词和项目内关键帧生成视频；保存、任务、授权、轮询和资产回库均通过念念服务端。';
   return {
     id:H3_NODE_ID,
@@ -53,6 +54,7 @@ function createH3Node({projectId, referenceAssetIds = [], existingNode = null} =
       prompt,
       assetIds,
       inputAssetIds:assetIds,
+      firstFrameAssetId,
       model:'h3',
       aspectRatio,
       durationSeconds,

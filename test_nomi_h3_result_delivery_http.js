@@ -48,7 +48,13 @@ async function seed() {
       id:'NN-H3-DELIVERY-A',ownerId:userA.id,name:'H3 项目',redrawProjectIds:['NN-H3-DELIVERY-A'],redrawProjectId:'NN-H3-DELIVERY-A',scriptProjectIds:[],scriptProjectId:null,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()
     }])),
     fsp.writeFile(path.join(dataRoot, 'website-idempotency.json'), '[]'),
-    fsp.writeFile(path.join(dataRoot, 'canvas-generation-jobs.json'), '[]')
+    fsp.writeFile(path.join(dataRoot, 'canvas-generation-jobs.json'), '[]'),
+    fsp.writeFile(path.join(dataRoot, 'model-control-config.json'), JSON.stringify({
+      schemaVersion:'niannian.model_control_config.v2',
+      providers:[{id:'runninghub-consumer',label:'RunningHub',kind:'video',enabled:true,baseUrl:'https://test.invalid'}],
+      models:[{id:'minimax-h3',label:'H3 生视频',kind:'video',providerId:'runninghub-consumer',providerLabel:'RunningHub',priceCredits:20,resolutions:['2k'],aspectRatios:['9:16','16:9'],outputSizes:{},tenantId:'default',enabled:true}],
+      plans:[],tenantPlans:[]
+    }))
   ]);
 }
 
@@ -82,7 +88,7 @@ async function run() {
     response.writeHead(404); response.end();
   });
   await listen(provider, providerPort);
-  app = spawn(process.execPath, ['server.js'], {cwd:root,env:{...process.env,PORT:String(appPort),DATA_DIR:dataRoot,NIANNIAN_LOCAL_PREVIEW_INSECURE_SESSION:'on',NODE_ENV:'test',NOMI_RUNNINGHUB_H3_BASE_URL:providerUrl,NOMI_RUNNINGHUB_H3_API_KEY:'test-only-key',RUNNINGHUB_API_KEY:'enterprise-key-must-not-be-used'},stdio:['ignore','pipe','pipe']});
+  app = spawn(process.execPath, ['server.js'], {cwd:root,env:{...process.env,PORT:String(appPort),DATA_DIR:dataRoot,NIANNIAN_LOCAL_PREVIEW_INSECURE_SESSION:'on',NODE_ENV:'test',NIANNIAN_CANVAS_WELCOME_CREDITS:'100',NOMI_RUNNINGHUB_H3_BASE_URL:providerUrl,NOMI_RUNNINGHUB_H3_API_KEY:'test-only-key',RUNNINGHUB_API_KEY:'enterprise-key-must-not-be-used'},stdio:['ignore','pipe','pipe']});
   app.stdout.on('data', chunk => { output += chunk.toString('utf8'); });
   app.stderr.on('data', chunk => { output += chunk.toString('utf8'); });
   await waitForApp();

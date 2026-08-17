@@ -81,7 +81,7 @@ function publicJob(job, options = {}) {
     videoChannel: videoChannel?.id || null,
     videoChannelLabel: videoChannel?.label || null,
     resolution: job.resolution || '2k',
-    aspectRatio: job.aspectRatio || '1:1',
+    aspectRatio: job.aspectRatio || (job.nodeType === 'video' ? '9:16' : '1:1'),
     outputSize: job.nodeType === 'image' ? (job.outputSize || null) : null,
     durationSeconds: job.durationSeconds || null,
     accountSlot: videoChannel?.id === 'dola-seedance-2-5' ? (job.accountSlot || 1) : null,
@@ -121,7 +121,7 @@ function dryRunContract(job, options = {}) {
     videoChannel: videoChannel?.id || null,
     videoChannelLabel: videoChannel?.label || null,
     resolution: job.resolution || '2k',
-    aspectRatio: job.aspectRatio || '1:1',
+    aspectRatio: job.aspectRatio || (job.nodeType === 'video' ? '9:16' : '1:1'),
     outputSize: job.nodeType === 'image' ? (job.outputSize || null) : null,
     durationSeconds: job.durationSeconds || null,
     accountSlot: videoChannel?.id === 'dola-seedance-2-5' ? (job.accountSlot || 1) : null,
@@ -172,7 +172,7 @@ function createCanvasGenerationJobService(options = {}) {
     const prompt = clean(input.prompt, 4000);
     const inputAssetIds = [...new Set((Array.isArray(input.inputAssetIds) ? input.inputAssetIds : []).map(item => clean(item, 120)).filter(Boolean))].slice(0, 24);
     const resolution = clean(input.resolution || (nodeType === 'image' ? '4k' : '2k'), 8).toLowerCase();
-    const aspectRatio = clean(input.aspectRatio || input.aspect_ratio || (nodeType === 'image' ? '9:16' : '1:1'), 16);
+    const aspectRatio = clean(input.aspectRatio || input.aspect_ratio || '9:16', 16);
     const durationSeconds = Number(input.durationSeconds || input.duration_seconds || (nodeType === 'video' ? 5 : 0));
     const videoSpec = nodeType === 'video' ? resolveVideoChannel(input.videoChannel || input.model || 'h3') : null;
     const accountSlot = Number(input.accountSlot || input.account_slot || 1);
@@ -185,6 +185,7 @@ function createCanvasGenerationJobService(options = {}) {
     if (nodeType === 'video' && !videoSpec) throw jobError('CANVAS_JOB_MODEL_INVALID', '视频模型尚未接入', 422);
     if (nodeType === 'video' && videoSpec?.id === 'dola-seedance-2-5' && (!Number.isInteger(accountSlot) || accountSlot < 1 || accountSlot > 99)) throw jobError('CANVAS_DOLA_ACCOUNT_SLOT_INVALID', 'Dola 账号槽位无效', 422);
     if (!prompt && nodeType === 'video' && ['h3','dola-seedance-2-5'].includes(videoSpec?.id)) throw jobError('CANVAS_JOB_PROMPT_REQUIRED', '视频节点需要填写提示词', 422);
+    if (nodeType === 'video' && videoSpec?.id === 'h3' && inputAssetIds.length < 1) throw jobError('CANVAS_H3_FIRST_FRAME_REQUIRED', 'H3 视频节点需要先绑定一张项目内图片作为首帧', 422);
     const imageSpec = nodeType === 'image'
       ? normalizeImage2Spec({model: input.imageChannel || input.model, resolution, aspectRatio, outputSize: input.outputSize || input.imageSize})
       : null;
