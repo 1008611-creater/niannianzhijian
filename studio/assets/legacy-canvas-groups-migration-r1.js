@@ -43,7 +43,7 @@
       const localKey = projectPrefix + projectId;
       const saved = JSON.parse(window.localStorage.getItem(localKey) || 'null');
       const localCanvas = saved?.payload?.generationCanvas || saved?.generationCanvas;
-      if (!projectId || !localCanvas || !Array.isArray(localCanvas.nodes) || localCanvas.nodes.length > 0) return;
+      if (!projectId || !localCanvas || !Array.isArray(localCanvas.nodes)) return;
 
       const response = await fetch('/api/studio/projects/' + encodeURIComponent(projectId), {credentials:'same-origin', cache:'no-store'});
       if (!response.ok) return;
@@ -51,11 +51,25 @@
       const remoteCanvas = remote?.document?.generationCanvas;
       if (!remoteCanvas || !Array.isArray(remoteCanvas.nodes) || remoteCanvas.nodes.length === 0) return;
 
-      localCanvas.nodes = remoteCanvas.nodes;
-      localCanvas.edges = Array.isArray(remoteCanvas.edges) ? remoteCanvas.edges : [];
-      localCanvas.groups = normalizedGroups(remoteCanvas.groups);
-      localCanvas.selectedNodeIds = Array.isArray(remoteCanvas.selectedNodeIds) ? remoteCanvas.selectedNodeIds : [];
-      window.localStorage.setItem(localKey, JSON.stringify(saved));
+      let changed = false;
+      if (localCanvas.nodes.length === 0) {
+        localCanvas.nodes = remoteCanvas.nodes;
+        localCanvas.edges = Array.isArray(remoteCanvas.edges) ? remoteCanvas.edges : [];
+        localCanvas.groups = normalizedGroups(remoteCanvas.groups);
+        localCanvas.selectedNodeIds = Array.isArray(remoteCanvas.selectedNodeIds) ? remoteCanvas.selectedNodeIds : [];
+        changed = true;
+      } else {
+        const localById = new Map(localCanvas.nodes.map((node) => [node?.id, node]));
+        for (const remoteNode of remoteCanvas.nodes) {
+          const localNode = localById.get(remoteNode?.id);
+          if (!localNode || remoteNode?.status !== 'success' || !remoteNode.result || localNode.status === 'success') continue;
+          localNode.result = remoteNode.result;
+          localNode.status = 'success';
+          delete localNode.error;
+          changed = true;
+        }
+      }
+      if (changed) window.localStorage.setItem(localKey, JSON.stringify(saved));
     } catch (_) {
       // Loading the canvas must remain available when browser storage or recovery is unavailable.
     }
