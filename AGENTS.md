@@ -35,6 +35,11 @@
 - Image2 任务必须校验 `outputSize` 与模型分辨率的实际映射；H3 任务必须校验比例和分辨率。缺少规格、规格不一致或服务端拒绝时，质量门不得通过。
 - 每次涉及模型目录、生成节点、网页运行时适配器或任务参数的发布，除 `test_model_catalog_web_fallback_browser.js` 外，还必须通过 Image2/H3 任务合同测试，并检查版本化静态入口；未完成这些检查不得合并或部署。
 
+### S-012 项目路由遮罩契约
+
+- 含 `projectId` 的 Studio 路由可以在加载期间使用遮罩，但 `.nomi-studio-app` 或 `.nomi-library-page` 任一真实页面挂载后必须立即移除 `nomi-project-route-pending`；不得用固定超时把移动端留在空白页。
+- 每次涉及 Studio 路由入口、项目恢复或页面加载遮罩的发布，必须通过 `test_project_library_management_contract.js`，并在真实浏览器以 390px 视口验证：页面可见、遮罩已移除、无横向溢出；项目无法恢复时应显示项目库或可恢复错误，不能显示空白。
+
 ## GitHub 协作与可见交付
 
 - 需要进入共享源码的改动使用短期分支和 GitHub Pull Request，不直接推送或强制推送 `main`。每项改动保持边界明确，不混入无关修复。
