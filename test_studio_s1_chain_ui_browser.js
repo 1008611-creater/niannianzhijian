@@ -21,9 +21,10 @@ async function waitForHealth(baseUrl) {
 
 async function openGenerationCanvas(page) {
   const canvas = page.getByRole('region', {name:'AI 影像创作画布'});
-  if (await canvas.count() === 0) {
-    await page.getByRole('button', {name:'生成', exact:true}).click({force:true});
-  }
+  try { await canvas.waitFor({state:'visible',timeout:5000}); return; } catch {}
+  const generationButton = page.locator('[data-step="generate"],button').filter({hasText:'生成'}).first();
+  await generationButton.waitFor({state:'visible'});
+  await generationButton.click({force:true});
   await canvas.waitFor({state:'visible'});
 }
 
@@ -35,12 +36,16 @@ async function main() {
   const user = {id:'USR-S1-UI',email:'s1-ui@example.test',status:'active'};
   const project = {id:'NN-S1-UI',ownerId:user.id,name:'S1 UI',projectKind:'redraw',canvasOnly:true,status:'ready',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),runtime:{}};
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const retiredChampion = {id:'retired-screenwriter',type:'text',kind:'text',status:'draft',skillKey:'screenwriter',skillVersion:'1.0.0',position:{x:120,y:120},data:{title:'剧本编排',skillKey:'screenwriter',status:'draft'}};
+  const canvasDocuments = {
+    ['redraw:' + project.id]: {projectId:project.id,projectKind:'redraw',ownerId:user.id,revision:1,updatedAt:new Date().toISOString(),document:{nodes:[retiredChampion],edges:[],viewport:{x:0,y:0,zoom:1}}}
+  };
   await Promise.all([
     fs.writeFile(path.join(dataRoot, 'users.json'), JSON.stringify([user])),
     fs.writeFile(path.join(dataRoot, 'sessions.json'), JSON.stringify([{tokenHash,userId:user.id,expiresAt:new Date(Date.now() + 3600000).toISOString()}])),
     fs.writeFile(path.join(dataRoot, 'projects.json'), JSON.stringify([project])),
     fs.writeFile(path.join(dataRoot, 'canvas-projects.json'), JSON.stringify([project])),
-    fs.writeFile(path.join(dataRoot, 'canvas-documents.json'), '{}'),
+    fs.writeFile(path.join(dataRoot, 'canvas-documents.json'), JSON.stringify(canvasDocuments)),
     fs.writeFile(path.join(dataRoot, 'canvas-assets.json'), '[]'),
     fs.writeFile(path.join(dataRoot, 'canvas-generation-jobs.json'), '[]'),
     fs.writeFile(path.join(dataRoot, 'script-projects.json'), '[]'),
@@ -57,120 +62,36 @@ async function main() {
     const consoleErrors = [];
     page.on('pageerror', error => consoleErrors.push(error.message));
     await page.goto(baseUrl + '/studio/?projectId=' + project.id + '&projectKind=redraw&step=generate#/studio', {waitUntil:'networkidle'});
-    await page.locator('#s1-chain-back').waitFor({state:'visible'});
-    assert.equal(await page.locator('#s1-library-workbench-back').count(), 0, 'project detail must not retain the project-library workbench control');
     await openGenerationCanvas(page);
     const canvas = page.getByRole('region', {name:'AI 影像创作画布'});
     const panel = page.locator('#s1-chain-canvas');
     await panel.waitFor({state:'visible'});
-    assert.equal(await panel.evaluate(node => node.parentElement && node.parentElement.getAttribute('aria-label')), 'AI 影像创作画布', 'the S1 chain must mount inside the generation canvas');
-    assert.equal(await panel.getByRole('heading', {name:'原片到关键帧'}).isVisible(), false, 'new projects must not show default S1 cards');
+    assert.equal(await panel.evaluate(node => node.parentElement && node.parentElement.getAttribute('aria-label')), 'AI 影像创作画布');
+    assert.equal(await panel.getByRole('heading', {name:'原片到关键帧'}).isVisible(), false, 'new projects must not show retired source-chain cards');
+    assert.equal(await panel.locator('[data-node]:not([hidden])').count(), 0, 'retired source-chain cards must stay hidden');
+    assert.equal(await panel.locator('[data-champion-node]').count(), 0, 'retired champion cards must never render');
+    const persistedDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
+    assert.equal(persistedDocument.document.nodes.some(node => node.id === 'retired-screenwriter'), true, 'retired records must remain recoverable even though their UI is removed');
+    assert.equal(await page.locator('[aria-label="转绘 Skill 节点"]').count(), 0, 'the retired Skill toolbar must not be injected');
     assert.ok(await page.getByRole('button', {name:'添加文本节点'}).count() >= 1, 'original text node control must remain');
     assert.ok(await page.getByRole('button', {name:'添加图片节点'}).count() >= 1, 'original image node control must remain');
-    assert.equal(await page.getByRole('button', {name:'打开原片转绘链'}).count(), 0, 'retired source-chain prototype must not have an entry point');
-    assert.equal(await panel.locator('[data-node]:not([hidden])').count(), 0, 'retired source-chain cards must not be shown for a new canvas');
-    const flow = panel.locator('.s1-chain-flow');
-    await canvas.click({button:'right', position:{x:1080, y:180}});
-    await panel.getByRole('button', {name:'编剧 · Screenwriter'}).waitFor();
-    await page.mouse.click(1120, 220);
-    assert.equal(await panel.getByRole('button', {name:'编剧 · Screenwriter'}).isVisible(), false, 'left click on the canvas must dismiss the context menu');
-    for (const [index, label] of ['编剧 · Screenwriter', '资产方案 · Chaoge', '分镜 · Shotlist Builder', '镜头提示 · Hell Grind'].entries()) {
-      await flow.click({button:'right', position:{x:260, y:370}});
-      await panel.getByRole('button', {name:label}).click();
-      await page.waitForTimeout(80);
-      assert.equal(await panel.locator('[data-champion-node]').count(), index + 1, 'right-click menu must persist ' + label);
-    }
-    assert.equal(await panel.locator('[data-champion-node]').count(), 4, 'right click must create all four persisted orchestration Skill nodes');
-    const screenwriterCard = panel.locator('[data-champion-node]').filter({hasText:'剧本编排'});
-    assert.deepEqual(
-      (await panel.locator('[data-champion-node]').evaluateAll(cards => cards.map(card => card.dataset.championKind).sort())),
-      ['assets', 'delivery', 'shotlist', 'story'],
-      'each champion must keep a distinct production role presentation'
-    );
-    assert.equal(await screenwriterCard.getByText('故事事实', {exact:true}).count(), 1, 'the screenwriter node must expose its responsibility');
-    assert.equal(await screenwriterCard.getByText('待配置', {exact:true}).count(), 1, 'the screenwriter node must translate its raw status for users');
-    assert.equal(await screenwriterCard.locator('.s1-champion-io .s1-port-group').count(), 2, 'champion node ports must be divided into input and delivery regions');
-    assert.deepEqual(
-      await screenwriterCard.locator('.s1-champion-actions').evaluate(node => {
-        const run = node.querySelector('[data-champion-run]');
-        const style = getComputedStyle(node);
-        const runStyle = getComputedStyle(run);
-        return {display:style.display, runColumn:runStyle.gridColumn};
-      }),
-      {display:'grid', runColumn:'1 / -1'},
-      'champion node must reserve a single full-width primary action below supporting actions'
-    );
-    assert.deepEqual(
-      await screenwriterCard.evaluate(node => {
-        const style = getComputedStyle(node);
-        return {width:style.width, borderRadius:style.borderRadius};
-      }),
-      {width:'322px', borderRadius:'8px'},
-      'champion node presentation must stay within the compact canvas card system'
-    );
-    await screenwriterCard.locator('[data-champion-input]').fill('一段发生在雨夜街头的短剧故事。');
-    await screenwriterCard.getByRole('button', {name:'保存参数'}).click();
-    await page.getByText('已保存「剧本编排」的核心输入。').waitFor();
-    await screenwriterCard.getByRole('button', {name:'检查输入'}).click();
-    await screenwriterCard.getByText('核心输入已齐全，可在文本模型配置完成后请求编排。').waitFor();
-    await screenwriterCard.getByRole('button', {name:'生成交付包'}).click();
-    await screenwriterCard.getByText('MCGrox 服务端执行器未就绪；节点输入已保留，可在服务恢复后重试。').waitFor();
-    await panel.getByRole('heading', {name:'剧本编排', exact:true}).waitFor();
-    await panel.getByRole('heading', {name:'镜头提示编译', exact:true}).waitFor();
-    const screenplayOutput = panel.locator('[data-champion-node]').filter({hasText:'剧本编排'}).locator('[data-s1-output-port="screenplay"]');
-    const screenplayInput = panel.locator('[data-champion-node]').filter({hasText:'超哥资产方案'}).locator('[data-s1-input-port="screenplay"]');
-    await screenplayOutput.scrollIntoViewIfNeeded();
-    const screenplayOutputBox = await screenplayOutput.boundingBox();
-    const screenplayInputBox = await screenplayInput.boundingBox();
-    assert.ok(screenplayOutputBox && screenplayInputBox, 'typed ports must be visible for a drag connection');
-    await page.mouse.move(screenplayOutputBox.x + screenplayOutputBox.width / 2, screenplayOutputBox.y + screenplayOutputBox.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(screenplayInputBox.x + screenplayInputBox.width / 2, screenplayInputBox.y + screenplayInputBox.height / 2, {steps:6});
-    await page.mouse.up();
-    await page.waitForTimeout(180);
-    const connectedDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
-    assert.ok(connectedDocument.document.edges.some(edge => edge.sourcePort === 'screenplay' && edge.targetPort === 'screenplay'), 'dragging compatible ports must persist a typed edge: ' + await panel.locator('[data-s1-status]').textContent());
-    assert.ok(await panel.locator('.s1-typed-edge').count() >= 1, 'the typed edge must render on the canvas');
-    const championCard = panel.locator('[data-champion-node]').filter({hasText:'剧本编排'});
-    const championTitle = championCard.locator('[data-s1-drag-handle]');
-    const beforeDrag = await championTitle.boundingBox();
-    assert.ok(beforeDrag, 'champion node header must be visible for dragging');
-    const championNodeId = await championCard.getAttribute('data-node-id');
-    const beforeDragDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
-    const beforeDragPosition = beforeDragDocument.document.nodes.find(node => node.id === championNodeId).position;
-    await page.mouse.move(beforeDrag.x + 20, beforeDrag.y + 10);
-    await page.mouse.down();
-    await page.mouse.move(beforeDrag.x + 150, beforeDrag.y + 80, {steps:4});
-    await page.mouse.up();
-    await page.waitForTimeout(250);
-    await page.reload({waitUntil:'networkidle'});
-    await openGenerationCanvas(page);
-    await page.locator('#s1-chain-canvas [data-champion-node]').first().waitFor({state:'visible'});
-    assert.equal(await page.locator('#s1-chain-canvas [data-champion-node]').count(), 4, 'champion nodes must survive a reload after dragging');
-    assert.equal(await page.locator('#s1-chain-canvas [data-node]:not([hidden])').count(), 0, 'retired prototype nodes must remain hidden after a reload');
-    const reloadedDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
-    const persistedChampion = reloadedDocument.document.nodes.find(node => node.id === championNodeId);
-    assert.ok(persistedChampion && persistedChampion.position.x >= beforeDragPosition.x + 100, 'champion node position must persist after a reload: ' + JSON.stringify(persistedChampion && persistedChampion.position));
-    const selectedChampion = panel.locator('[data-champion-node]').filter({hasText:'剧本编排'});
-    await selectedChampion.click({position:{x:30,y:30}});
-    assert.equal(await selectedChampion.getAttribute('aria-selected'), 'true', 'clicking a node must select it');
-    assert.match(await selectedChampion.getAttribute('class'), /s1-selected/, 'selected node must have visible selected styling');
-    await page.keyboard.press('Delete');
-    await page.waitForTimeout(180);
-    assert.equal(await panel.locator('[data-champion-node]').count(), 3, 'Delete must remove the selected node from the canvas');
-    const afterDeleteDocument = await page.evaluate(async () => (await fetch('/api/canvas/documents/redraw/NN-S1-UI')).json());
-    assert.equal(afterDeleteDocument.document.nodes.some(node => node.id === championNodeId), false, 'Delete must persist node removal');
-    assert.equal(afterDeleteDocument.document.edges.some(edge => edge.source === championNodeId || edge.target === championNodeId), false, 'Delete must remove incident edges');
+    await canvas.click({button:'right', position:{x:1080,y:400}, force:true});
+    await panel.getByRole('button', {name:'文本节点'}).waitFor({state:'visible'});
+    assert.equal(await panel.locator('[data-s1-add-skill]').count(), 0, 'right-click must not offer retired Skill nodes');
+    assert.equal(await panel.getByText('转绘 Skill 节点', {exact:true}).count(), 0, 'retired Skill grouping must not appear');
+    await page.mouse.click(1120,420);
+    assert.equal(await panel.getByRole('button', {name:'文本节点'}).isVisible(), false, 'left click on blank canvas must dismiss the native context menu');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'desktop must not overflow');
     await page.setViewportSize({width:390,height:844});
     await page.reload({waitUntil:'networkidle'});
     await openGenerationCanvas(page);
-    await page.locator('#s1-chain-canvas').waitFor({state:'visible'});
+    await panel.waitFor({state:'visible'});
+    assert.equal(await panel.locator('[data-champion-node]').count(), 0, 'mobile must not restore retired Skill cards');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'mobile must not overflow');
     assert.deepEqual(consoleErrors, []);
     await context.close();
     await browser.close(); browser = null;
-    console.log(JSON.stringify({ok:true,verified:['new canvases do not render the retired default source-chain prototype','the original node controls remain available','right click creates four persisted orchestration Skill nodes','each orchestration node saves a core input and receives a server readiness result','new nodes use the same draggable canvas card contract','compatible ports create persisted visual edges','selected Skill nodes persist deletion','desktop and mobile stay within their viewports','no provider task is sent']}));
+    console.log(JSON.stringify({ok:true,verified:['retired gold and champion Skill cards do not render','right-click preserves original node entries only','blank-canvas left click dismisses the menu','desktop and mobile stay within their viewports','no provider task is sent']}));
   } finally {
     if (browser) await browser.close();
     server.kill();

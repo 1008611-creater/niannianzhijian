@@ -216,12 +216,12 @@
     var canvasDocument = {nodes:[], edges:[], viewport:{x:0,y:0,zoom:1}};
     var step01PollTimer = null;
     var nodeIds = {source:'s1-source-input',step01:'s1-step01-analysis',step02:'s1-step02-timeline',image2:'s2-image2-keyframe',h3:'s3-h3-video'};
-    var championSpecs = {
-      'screenwriter': {type:'text', version:'1.0.0', title:'剧本编排', role:'故事事实', presentation:'story', note:'把故事或原始素材整理为剧本、梗概和设定集。', inputs:['story','source_material'], outputs:['screenplay','treatment','story_bible']},
-      'chaoge-assets-trial': {type:'character', version:'1.3.0', title:'超哥资产方案', role:'身份资产', presentation:'assets', note:'从剧本和资产需求整理角色、道具与资产清单。', inputs:['screenplay','asset_requirements'], outputs:['character_assets','prop_assets','asset_manifest']},
-      'shotlist-builder': {type:'shot', version:'1.0.0', title:'分镜规划', role:'空间调度', presentation:'shotlist', note:'把剧本、资产清单和风格参考编排为分镜与视频提示。', inputs:['screenplay','asset_manifest','style_reference'], outputs:['shotlist',{id:'video_prompt',type:'prompt'},'spatial_blocking']},
-      'hell-grind': {type:'shot', version:'1.0.0', title:'镜头提示编译', role:'连续性交付', presentation:'delivery', note:'把分镜、参考资产和连续性约束编译为图像/视频提示词。', inputs:['shotlist','reference_assets','continuity_state'], outputs:[{id:'image_prompt',type:'prompt'},{id:'video_prompt',type:'prompt'},'continuity_locks']}
-    };
+    // The first champion-Skill experiment was retired. Existing project records
+    // stay intact, but the canvas must never render or offer these unfinished cards.
+    panel.querySelectorAll('[data-s1-add-skill]').forEach(function (button) { button.remove(); });
+    Array.prototype.slice.call(panel.querySelectorAll('[data-s1-context] strong')).forEach(function (heading) {
+      if (heading.textContent.trim() === '转绘 Skill 节点') heading.remove();
+    });
 
     function clearNodeSelection() {
       selectedNodeId = null;
@@ -326,27 +326,8 @@
       nodeById = Object.fromEntries(nodes.map(function (node) { return [node.id,node]; }));
       applyNodePositions();
     }
-    function championSpecFor(node) { return championSpecs[node && node.skillKey] || championSpecs[node && node.data && node.data.skillKey] || null; }
-    function nodePortButtons(node, direction) {
-      var ports = node[direction + 'Ports'] || (node.data && node.data[direction + 'Ports']) || [];
-      return ports.map(function (port) { return '<button type="button" class="s1-port-handle s1-' + direction + '-port" data-s1-' + direction + '-node="' + escapeHtml(node.id) + '" data-s1-' + direction + '-port="' + escapeHtml(port.id) + '" title="' + (direction === 'output' ? '从此端口拖到兼容输入' : '接收兼容输出') + '">' + escapeHtml(port.id) + '</button>'; }).join('') || '<span>等待连接</span>';
-    }
-    function championPrimaryPort(spec) { var port = spec.inputs[0]; return typeof port === 'string' ? port : port.id; }
-    function championInputValue(node, portId) { return node && node.parameters && node.parameters.inputs && node.parameters.inputs[portId] || ''; }
-    function championStatusLabel(status) { return {draft:'待配置',ready:'可执行',blocked:'需补输入',completed:'已输出'}[status] || '待配置'; }
-    function championNodeMarkup(node, spec) {
-      var primaryPort = championPrimaryPort(spec);
-      var status = node.status || 'draft';
-      return '<article class="s1-node s1-skill-node" data-champion-node data-champion-kind="' + escapeHtml(spec.presentation || 'story') + '" data-node-id="' + escapeHtml(node.id) + '" data-status="' + escapeHtml(status) + '"><div class="s1-champion-topline" data-s1-drag-handle role="button" tabindex="0" aria-label="拖动 ' + escapeHtml(spec.title) + ' 节点"><span class="s1-champion-role">' + escapeHtml(spec.role || '冠军节点') + '</span><span class="s1-champion-skill">' + escapeHtml(node.skillKey) + '</span><small class="s1-champion-status" data-node-status>' + escapeHtml(championStatusLabel(status)) + '</small></div><h3>' + escapeHtml((node.data && node.data.title) || spec.title) + '</h3><p class="s1-champion-note">' + escapeHtml((node.data && node.data.note) || spec.note) + '</p><div class="s1-ports s1-champion-io"><div class="s1-port-group input"><small>接入</small>' + nodePortButtons(node, 'input') + '</div><div class="s1-port-group output"><small>交付</small>' + nodePortButtons(node, 'output') + '</div></div><label class="s1-champion-editor"><span>核心输入 · ' + escapeHtml(primaryPort) + '</span><textarea data-champion-input data-champion-port="' + escapeHtml(primaryPort) + '" placeholder="填写内容或从左侧端口连接上游输出">' + escapeHtml(championInputValue(node, primaryPort)) + '</textarea></label><div class="s1-champion-readiness" data-champion-readiness>保存后可检查当前节点是否具备编排输入。</div><div class="s1-champion-actions"><button type="button" data-champion-save>保存参数</button><button type="button" data-champion-check>检查输入</button><button type="button" data-champion-run>生成交付包</button></div><div class="s1-champion-contract">本节点只输出计划、提示词或资产引用。图像和视频由后续生成节点的服务器任务链完成。</div></article>';
-    }
     function renderChampionNodes(nodes) {
       panel.querySelectorAll('[data-champion-node]').forEach(function (card) { card.remove(); });
-      (Array.isArray(nodes) ? nodes : []).forEach(function (node) {
-        var spec = championSpecFor(node);
-        if (!spec) return;
-        nodesEl.insertAdjacentHTML('beforeend', championNodeMarkup(node, spec));
-      });
-      panel.querySelectorAll('[data-champion-node]').forEach(ensureDeleteControl);
     }
     function portDefinitionFor(nodeId, direction, portId) {
       var node = nodeById[nodeId];
@@ -393,74 +374,6 @@
         canvasDocument.edges = previousEdges;
         renderTypedEdges();
         throw error;
-      }
-    }
-    function nextChampionId(skillKey) { return 'skill-' + skillKey.replace(/[^A-Za-z0-9_-]/g, '-') + '-' + Date.now().toString(36); }
-    function freeChampionPosition(position) {
-      var occupied = Object.keys(nodeById).map(function (id) { return nodeById[id] && nodeById[id].position; }).filter(Boolean);
-      for (var index = 0; index < 32; index += 1) {
-        var candidate = {x:Math.max(0,Math.round(position.x + (index % 3) * 320)),y:Math.max(80,Math.round(position.y + Math.floor(index / 3) * 460))};
-        if (!occupied.some(function (item) { return Math.abs(item.x - candidate.x) < 300 && Math.abs(item.y - candidate.y) < 430; })) return candidate;
-      }
-      return {x:Math.max(0,Math.round(position.x + 960)),y:Math.max(80,Math.round(position.y + 1380))};
-    }
-    async function createChampionNode(skillKey, position) {
-      var spec = championSpecs[skillKey];
-      if (!spec) return;
-      var id = nextChampionId(skillKey);
-      var nodePosition = freeChampionPosition(position);
-      var portId = function (port) { return typeof port === 'string' ? port : port.id; };
-      var portType = function (port) { return typeof port === 'string' ? port : port.type; };
-      var ports = {inputPorts:spec.inputs.map(function (port, index) { return {id:portId(port),type:portType(port),required:index === 0}; }),outputPorts:spec.outputs.map(function (port) { return {id:portId(port),type:portType(port),required:false}; })};
-      var parameters = {compiledOutputs:{}, providerSubmitRequested:false, gateState:'awaiting_inputs'};
-      var node = {id:id,type:spec.type,kind:spec.type,status:'draft',skillKey:skillKey,skillVersion:spec.version,description:spec.note,inputPorts:ports.inputPorts,outputPorts:ports.outputPorts,parameters:parameters,assetRefs:[],taskRef:null,preview:null,recovery:{actions:['repair_input','retry'],lastAction:null},executionMode:'orchestration',position:nodePosition,data:{title:spec.title,note:spec.note,status:'draft',skillKey:skillKey,skillVersion:spec.version,description:spec.note,inputPorts:ports.inputPorts,outputPorts:ports.outputPorts,parameters:parameters,assetRefs:[],taskRef:null,preview:null,recovery:{actions:['repair_input','retry'],lastAction:null},executionMode:'orchestration',uiVersion:'native-card-v2'}};
-      canvasDocument.nodes = (canvasDocument.nodes || []).concat([node]);
-      nodeById[id] = node;
-      await persistRuntimeProjection();
-      setStatus('已添加「' + spec.title + '」。拖动标题可调整位置；端口只能连接同类型输出。');
-    }
-    async function saveChampionInput(card) {
-      var node = nodeById[card && card.dataset.nodeId];
-      var input = card && card.querySelector('[data-champion-input]');
-      if (!node || !input) return;
-      var parameters = Object.assign({}, node.parameters || {}, {inputs:Object.assign({}, node.parameters && node.parameters.inputs || {})});
-      parameters.inputs[input.dataset.championPort] = input.value.trim();
-      node.parameters = parameters;
-      node.data = Object.assign({}, node.data || {}, {parameters:parameters});
-      await persistRuntimeProjection();
-      setStatus('已保存「' + (node.data && node.data.title || node.skillKey) + '」的核心输入。');
-    }
-    async function checkChampionReadiness(card) {
-      var node = nodeById[card && card.dataset.nodeId];
-      var status = card && card.querySelector('[data-champion-readiness]');
-      if (!node || !status) return;
-      status.textContent = '正在检查服务端输入合同...';
-      try {
-        var result = await api('/api/projects/' + encodeURIComponent(projectId()) + '/canvas/skill-nodes/' + encodeURIComponent(node.id) + '/readiness?projectKind=' + encodeURIComponent(projectKind()));
-        var readiness = result.body.readiness || {};
-        status.textContent = readiness.ready ? '核心输入已齐全，可在文本模型配置完成后请求编排。' : '尚缺：' + (readiness.blockers || []).map(function (blocker) { return blocker.portId + (blocker.reason === 'upstream_output_missing' ? '（等待上游输出）' : '（需要输入）'); }).join('、');
-      } catch (error) { status.textContent = (error.code ? error.code + ': ' : '') + (error.message || '输入检查失败'); }
-    }
-    async function runChampionNode(card) {
-      var node = nodeById[card && card.dataset.nodeId];
-      var status = card && card.querySelector('[data-champion-readiness]');
-      if (!node || !status) return;
-      status.textContent = '正在检查 MCGrox 编排任务...';
-      var endpoint = '/api/projects/' + encodeURIComponent(projectId()) + '/canvas/skill-nodes/' + encodeURIComponent(node.id) + '/compile';
-      try {
-        var dry = await api(endpoint, {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({projectKind:projectKind()})});
-        if (!dry.body.providerSubmitEnabled) {
-          status.textContent = 'MCGrox 服务端执行器未就绪；节点输入已保留，可在服务恢复后重试。';
-          return;
-        }
-        status.textContent = '正在运行编排；完成后输出会回写到此节点。';
-        var result = await api(endpoint, {method:'POST',headers:{'content-type':'application/json','if-match':'"canvas-rev-' + revision + '"','idempotency-key':'canvas-compiler-' + node.id + '-' + Date.now()},body:JSON.stringify({projectKind:projectKind(),confirmProviderCall:true})});
-        revision = Number(result.body.revision || revision);
-        canvasDocument.nodes = (canvasDocument.nodes || []).map(function (item) { return item.id === node.id ? result.body.node : item; });
-        renderNodes(canvasDocument.nodes);
-        setStatus('「' + (node.data && node.data.title || node.skillKey) + '」已完成编排，输出已回写到画布端口。');
-      } catch (error) {
-        status.textContent = (error.code ? error.code + ': ' : '') + (error.message || '编排任务失败，可检查输入后重试');
       }
     }
     function installDragging() {
@@ -653,7 +566,7 @@
     function renderNodes(nodes) {
       canvasDocument.nodes = Array.isArray(nodes) ? nodes : [];
       nodeById = Object.fromEntries(canvasDocument.nodes.map(function (node) { return [node.id,node]; }));
-      panel.dataset.s1Empty = canvasDocument.nodes.some(championSpecFor) ? 'false' : 'true';
+      panel.dataset.s1Empty = 'true';
       Object.keys(nodeIds).forEach(function (key) {
         var card = panel.querySelector('[data-node="' + key + '"]');
         if (!card) return;
@@ -812,10 +725,9 @@
     }
     host.addEventListener('contextmenu', showCanvasSkillMenu, true);
     contextMenu.addEventListener('click', function (event) {
-      var button = event.target.closest('[data-s1-add-skill]');
       var nativeAdd = event.target.closest('[data-s1-native-add]');
       var generation = event.target.closest('[data-s1-add-generation]');
-      if (!button && !nativeAdd && !generation) return;
+      if (!nativeAdd && !generation) return;
       hideContextMenu();
       if (nativeAdd) {
         var original = document.querySelector('button[aria-label="' + nativeAdd.getAttribute('data-s1-native-add') + '"]');
@@ -823,8 +735,6 @@
         return;
       }
       if (generation) { createH3().catch(function (error) { setStatus((error.code ? error.code + ': ' : '') + (error.message || '添加节点失败'), true); }); return; }
-      var skillKey = button.getAttribute('data-s1-add-skill');
-      createChampionNode(skillKey, contextPoint).catch(function (error) { setStatus((error.code ? error.code + ': ' : '') + (error.message || '添加节点失败'), true); });
     });
     panel.addEventListener('pointerdown', function (event) {
       if (!event.target.closest('[data-s1-context]')) hideContextMenu();
@@ -847,10 +757,6 @@
         deleteSelectedNode().catch(function (error) { setStatus(error.message || '删除节点失败', true); });
         return;
       }
-      if (!event.target.closest('[data-champion-node]')) return;
-      if (event.target.closest('[data-champion-save]')) saveChampionInput(card).catch(function (error) { setStatus(error.message || '参数保存失败', true); });
-      if (event.target.closest('[data-champion-check]')) checkChampionReadiness(card);
-      if (event.target.closest('[data-champion-run]')) runChampionNode(card);
     });
     var previousSelectionKeydown = window.__s1SelectionKeydownHandler;
     if (previousSelectionKeydown) document.removeEventListener('keydown', previousSelectionKeydown);
@@ -869,28 +775,7 @@
     };
     window.__s1SelectionKeydownHandler = selectionKeydown;
     document.addEventListener('keydown', selectionKeydown);
-    function installSkillToolbar() {
-      var toolbar = document.querySelector('[aria-label="生成画布工具栏"]');
-      if (!toolbar || toolbar.querySelector('[data-s1-skill-toolbar]')) return;
-      var group = document.createElement('div');
-      group.dataset.s1SkillToolbar = 'true';
-      group.setAttribute('aria-label', '转绘 Skill 节点');
-      group.style.cssText = 'display:grid;gap:3px;margin-top:3px;padding-top:5px;border-top:1px solid rgba(90,64,42,.14)';
-      [{key:'screenwriter',label:'编剧',title:'添加编剧 Skill 节点'},{key:'chaoge-assets-trial',label:'资产',title:'添加资产方案 Skill 节点'},{key:'shotlist-builder',label:'分镜',title:'添加分镜 Skill 节点'},{key:'hell-grind',label:'镜头',title:'添加镜头提示 Skill 节点'}].forEach(function (item) {
-        var button = document.createElement('button');
-        button.type = 'button'; button.textContent = item.label; button.title = item.title; button.setAttribute('aria-label', item.title);
-        button.style.cssText = 'height:28px;padding:0 4px;border:0;border-radius:5px;background:transparent;color:var(--nomi-ink-60,#6d5947);cursor:pointer;font:600 10px/1 Inter,system-ui,sans-serif;white-space:nowrap';
-        button.addEventListener('mouseenter', function () { button.style.background = 'rgba(90,64,42,.07)'; });
-        button.addEventListener('mouseleave', function () { button.style.background = 'transparent'; });
-        button.addEventListener('click', function () {
-          panel.dataset.s1Empty = 'false';
-          createChampionNode(item.key, {x:180,y:180}).catch(function (error) { setStatus((error.code ? error.code + ': ' : '') + (error.message || '添加节点失败'), true); });
-        });
-        group.appendChild(button);
-      });
-      toolbar.appendChild(group);
-    }
-    installSkillToolbar();
+    document.querySelectorAll('[data-s1-skill-toolbar]').forEach(function (toolbar) { toolbar.remove(); });
     panel.querySelector('[data-s1-refresh]').addEventListener('click', load);
     startBtn.addEventListener('click', startStep01);
     image2Create.addEventListener('click', createImage2); image2Dry.addEventListener('click', dryRunImage2);
