@@ -208,6 +208,9 @@
       if (label) label.textContent = skillLabel;
       var status = meta.querySelector('[data-node-status]');
       if (status) status.classList.add('s1-skill-version');
+      // Legacy source-chain cards must use the same selection/deletion contract
+      // as dynamically created Skill cards, even before the first document read.
+      ensureDeleteControl(card);
     }
     upgradeLegacySkillCard('step01', 'Skill 节点 · mx-shortdrama-01');
     upgradeLegacySkillCard('step02', 'Skill 节点 · mx-shortdrama-02');
