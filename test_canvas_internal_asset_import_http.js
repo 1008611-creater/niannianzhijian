@@ -43,13 +43,13 @@ async function waitForServer() {
   throw new Error(`测试服务未启动: ${childOutput.slice(-2000)}`);
 }
 
-async function importAsset(image, role = 'character') {
+async function importAsset(image, role = 'character', title = '苏晚棠') {
   const form = new FormData();
   form.append('projectId', 'NN-INTERNAL-ASSET');
   form.append('projectKind', 'redraw');
   form.append('kind', 'reference_image');
   form.append('role', role);
-  form.append('title', '苏晚棠');
+  form.append('titleB64', Buffer.from(title, 'utf8').toString('base64url'));
   form.append('asset', new Blob([image], {type:'image/png'}), 'su-wantang.png');
   const response = await fetch(`${baseUrl}/api/internal/canvas-assets/import`, {method:'POST',body:form});
   return {response,body:await response.json()};
@@ -79,12 +79,18 @@ async function run() {
   assert.equal(replay.body.asset.id, first.body.asset.id);
   assert.equal(replay.body.node.id, first.body.node.id);
 
+  const renamed = await importAsset(image, 'character', '苏晚棠-正式资产');
+  assert.equal(renamed.response.status, 201);
+  assert.equal(renamed.body.asset.id, first.body.asset.id);
+  assert.equal(renamed.body.node.title, '苏晚棠-正式资产');
+
   const studio = await fetch(`${baseUrl}/api/studio/projects/NN-INTERNAL-ASSET`, {headers:headers('internal-asset-token',{'x-niannian-project-kind':'redraw'})});
   const studioBody = await studio.json();
   assert.equal(studio.status, 200);
   const node = studioBody.document.generationCanvas.nodes.find(item => item.id === first.body.node.id);
   assert.ok(node);
   assert.equal(node.result.assetId, first.body.asset.id);
+  assert.equal(node.title, '苏晚棠-正式资产');
   assert.equal(node.categoryId, 'characters');
 
   const assetList = await fetch(`${baseUrl}/api/projects/NN-INTERNAL-ASSET/assets`, {headers:headers('internal-asset-token',{'x-niannian-project-kind':'redraw'})});
