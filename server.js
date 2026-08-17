@@ -8295,9 +8295,10 @@ function isCanvasModelRuntimeReady(model) {
 
 async function browserCanvasModelCatalog(user) {
   const catalog = await modelControlPlane.publicCatalogForTenant(modelControlPlaneModule.tenantForUser(user));
-  // 画布只展示当前真正具备服务端执行器的模型。否则用户可以选中一个
-  // 永远无法提交的入口，直到付费确认后才看见失败原因。
-  return {...catalog, models:catalog.models.filter(isCanvasModelRuntimeReady)};
+  // Dola is controlled by the administrator model switch. Keep an enabled
+  // channel selectable while its local desktop connector reconnects; submit
+  // still checks the provider runtime before it can incur a generation.
+  return {...catalog, models:catalog.models.filter(model => canvasVideoChannels.isDolaVideoChannel(model.id) || isCanvasModelRuntimeReady(model))};
 }
 
 async function browserCanvasProviderStatus(user) {

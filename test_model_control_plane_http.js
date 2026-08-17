@@ -24,7 +24,7 @@ async function run() {
     fs.writeFile(path.join(dataRoot, 'sessions.json'), JSON.stringify([{userId:'USR-ADMIN',tokenHash:hash('admin-token'),expiresAt:future},{userId:'USR-USER',tokenHash:hash('user-token'),expiresAt:future}])),
     fs.writeFile(path.join(dataRoot, 'projects.json'), '[]'), fs.writeFile(path.join(dataRoot, 'script-projects.json'), '[]'), fs.writeFile(path.join(dataRoot, 'canvas-documents.json'), '{}'), fs.writeFile(path.join(dataRoot, 'canvas-generation-jobs.json'), '[]'), fs.writeFile(path.join(dataRoot, 'workspace-bindings.json'), '[]'), fs.writeFile(path.join(dataRoot, 'website-idempotency.json'), '[]')
   ]);
-  child = spawn(process.execPath, ['server.js'], {cwd:root, env:{...process.env, PORT:String(port), DATA_DIR:dataRoot, NIANNIAN_ADMIN_USER_IDS:'USR-ADMIN', AGENT_VAULT_ADDR:'http://127.0.0.1:14321', AGENT_VAULT_VAULT:'test-vault', AGENT_VAULT_TOKEN:'test-token', HTTPS_PROXY:'http://127.0.0.1:14322', NIANNIAN_CANVAS_YUNWU_SUBMIT:'on', NOMI_RUNNINGHUB_H3_API_KEY:'test-h3-key', NIANNIAN_CANVAS_H3_SUBMIT:'on'}, stdio:['ignore','pipe','pipe']});
+  child = spawn(process.execPath, ['server.js'], {cwd:root, env:{...process.env, PORT:String(port), DATA_DIR:dataRoot, NIANNIAN_ADMIN_USER_IDS:'USR-ADMIN', AGENT_VAULT_ADDR:'http://127.0.0.1:14321', AGENT_VAULT_VAULT:'test-vault', AGENT_VAULT_TOKEN:'test-token', HTTPS_PROXY:'http://127.0.0.1:14322', NIANNIAN_CANVAS_YUNWU_SUBMIT:'on', NOMI_RUNNINGHUB_H3_API_KEY:'test-h3-key', NIANNIAN_CANVAS_H3_SUBMIT:'on', NIANNIAN_DOLA_API_URL:'', NIANNIAN_DOLA_API_KEY:'', NIANNIAN_CANVAS_DOLA_SUBMIT:'off'}, stdio:['ignore','pipe','pipe']});
   child.stdout.on('data', chunk => { output += chunk.toString(); }); child.stderr.on('data', chunk => { output += chunk.toString(); });
   for (let attempt = 0; attempt < 100; attempt += 1) { try { if ((await fetch(`${baseUrl}/api/health`)).ok) break; } catch {} await new Promise(resolve => setTimeout(resolve, 100)); }
   const ordinary = await fetch(`${baseUrl}/api/admin/model-config`, {headers:headers('user-token')});
@@ -51,7 +51,7 @@ async function run() {
   assert.equal(dolaSave.status, 200);
   const dolaCatalogResponse = await fetch(`${baseUrl}/api/canvas/model-catalog`, {headers:headers('user-token')});
   const dolaCatalog = await dolaCatalogResponse.json();
-  assert.equal(dolaCatalog.catalog.models.some(item => item.id === 'dola-seedance-2-5'), false);
+  assert.equal(dolaCatalog.catalog.models.some(item => item.id === 'dola-seedance-2-5'), true);
   assert.equal(JSON.stringify(dolaCatalog).includes('NIANNIAN_DOLA_API_KEY'), false);
   const configuredStatus = await fetch(`${baseUrl}/api/canvas/provider-status`, {headers:headers('user-token')});
   const configuredBody = await configuredStatus.json();
