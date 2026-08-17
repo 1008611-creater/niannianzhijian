@@ -9,6 +9,7 @@ import hashlib
 import json
 import mimetypes
 import os
+import ssl
 import sys
 import urllib.error
 import urllib.request
@@ -34,6 +35,7 @@ DEFAULT_GENERATE_MODEL = "gpt-image-2-c"
 DEFAULT_EDIT_MODEL = "gpt-image-2-c"
 MAX_REFERENCE_IMAGES = 16
 MAX_REFERENCE_IMAGE_BYTES = 50 * 1024 * 1024
+DEFAULT_PROXY_CA_BUNDLE = "/etc/ssl/certs/niannian-agent-vault-ca.pem"
 
 
 def load_shared_session_env() -> None:
@@ -108,7 +110,7 @@ def request_json(endpoint: str, payload: dict) -> dict:
         method="POST",
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(request, timeout=300) as response:
+    with urllib.request.urlopen(request, timeout=300, context=proxy_ssl_context()) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
@@ -146,7 +148,7 @@ def request_multipart(endpoint: str, prompt: str, model: str, size: str, images:
         method="POST",
         headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
     )
-    with urllib.request.urlopen(request, timeout=300) as response:
+    with urllib.request.urlopen(request, timeout=300, context=proxy_ssl_context()) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
@@ -162,10 +164,18 @@ def save_image(response: dict, output: Path) -> None:
         output.write_bytes(base64.b64decode(item["b64_json"], validate=True))
         return
     if isinstance(item.get("url"), str):
-        with urllib.request.urlopen(item["url"], timeout=120) as response:
+        with urllib.request.urlopen(item["url"], timeout=120, context=proxy_ssl_context()) as response:
             output.write_bytes(response.read())
         return
     raise RuntimeError("Provider response did not contain b64_json or url")
+
+
+def proxy_ssl_context() -> ssl.SSLContext:
+    context = ssl.create_default_context()
+    ca_path = Path(os.environ.get("IMAGE2_PROXY_CA_BUNDLE", DEFAULT_PROXY_CA_BUNDLE))
+    if ca_path.is_file():
+        context.load_verify_locations(cafile=str(ca_path))
+    return context
 
 
 def parse_args() -> argparse.Namespace:
