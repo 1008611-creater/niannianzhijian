@@ -20,10 +20,12 @@ function readHashFile(filePath, readFileSync = fs.readFileSync) {
   }
 }
 
-function resolveBridgeTokenHash(env = process.env, readFileSync = fs.readFileSync) {
+function resolveBridgeTokenHash(env = process.env, readFileSync = fs.readFileSync, platform = process.platform) {
   const configured = String(env.BRIDGE_TOKEN_HASH || '').trim().toLowerCase();
   if (configured) return /^[a-f0-9]{64}$/.test(configured) ? configured : '';
-  const hashFile = normalizedPath(env.NIANNIAN_BRIDGE_TOKEN_HASH_FILE, DEFAULT_HASH_FILE);
+  const configuredHashFile = String(env.NIANNIAN_BRIDGE_TOKEN_HASH_FILE || '').trim();
+  if (!configuredHashFile && platform !== 'win32') return '';
+  const hashFile = normalizedPath(configuredHashFile, DEFAULT_HASH_FILE);
   return readHashFile(hashFile, readFileSync);
 }
 

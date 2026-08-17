@@ -30,6 +30,10 @@ async function main() {
     await fsp.writeFile(tokenFile,token,{mode:0o600});
     await fsp.writeFile(hashFile,tokenHash);
     assert.equal(auth.resolveBridgeTokenHash({NIANNIAN_BRIDGE_TOKEN_HASH_FILE:hashFile}),tokenHash);
+    let linuxDefaultRead = false;
+    assert.equal(auth.resolveBridgeTokenHash({},() => { linuxDefaultRead = true; return tokenHash; },'linux'),'');
+    assert.equal(linuxDefaultRead,false);
+    assert.equal(auth.resolveBridgeTokenHash({NIANNIAN_BRIDGE_TOKEN_HASH_FILE:hashFile},() => tokenHash,'linux'),tokenHash);
     assert.equal(auth.resolveBridgeTokenHash({BRIDGE_TOKEN_HASH:tokenHash,NIANNIAN_BRIDGE_TOKEN_HASH_FILE:path.join(root,'missing')}),tokenHash);
     assert.equal(auth.resolveBridgeTokenHash({BRIDGE_TOKEN_HASH:'invalid',NIANNIAN_BRIDGE_TOKEN_HASH_FILE:hashFile}),'');
     const childEnv=auth.buildStep01ControllerEnv({UNRELATED_SENTINEL:'present'},{NIANNIAN_BRIDGE_TOKEN_FILE:tokenFile,NIANNIAN_BRIDGE_TOKEN_HASH_FILE:hashFile});
