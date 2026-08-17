@@ -130,6 +130,7 @@ function createNomiWebTaskStore(options = {}) {
         },
         parameters:submitted.parameters && typeof submitted.parameters === 'object' ? submitted.parameters : {},
         workflowId:null, providerTaskId:null, providerErrorCode:null, outputAssetIds:[], assets:[], error:null,
+        tenantId:clean(input.tenantId, 120) || null, creditReservationId:null, creditAmount:0, creditState:'not_reserved',
         createdAt:new Date(now).toISOString(), updatedAt:new Date(now).toISOString(), submittedAt:null, completedAt:null
       };
       state.tasks.push(task);
@@ -165,6 +166,10 @@ function createNomiWebTaskStore(options = {}) {
       }
       if (patch.submittedAt !== undefined) task.submittedAt = patch.submittedAt;
       if (patch.completedAt !== undefined) task.completedAt = patch.completedAt;
+      if (patch.tenantId !== undefined) task.tenantId = clean(patch.tenantId, 120) || null;
+      if (patch.creditReservationId !== undefined) task.creditReservationId = clean(patch.creditReservationId, 160) || null;
+      if (patch.creditAmount !== undefined) task.creditAmount = Math.max(0, Math.ceil(Number(patch.creditAmount) || 0));
+      if (patch.creditState !== undefined && ['not_reserved','reserved','settled','refunded'].includes(patch.creditState)) task.creditState = patch.creditState;
       task.updatedAt = new Date().toISOString();
       await writeState(state);
       return task;
@@ -186,7 +191,21 @@ function createNomiWebTaskStore(options = {}) {
       .sort((left, right) => String(right.updatedAt || right.createdAt || '').localeCompare(String(left.updatedAt || left.createdAt || '')));
   }
 
-  return {createGrant,claimTask,updateOwnedTask,getOwnedTask,listOwnedTasks,constants:{filePath}};
+  async function listForCommerce({limit = 50} = {}) {
+    const state = await readState();
+    return state.tasks
+      .slice()
+      .sort((left, right) => String(right.updatedAt || right.createdAt || '').localeCompare(String(left.updatedAt || left.createdAt || '')))
+      .slice(0, Math.max(1, Math.min(200, Number(limit) || 50)))
+      .map(task => ({
+        id:task.id, projectId:task.projectId, projectKind:task.projectKind, nodeId:task.nodeId,
+        model:task.modelKey, status:task.status, creditAmount:task.creditAmount || 0, creditState:task.creditState || 'not_reserved',
+        outputAssetIds:Array.isArray(task.outputAssetIds) ? task.outputAssetIds : [], error:task.error || null,
+        createdAt:task.createdAt, updatedAt:task.updatedAt, providerTaskId:task.providerTaskId ? '已关联' : null
+      }));
+  }
+
+  return {createGrant,claimTask,updateOwnedTask,getOwnedTask,listOwnedTasks,listForCommerce,constants:{filePath}};
 }
 
 module.exports = {createNomiWebTaskStore};

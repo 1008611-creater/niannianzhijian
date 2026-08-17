@@ -39,6 +39,10 @@ async function run() {
   await plane.settleCredits({reservationId:settled.reservationId, idempotencyKey:'CGJ-SETTLED:settle'});
   await assert.rejects(() => plane.refundCredits({reservationId:settled.reservationId, idempotencyKey:'CGJ-SETTLED:late-refund'}), error => error.code === 'CREDIT_RESERVATION_FINALIZED');
   await assert.rejects(() => plane.reserveCredits({tenantId:other.tenantId, userId:other.id, jobId:'CGJ-2', idempotencyKey:'CGJ-2:reserve', amount:1}), error => error.code === 'CREDIT_INSUFFICIENT');
+  const usage = await plane.usageSummary(admin);
+  assert.equal(usage.unit, 'NN_CREDIT');
+  assert.equal(usage.pendingReservations, 0);
+  assert.ok(usage.refundedCredits >= 17);
 
   const welcomePlane = createModelControlPlane({configPath:path.join(root, 'welcome-config.json'), ledgerPath:path.join(root, 'welcome-ledger.json'), welcomeCredits:30});
   assert.equal(await welcomePlane.accountBalance(other.tenantId, other.id), 30);

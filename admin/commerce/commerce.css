@@ -37,6 +37,12 @@ h3 { font-size: 14px; font-weight: 650; }
 .save-state[data-tone="good"] { color: var(--good); }
 .save-state[data-tone="error"] { color: var(--danger); }
 .provider-section, .model-section, .ledger-section, .plan-section, .team-section, .trace-section { padding: 28px 0; border-bottom: 1px solid var(--line); }
+.currency-section { padding: 24px 0 28px; border-bottom: 1px solid var(--line); }
+.currency-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; margin: 0; border: 1px solid var(--line); background: var(--line); }
+.currency-kpis > div { min-height: 112px; padding: 16px; background: var(--surface); }
+.currency-kpis dt { color: var(--muted); }
+.currency-kpis dd { margin-top: 6px; font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.currency-kpis p { margin-top: 4px; color: var(--muted); font-size: 12px; }
 .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; margin-bottom: 14px; }
 .section-heading p { font-size: 13px; text-align: right; }
 .provider-list, .model-list, .plan-list, .team-list, .trace-list { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
@@ -89,10 +95,11 @@ dd { margin: 2px 0 0; font-weight: 500; overflow-wrap: anywhere; }
   .save-state, .section-heading p { margin-top: 10px; text-align: left; }
   .provider-row, .model-row, .plan-row, .team-row, .credit-adjustment { grid-template-columns: 1fr; gap: 13px; }
   .provider-row__facts, .ledger-facts { grid-template-columns: 1fr 1fr; }
+  .currency-kpis { grid-template-columns: 1fr 1fr; }
   .model-row .save-button { width: 100%; }
   .plan-row .save-button, .team-row .save-button { width: 100%; }
   .trace-grid { grid-template-columns: 1fr; }
   .switch-control { min-height: 36px; }
 }
-@media (max-width: 420px) { .provider-row__facts, .ledger-facts { grid-template-columns: 1fr; } }
+@media (max-width: 420px) { .provider-row__facts, .ledger-facts, .currency-kpis { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; } }
