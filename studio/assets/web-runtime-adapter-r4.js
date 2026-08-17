@@ -166,7 +166,10 @@
       var catalogModels = status.modelCatalog.models.filter(function (item) { return item && item.enabled === true; });
       var catalogVendors = [];
       var catalogModelsPublic = catalogModels.map(function (item) {
-        var vendorKey = String(item.providerLabel || 'server').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'server';
+        // The node stores providerKey, while providerLabel is display-only and may be non-ASCII.
+        // Keep the server key so model selection and generation preflight address the same vendor.
+        var providerKey = typeof item.providerKey === 'string' ? item.providerKey.trim() : '';
+        var vendorKey = providerKey || String(item.providerLabel || 'server').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'server';
         if (!catalogVendors.some(function (vendor) { return vendor.key === vendorKey; })) catalogVendors.push({key: vendorKey, name: item.providerLabel || '已接入模型', enabled: true, authType: 'none', hasApiKey: true});
         return {
           modelKey: item.id,

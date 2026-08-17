@@ -11,6 +11,8 @@ assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=[A-Za-z0-9._-]+/);
 assert.match(source, /\/api\/canvas\/provider-status/);
 assert.match(source, /\/api\/projects\/.*\/canvas\/jobs/);
 assert.match(source, /\/api\/projects\/.*\/text\/jobs/);
+assert.match(source, /var providerKey = typeof item\.providerKey === 'string' \? item\.providerKey\.trim\(\) : ''/);
+assert.match(source, /var vendorKey = providerKey \|\| String\(item\.providerLabel \|\| 'server'\)/);
 assert.match(source, /catalogVendors\.push\(\{key: vendorKey, name: item\.providerLabel \|\| '已接入模型', enabled: true, authType: 'none', hasApiKey: true\}\)/);
 assert.match(source, /vendorKey: 'asxs'/);
 assert.match(source, /request\.kind === 'chat'/);
@@ -55,6 +57,9 @@ const context = {
   fetch: async (pathname, options = {}) => {
     calls.push(pathname);
     if (pathname === '/api/canvas/provider-status') return {ok:true,json:async() => ({providerStatus:{
+      modelCatalog: {models: [
+        {id:'yunwu-gpt-image-2-c',label:'云雾 Image2 竖版 4K',kind:'image',providerKey:'yunwu-agent-vault',providerLabel:'云雾',enabled:true,priceCredits:10,resolutions:['4k'],aspectRatios:['9:16'],outputSizes:{'4k':'2160x3840'}}
+      ]},
       credentialConfigured:false,
       imageSubmitEnabled:true,
       videoSubmitEnabled:false,
@@ -95,7 +100,7 @@ assert.equal(typeof context.window.nomiDesktop.assets.download, 'function');
 assert.deepEqual(Array.from(context.window.nomiDesktop.projects.list(), (project) => project.id), ['NN-LOCAL-0001']);
 assert.equal(context.window.nomiDesktop.projects.list()[0].thumbnail, undefined);
 const startupImageModels = await context.window.nomiDesktop.modelCatalog.listModels({kind:'image'});
-assert.deepEqual(Array.from(startupImageModels, (model) => model.modelKey), ['yunfei-gpt-image-2-1k', 'yunfei-gpt-image-2-hd']);
+assert.deepEqual(Array.from(startupImageModels, (model) => [model.modelKey, model.vendorKey]), [['yunwu-gpt-image-2-c', 'yunwu-agent-vault']]);
 const coverProject = context.window.nomiDesktop.projects.create({name:'缩略图项目',thumbnailUrls:['/api/projects/NN-LOCAL-0001/assets/CAS-111111111111111111111111/download']});
 assert.equal(context.window.nomiDesktop.projects.read(coverProject.id).thumbnail, '/api/projects/NN-LOCAL-0001/assets/CAS-111111111111111111111111/thumbnail');
 const imported = await context.window.nomiDesktop.assets.importFile({projectId:'NN-LOCAL-0001',fileName:'reference.png',contentType:'image/png',bytes:new Uint8Array([137,80,78,71])});
@@ -122,23 +127,16 @@ assert.equal(downloadedLinks[0].download, 'result.mp4');
 assert.equal(downloadedLinks[0].parentNode, null);
 await new Promise((resolve) => setTimeout(resolve, 10));
 const imageModels = await context.window.nomiDesktop.modelCatalog.listModels({kind:'image'});
-assert.deepEqual(Array.from(imageModels, (model) => [model.modelKey, model.meta.outputSizes]), [
-  ['yunfei-gpt-image-2-1k', {'1k':'1024x1024'}],
-  ['yunfei-gpt-image-2-hd', {'2k':'2048x1152','4k':'3840x2160'}]
+assert.deepEqual(Array.from(imageModels, (model) => [model.modelKey, model.vendorKey, model.meta.outputSizes]), [
+  ['yunwu-gpt-image-2-c', 'yunwu-agent-vault', {'4k':'2160x3840'}]
 ]);
 const videoModels = await context.window.nomiDesktop.modelCatalog.listModels({kind:'video'});
-assert.deepEqual(Array.from(videoModels, (model) => [model.modelKey, model.meta.archetype && model.meta.archetype.id, model.meta.archetype && model.meta.archetype.modeId]), [
-  ['runninghub-animate-motion-transfer', 'happyhorse', 'edit'],
-  ['runninghub-animate-ai-app', 'happyhorse', 'edit']
-]);
+assert.deepEqual(Array.from(videoModels), []);
 const vendors = await context.window.nomiDesktop.modelCatalog.listVendors();
-assert.equal(vendors.length, 4);
-assert.equal(vendors[0].key, 'runninghub');
-assert.equal(vendors[0].hasApiKey, true);
-assert.equal(vendors[1].key, 'asxs');
-assert.equal(vendors[1].hasApiKey, false);
-assert.equal(vendors[2].key, 'yunfei-1k');
-assert.equal(vendors[3].key, 'yunfei-hd');
+assert.equal(vendors.length, 1);
+assert.deepEqual(Array.from(vendors, (vendor) => [vendor.key, vendor.enabled, vendor.authType, vendor.hasApiKey]), [
+  ['yunwu-agent-vault', true, 'none', true]
+]);
 const health = await context.window.nomiDesktop.modelCatalog.health();
 assert.equal(Array.from(health.byKind, (entry) => entry.enabledModels).join(','), '0,1,1');
 assert.equal(health.issues.length, 0);
