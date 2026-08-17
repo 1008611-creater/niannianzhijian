@@ -148,6 +148,7 @@ const sessionsPath = path.join(dataRoot, 'sessions.json');
 const authAuditPath = path.join(dataRoot, 'auth_audit.jsonl');
 const modelControlConfigPath = path.join(dataRoot, 'model-control-config.json');
 const creditLedgerPath = path.join(dataRoot, 'credit-ledger.json');
+const canvasWelcomeCredits = Math.max(0, Math.min(100000, Math.floor(Number(process.env.NIANNIAN_CANVAS_WELCOME_CREDITS || 0)) || 0));
 const maxUploadBytes = Math.max(1024 * 1024, Math.min(300 * 1024 * 1024, Number(process.env.MAX_UPLOAD_BYTES || 300 * 1024 * 1024)));
 const maxScriptDocumentBytes = Math.max(1024 * 1024, Math.min(100 * 1024 * 1024, Number(process.env.MAX_SCRIPT_DOCUMENT_BYTES || 25 * 1024 * 1024)));
 const scriptUploadChunkBytes = Math.max(256 * 1024, Math.min(4 * 1024 * 1024, Number(process.env.SCRIPT_UPLOAD_CHUNK_BYTES || 1024 * 1024)));
@@ -159,7 +160,7 @@ const previewUser = Object.freeze({id:'USR-PREVIEW', email:'preview@niannian.loc
 const canvasGenerationJobService = canvasGenerationJobs.createCanvasGenerationJobService({filePath:canvasGenerationJobsPath});
 const canvasAssetService = canvasAssets.createCanvasAssetService({indexPath:canvasAssetsPath,storageRoot:canvasAssetsRoot,maxBytes:process.env.CANVAS_ASSET_MAX_BYTES});
 const canvasProviderStatus = canvasProviderConfig.readCanvasProviderConfig();
-const modelControlPlane = modelControlPlaneModule.createModelControlPlane({configPath:modelControlConfigPath,ledgerPath:creditLedgerPath});
+const modelControlPlane = modelControlPlaneModule.createModelControlPlane({configPath:modelControlConfigPath,ledgerPath:creditLedgerPath,welcomeCredits:canvasWelcomeCredits});
 const canvasImage2Runtime = canvasImage2RuntimeModule.createCanvasImage2Runtime({
   jobService:canvasGenerationJobService,
   assetService:canvasAssetService,
@@ -8271,9 +8272,9 @@ function isCanvasModelRuntimeReady(model) {
 
 async function browserCanvasModelCatalog(user) {
   const catalog = await modelControlPlane.publicCatalogForTenant(modelControlPlaneModule.tenantForUser(user));
-  // Dola remains a selectable video model after an administrator enables it.
-  // Its submit path still checks the runtime bridge before it can spend or submit.
-  return {...catalog, models:catalog.models.filter(model => canvasVideoChannels.isDolaVideoChannel(model.id) || isCanvasModelRuntimeReady(model))};
+  // 画布只展示当前真正具备服务端执行器的模型。否则用户可以选中一个
+  // 永远无法提交的入口，直到付费确认后才看见失败原因。
+  return {...catalog, models:catalog.models.filter(isCanvasModelRuntimeReady)};
 }
 
 async function browserCanvasProviderStatus(user) {
@@ -8431,6 +8432,7 @@ async function handleWorkbenchCanvasProjectApi(request, response, pathname, user
         return created;
       });
     }
+    record = await reconcileNomiFailedLocalAssetDrops(project, 'redraw', record);
     return json(response, 200, {canvas:canvasDocumentEnvelope(project, record),project:{id:project.id,name:project.name,status:project.status}}, {'Cache-Control':'no-store'}), true;
   }
   if (request.method !== 'PUT') return json(response, 405, {code:'METHOD_NOT_ALLOWED',error:'请求方法不允许'}), true;
@@ -8461,9 +8463,12 @@ function nomiSafeDocumentValue(value, depth = 0) {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   if (typeof value === 'string') {
     const text = value.slice(0, 16000);
-    // 网页 Nomi 的正式来源是服务端项目资产，不能把浏览器临时地址或内联媒体
-    // 带入项目文档；否则刷新后会恢复一个不可读、不可授权的假引用。
-    if (/^(?:blob:|data:|nomi-local:)/i.test(text)) {
+    // 浏览器 Blob 临时地址只影响当前节点，剥离后仍可保存其余画布。
+    // 内联 Data 媒体可能将未上传的实际内容写入项目文档，必须拒绝。
+    if (/^(?:blob:|nomi-local:)/i.test(text)) {
+      return '';
+    }
+    if (/^data:/i.test(text)) {
       throw Object.assign(new Error('项目文档不能保存浏览器临时素材，请先完成上传'), {
         code: 'NOMI_LOCAL_MEDIA_NOT_PERSISTABLE',
         httpStatus: 422
@@ -8490,6 +8495,70 @@ function normalizeNomiProjectDocument(value) {
     throw Object.assign(new Error('Nomi 生成画布无效'), {code:'NOMI_GENERATION_CANVAS_INVALID',httpStatus:422});
   }
   return document;
+}
+
+function nomiProjectAssetId(node) {
+  const metaAssetId = canvasText(node?.meta?.canvasAssetId, 120);
+  const resultAssetId = canvasText(node?.result?.assetId, 120);
+  const assetId = metaAssetId || resultAssetId;
+  return /^CAS-[a-f0-9]{24}$/.test(assetId) ? assetId : null;
+}
+
+function isNomiFailedLocalAssetDrop(node) {
+  const meta = node?.meta;
+  return node?.kind === 'asset'
+    && node?.status === 'error'
+    && meta && typeof meta === 'object' && !Array.isArray(meta)
+    && meta.source === 'local-drop'
+    && meta.uploadStatus === 'failed'
+    && meta.localOnly === true
+    && meta.persistable === false
+    && meta.retryableImport === true
+    && Boolean(canvasText(meta.fileName, 320));
+}
+
+function reclaimableNomiFailedLocalAssetDropIds(document, assets) {
+  const nodes = document.generationCanvas.nodes;
+  const officialAssetIds = new Set(nodes
+    .filter(node => node?.kind === 'asset' && node?.meta?.source === 'project-asset')
+    .map(nomiProjectAssetId)
+    .filter(Boolean));
+  const officialAssetIdByName = new Map(assets
+    .filter(asset => officialAssetIds.has(asset.id) && canvasText(asset.originalName, 320))
+    .map(asset => [canvasText(asset.originalName, 320), asset.id]));
+  return new Set(nodes
+    .filter(node => isNomiFailedLocalAssetDrop(node)
+      && officialAssetIdByName.has(canvasText(node.meta.fileName, 320)))
+    .map(node => canvasText(node.id, 160))
+    .filter(Boolean));
+}
+
+async function reconcileNomiFailedLocalAssetDrops(project, projectKind, record) {
+  if (!record) return record;
+  const document = normalizeNomiProjectDocument(record.document);
+  const assets = await canvasAssetService.listOwned(project.ownerId, project.id, projectKind);
+  const staleNodeIds = reclaimableNomiFailedLocalAssetDropIds(document, assets);
+  if (staleNodeIds.size === 0) return record;
+
+  return withCanvasDocumentsWriteLock(async () => {
+    const documents = await readCanvasDocuments();
+    const current = nomiRecordForProject(documents[nomiDocumentKey(projectKind, project.id)], project, projectKind);
+    if (!current) return record;
+    const currentDocument = normalizeNomiProjectDocument(current.document);
+    const currentAssets = await canvasAssetService.listOwned(project.ownerId, project.id, projectKind);
+    const currentStaleIds = reclaimableNomiFailedLocalAssetDropIds(currentDocument, currentAssets);
+    if (currentStaleIds.size === 0) return current;
+    currentDocument.generationCanvas.nodes = currentDocument.generationCanvas.nodes.filter(node => !currentStaleIds.has(canvasText(node?.id, 160)));
+    currentDocument.generationCanvas.edges = currentDocument.generationCanvas.edges.filter(edge => {
+      const source = canvasText(edge?.source, 160);
+      const target = canvasText(edge?.target, 160);
+      return !currentStaleIds.has(source) && !currentStaleIds.has(target);
+    });
+    const recovered = {...current,revision:Number(current.revision || 0) + 1,document:currentDocument,updatedAt:new Date().toISOString()};
+    documents[nomiDocumentKey(projectKind, project.id)] = recovered;
+    await writeCanvasDocuments(documents);
+    return recovered;
+  });
 }
 
 function publicStudioProjectMetadata(project, projectKind) {
@@ -8610,6 +8679,7 @@ async function handleNomiProjectApi(request, response, pathname, user) {
         return created;
       });
     }
+    record = await reconcileNomiFailedLocalAssetDrops(owned.project, owned.projectKind, record);
     const revision = Number(record?.revision || 0);
     return json(response, 200, {
       project:{...await publicStudioProjectMetadataForUser(user, owned, record),status:canvasText(owned.project.status, 80)},

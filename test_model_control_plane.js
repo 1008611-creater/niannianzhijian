@@ -30,6 +30,14 @@ async function run() {
   await plane.refundCredits({reservationId:reserved.reservationId, idempotencyKey:'CGJ-1:refund', reason:'provider_failed'});
   assert.equal(await plane.accountBalance(user.tenantId, user.id), 20);
   await assert.rejects(() => plane.reserveCredits({tenantId:other.tenantId, userId:other.id, jobId:'CGJ-2', idempotencyKey:'CGJ-2:reserve', amount:1}), error => error.code === 'CREDIT_INSUFFICIENT');
+
+  const welcomePlane = createModelControlPlane({configPath:path.join(root, 'welcome-config.json'), ledgerPath:path.join(root, 'welcome-ledger.json'), welcomeCredits:30});
+  assert.equal(await welcomePlane.accountBalance(other.tenantId, other.id), 30);
+  const welcomeReservation = await welcomePlane.reserveCredits({tenantId:other.tenantId, userId:other.id, jobId:'CGJ-3', idempotencyKey:'CGJ-3:reserve', amount:20});
+  assert.ok(welcomeReservation.reservationId);
+  assert.equal(await welcomePlane.accountBalance(other.tenantId, other.id), 10);
+  const welcomeAudit = await welcomePlane.auditCredits(admin, {tenantId:other.tenantId, userId:other.id});
+  assert.equal(welcomeAudit.entries.filter(entry => entry.type === 'welcome_grant').length, 1);
   await fs.rm(root, {recursive:true, force:true});
   console.log('MODEL_CONTROL_PLANE_CONTRACT_OK');
 }

@@ -95,7 +95,32 @@ async function run() {
   const studio = await fetch(`${baseUrl}/api/studio/projects/NN-INTERNAL-ASSET`, {headers:headers('internal-asset-token',{'x-niannian-project-kind':'redraw'})});
   const studioBody = await studio.json();
   assert.equal(studio.status, 200);
-  const node = studioBody.document.generationCanvas.nodes.find(item => item.id === first.body.node.id);
+  const failedLocalNode = {
+    id:'failed-local-drop-001',
+    kind:'asset',
+    title:'过期的本地素材占位',
+    status:'error',
+    meta:{source:'local-drop',fileName:'su-wantang.png',uploadStatus:'failed',localOnly:true,persistable:false,retryableImport:true}
+  };
+  const staleDocument = structuredClone(studioBody.document);
+  staleDocument.generationCanvas.nodes.push(failedLocalNode);
+  staleDocument.generationCanvas.edges.push({id:'edge-from-failed-local',source:failedLocalNode.id,target:first.body.node.id});
+  const staleSave = await fetch(`${baseUrl}/api/studio/projects/NN-INTERNAL-ASSET`, {
+    method:'PUT',
+    headers:headers('internal-asset-token',{'x-niannian-project-kind':'redraw','content-type':'application/json','if-match':studio.headers.get('etag')}),
+    body:JSON.stringify({document:staleDocument})
+  });
+  const staleSaved = await staleSave.json();
+  assert.equal(staleSave.status, 200);
+  assert.equal(staleSaved.document.generationCanvas.nodes.some(item => item.id === failedLocalNode.id), true);
+
+  const recoveredStudio = await fetch(`${baseUrl}/api/studio/projects/NN-INTERNAL-ASSET`, {headers:headers('internal-asset-token',{'x-niannian-project-kind':'redraw'})});
+  const recoveredBody = await recoveredStudio.json();
+  assert.equal(recoveredStudio.status, 200);
+  assert.equal(recoveredBody.revision, staleSaved.revision + 1);
+  assert.equal(recoveredBody.document.generationCanvas.nodes.some(item => item.id === failedLocalNode.id), false);
+  assert.equal(recoveredBody.document.generationCanvas.edges.some(item => item.id === 'edge-from-failed-local'), false);
+  const node = recoveredBody.document.generationCanvas.nodes.find(item => item.id === first.body.node.id);
   assert.ok(node);
   assert.equal(node.result.assetId, first.body.asset.id);
   assert.equal(node.title, '顾家餐厅到玄关连续空间');
