@@ -56,6 +56,17 @@ async function run() {
       () => uncertain.submit({prompt:'网络诊断',output_size:'2160x3840'}, []),
       error => error.code === 'YUNWU_NETWORK_UNCERTAIN' && error.providerCode === 'uncertain:URLError'
     );
+    const unavailableUpstream = createYunwuAgentVaultImage2Adapter({env,tempRoot:root,run:async (_python, args) => {
+      const receiptPath = args[args.indexOf('--receipt') + 1];
+      await fsp.writeFile(receiptPath, args.includes('--submit')
+        ? '{"status":"rejected_http_error","error_type":"HTTPError","http_status":503}'
+        : '{"status":"dry_run"}');
+      return {code:args.includes('--submit') ? 1 : 0};
+    }});
+    await assert.rejects(
+      () => unavailableUpstream.submit({prompt:'上游状态诊断',output_size:'2160x3840'}, []),
+      error => error.code === 'YUNWU_UPSTREAM_UNAVAILABLE' && error.providerCode === 'http:503'
+    );
     assert.equal((await fsp.readdir(root)).length, 0);
     console.log('YUNWU_AGENT_VAULT_IMAGE2_ADAPTER_CONTRACT_OK');
   } finally { await fsp.rm(root, {recursive:true,force:true}); }

@@ -103,6 +103,11 @@ async function executionExitFailure(result, receiptPath) {
     error.providerCode = diagnostic.errorType ? `uncertain:${diagnostic.errorType}` : 'uncertain';
     return error;
   }
+  if (diagnostic.httpStatus >= 500 && diagnostic.httpStatus <= 599) {
+    const error = adapterError('YUNWU_UPSTREAM_UNAVAILABLE', '云雾服务暂时不可用', 503);
+    error.providerCode = `http:${diagnostic.httpStatus}`;
+    return error;
+  }
   const error = adapterError('YUNWU_SUBMISSION_REJECTED', '云雾图像请求未通过');
   error.providerCode = diagnostic.httpStatus ? `http:${diagnostic.httpStatus}` : (diagnostic.status || 'rejected');
   return error;

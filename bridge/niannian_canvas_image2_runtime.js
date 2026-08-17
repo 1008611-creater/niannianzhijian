@@ -13,6 +13,7 @@ function publicFailure(error) {
   if (error?.code === 'YUNWU_AGENT_VAULT_NOT_CONFIGURED') return '云雾图像渠道尚未配置，暂时不能提交。';
   if (error?.code === 'YUNWU_EXECUTOR_NOT_CONFIGURED') return '云雾图像执行器尚未配置，暂时不能提交。';
   if (error?.code === 'YUNWU_NETWORK_UNCERTAIN') return '生成请求状态待确认，请稍后查看任务状态。';
+  if (error?.code === 'YUNWU_UPSTREAM_UNAVAILABLE') return '云雾服务暂时不可用，本次额度已退回，请稍后重新提交。';
   return '图像生成暂未完成，请检查输入后重试。';
 }
 
@@ -20,6 +21,7 @@ function failureCategory(error) {
   if (error?.code === 'YUNWU_NETWORK_UNCERTAIN') return 'network_uncertain';
   if (error?.code === 'YUNWU_AGENT_VAULT_NOT_CONFIGURED') return 'provider_configuration';
   if (error?.code === 'YUNWU_EXECUTOR_NOT_CONFIGURED') return 'executor_configuration';
+  if (error?.code === 'YUNWU_UPSTREAM_UNAVAILABLE') return 'provider_unavailable';
   if (error?.code === 'YUNWU_SUBMISSION_REJECTED') return 'provider_request';
   return 'image_request';
 }
