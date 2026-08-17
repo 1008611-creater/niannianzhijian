@@ -42,7 +42,8 @@ async function run() {
   const catalog = await catalogResponse.json();
   assert.equal(catalogResponse.status, 200);
   assert.equal(catalog.catalog.models.some(item => item.id === 'yunwu-gpt-image-2-c'), true);
-  assert.equal(JSON.stringify(catalog).includes('yunwu-agent-vault'), false);
+  assert.equal(catalog.catalog.models.find(item => item.id === 'yunwu-gpt-image-2-c').providerKey, 'yunwu-agent-vault');
+  assert.equal(JSON.stringify(catalog).includes('agent-vault://'), false);
   const dolaProviderSave = await fetch(`${baseUrl}/api/admin/model-config/provider`, {method:'PUT',headers:{...headers('admin-token'),'content-type':'application/json'},body:JSON.stringify({id:'dola-desktop-api',label:'Dola',kind:'video',enabled:true})});
   assert.equal(dolaProviderSave.status, 200);
   const dolaSave = await fetch(`${baseUrl}/api/admin/model-config/model`, {method:'PUT',headers:{...headers('admin-token'),'content-type':'application/json'},body:JSON.stringify({id:'dola-seedance-2-5',label:'Dola Seedance 2.5（30秒）',kind:'video',providerId:'dola-desktop-api',providerLabel:'Dola',tenantId:'tenant-a',enabled:true,priceCredits:0,resolutions:['720p'],aspectRatios:['9:16','16:9','1:1','4:3','3:4'],outputSizes:{}})});

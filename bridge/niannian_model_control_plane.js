@@ -78,6 +78,7 @@ function publicCatalog(models, providers, tenantId) {
       id: item.id,
       label: item.label,
       kind: item.kind,
+      providerKey: item.providerId,
       providerLabel: item.providerLabel,
       priceCredits: Number(item.priceCredits),
       resolutions: item.resolutions || [],

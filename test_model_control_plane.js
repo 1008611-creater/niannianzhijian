@@ -17,9 +17,10 @@ async function run() {
   await plane.creditAdmin(admin, {tenantId:'tenant-a', userId:user.id, amount:20, reason:'test grant'});
   const catalog = await plane.publicCatalogForTenant('tenant-a');
   assert.equal(catalog.models[0].priceCredits, 10);
+  assert.equal(catalog.models[0].providerKey, 'yunwu-agent-vault');
   assert.equal(Object.hasOwn(catalog, 'providers'), false);
   assert.equal(JSON.stringify(catalog).includes('private.example'), false);
-  assert.equal(JSON.stringify(catalog).includes('agent-vault'), false);
+  assert.equal(JSON.stringify(catalog).includes('agent-vault://'), false);
   const adminSnapshot = await plane.adminSnapshot(admin);
   assert.equal(JSON.stringify(adminSnapshot).includes('agent-vault://yunwu/image2'), false);
   assert.equal(Object.hasOwn(adminSnapshot.providers[0], 'secretRef'), false);
