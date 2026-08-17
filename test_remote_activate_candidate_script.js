@@ -12,6 +12,9 @@ assert.match(script, /readlink -f \/opt\/niannian-ai/);
 assert.match(script, /readlink -f \/var\/www\/niannian-ai/);
 assert.match(script, /readlink -f \/opt\/niannian-ai-current/);
 assert.match(script, /test ! -e "\$rollback_root"/);
+assert.match(script, /mkdir -p "\$rollback_root"/);
+assert.match(script, /chmod 0755 "\$rollback_root"/);
+assert.doesNotMatch(script, /install -d -m 0755 "\$rollback_root"/);
 assert.match(script, /cp -aL \/opt\/niannian-ai/);
 assert.match(script, /cp -aL \/var\/www\/niannian-ai/);
 assert.match(script, /mv -Tf \/opt\/niannian-ai\.next \/opt\/niannian-ai/);
@@ -23,4 +26,4 @@ assert.match(script, /trap on_error ERR/);
 assert.match(script, /\/opt\/node24\/bin\/node "\$runtime_verifier"/);
 assert.match(script, /trap - ERR/);
 
-process.stdout.write(JSON.stringify({ ok:true, verified:['atomic symlink switch', 'fresh rollback', '45-second bounded readiness', 'raw static verifier', 'automatic rollback trap'] }) + '\n');
+process.stdout.write(JSON.stringify({ ok:true, verified:['atomic symlink switch', 'fresh rollback', 'portable rollback directory creation', '45-second bounded readiness', 'raw static verifier', 'automatic rollback trap'] }) + '\n');
