@@ -23,7 +23,10 @@ const releaseStaticDirectories = Object.freeze([
   'assets',
   'vendor',
   'studio',
-  'director-desk'
+  'director-desk',
+  // This is an authenticated browser surface with its own entry module.  It
+  // must travel with every release package or /admin/commerce/ becomes a 404.
+  'admin/commerce'
 ]);
 const localValidationAllowedFiles = Object.freeze([
   'server.js', 'index.html', 'app.js', 'product.css', 'styles.css',
