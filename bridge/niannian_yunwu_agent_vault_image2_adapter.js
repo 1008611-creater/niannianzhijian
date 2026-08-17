@@ -8,8 +8,12 @@ const path = require('path');
 const {spawn} = require('child_process');
 const {imageMime} = require('./niannian_runninghub_image_adapter');
 
-const DEFAULT_SCRIPT = 'C:\\Users\\lsb\\.codex\\skills\\image2-skill\\scripts\\image2_channel.py';
-const DEFAULT_PYTHON = 'C:\\Users\\lsb\\anaconda3\\python.exe';
+const DEFAULT_WINDOWS_SCRIPT = 'C:\\Users\\lsb\\.codex\\skills\\image2-skill\\scripts\\image2_channel.py';
+const DEFAULT_WINDOWS_PYTHON = 'C:\\Users\\lsb\\anaconda3\\python.exe';
+const DEFAULT_SCRIPT = process.platform === 'win32'
+  ? DEFAULT_WINDOWS_SCRIPT
+  : path.join(__dirname, 'niannian_yunwu_image2_channel.py');
+const DEFAULT_PYTHON = process.platform === 'win32' ? DEFAULT_WINDOWS_PYTHON : 'python3';
 const EDIT_CHANNEL = 'yunwu-gpt-image-2-c-edit';
 const EDIT_OUTPUT_SIZE = '3840x2160';
 const GENERATE_OUTPUT_SIZE = '2160x3840';
@@ -68,8 +72,9 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
       const args = [scriptPath, '--channel', 'yunwu', '--operation', preflight.payload.operation, '--prompt-file', promptPath, '--model', 'gpt-image-2-c', '--size', preflight.payload.size, '--asset-id', `canvas-${id}`, '--submit', '--output', outputPath, '--receipt', receiptPath];
       for (const referenceFile of referenceFiles) args.push('--reference-image', referenceFile);
       result = await run(pythonPath, args, env);
-    } catch {
+    } catch (error) {
       await cleanup([promptPath, outputPath, receiptPath]);
+      if (error?.code === 'ENOENT') throw adapterError('YUNWU_EXECUTOR_NOT_CONFIGURED', '云雾执行器尚未配置', 503);
       throw adapterError('YUNWU_NETWORK_UNCERTAIN', '云雾请求状态待确认');
     }
     await fsp.rm(promptPath, {force:true});
@@ -96,4 +101,4 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
   return {dryRun, submit, query, constants:{generateEndpoint:'https://yunwu.ai/v1/images/generations', editEndpoint:'https://yunwu.ai/v1/images/edits', model:'gpt-image-2-c', generateOutputSize:GENERATE_OUTPUT_SIZE, editOutputSize:EDIT_OUTPUT_SIZE}};
 }
 
-module.exports = {createYunwuAgentVaultImage2Adapter, vaultReady};
+module.exports = {createYunwuAgentVaultImage2Adapter, vaultReady, DEFAULT_PYTHON, DEFAULT_SCRIPT};
