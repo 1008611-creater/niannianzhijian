@@ -4,8 +4,10 @@ const path = require('path');
 const crypto = require('crypto');
 const {normalizeImage2Spec} = require('./niannian_canvas_image2_channels');
 const {resolveVideoChannel} = require('./niannian_canvas_video_channels');
+const {COMMON_ASPECT_RATIOS} = require('./niannian_canvas_aspect_ratios');
 
-const DOLA_ASPECT_RATIOS = new Set(['9:16', '16:9', '1:1', '4:3', '3:4']);
+const COMMON_VIDEO_ASPECT_RATIOS = new Set(COMMON_ASPECT_RATIOS);
+const DOLA_ASPECT_RATIOS = COMMON_VIDEO_ASPECT_RATIOS;
 
 const MODELS = Object.freeze({
   image: Object.freeze({
@@ -180,6 +182,7 @@ function createCanvasGenerationJobService(options = {}) {
     if (!['redraw', 'script'].includes(projectKind)) throw jobError('CANVAS_JOB_PROJECT_KIND_INVALID', '项目类型无效', 422);
     if (!/^\d{1,2}:\d{1,2}$/.test(aspectRatio)) throw jobError('CANVAS_JOB_ASPECT_RATIO_INVALID', '画幅比例无效', 422);
     if (nodeType === 'video' && videoSpec?.id === 'dola-seedance-2-5' && !DOLA_ASPECT_RATIOS.has(aspectRatio)) throw jobError('CANVAS_DOLA_ASPECT_RATIO_UNSUPPORTED', 'Dola Seedance 2.5 不支持该画幅比例', 422);
+    if (nodeType === 'video' && videoSpec?.id === 'h3' && !COMMON_VIDEO_ASPECT_RATIOS.has(aspectRatio)) throw jobError('CANVAS_H3_ASPECT_RATIO_UNSUPPORTED', 'H3 不支持该画幅比例', 422);
     if (nodeType === 'video' && videoSpec?.id === 'dola-seedance-2-5' && durationSeconds !== 30) throw jobError('CANVAS_DOLA_DURATION_REQUIRED', 'Dola Seedance 2.5 只支持严格 30 秒视频', 422);
     if (nodeType === 'video' && videoSpec?.id !== 'dola-seedance-2-5' && (!Number.isFinite(durationSeconds) || durationSeconds < 4 || durationSeconds > 15)) throw jobError('CANVAS_JOB_DURATION_INVALID', '视频时长需在 4 到 15 秒之间', 422);
     if (nodeType === 'video' && !videoSpec) throw jobError('CANVAS_JOB_MODEL_INVALID', '视频模型尚未接入', 422);
@@ -318,4 +321,4 @@ function createCanvasGenerationJobService(options = {}) {
   return {create, getOwned, listOwned, listForCommerce, updateOwned, publicJob, dryRunContract, models: MODELS, constants: {filePath}};
 }
 
-module.exports = {createCanvasGenerationJobService, MODELS, publicJob, dryRunContract, requestHash, DOLA_ASPECT_RATIOS};
+module.exports = {createCanvasGenerationJobService, MODELS, publicJob, dryRunContract, requestHash, DOLA_ASPECT_RATIOS, COMMON_VIDEO_ASPECT_RATIOS};

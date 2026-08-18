@@ -18,10 +18,9 @@ async function run() {
   assert.deepEqual(targetDimensions('16:9'), {width:832, height:480});
   assert.equal(chooseChannel(1), 'one-image');
   assert.equal(CHANNELS['one-image'].endpoint, '/openapi/v2/run/workflow/2085388519102570497');
-  assert.throws(
-    () => targetDimensions('1:1'),
-    error => error?.code === 'RUNNINGHUB_TARGET_DIMENSION_UNSUPPORTED'
-  );
+  assert.deepEqual(targetDimensions('1:1'), {width:832, height:832});
+  assert.deepEqual(targetDimensions('4:3'), {width:832, height:624});
+  assert.deepEqual(targetDimensions('3:4'), {width:624, height:832});
   const h3Adapter = createRunningHubH3Adapter({baseUrl:'https://www.runninghub.cn'});
   const genericOnlyAdapter = createRunningHubH3Adapter({baseUrl:'https://www.runninghub.cn',fetchImpl:async () => { throw new Error('must not reach provider'); }});
   const previousConsumerKey = process.env.NOMI_RUNNINGHUB_H3_API_KEY;

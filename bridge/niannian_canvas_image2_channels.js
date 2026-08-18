@@ -1,15 +1,17 @@
 'use strict';
 
+const {COMMON_ASPECT_RATIOS, outputSizesForRatios} = require('./niannian_canvas_aspect_ratios');
+
 const CHANNELS = Object.freeze({
   'yunwu-gpt-image-2-c': Object.freeze({
     id: 'yunwu-gpt-image-2-c',
     provider: 'yunwu-agent-vault',
-    label: '云雾 Image2 竖版 4K',
+    label: '云雾 Image2 4K',
     resolutions: Object.freeze(['4k']),
-    aspectRatios: Object.freeze(['9:16', '3:4']),
+    aspectRatios: COMMON_ASPECT_RATIOS,
     outputSizes: Object.freeze({'4k': '2160x3840'}),
     outputSizesByAspectRatio: Object.freeze({
-      '4k': Object.freeze({'9:16': '2160x3840', '3:4': '2160x2880'})
+      '4k': outputSizesForRatios()
     })
   }),
   'yunwu-gpt-image-2-c-edit': Object.freeze({
@@ -17,8 +19,9 @@ const CHANNELS = Object.freeze({
     provider: 'yunwu-agent-vault',
     label: '云雾 Image2 图改图 4K',
     resolutions: Object.freeze(['4k']),
-    aspectRatios: Object.freeze(['16:9']),
-    outputSizes: Object.freeze({'4k': '3840x2160'})
+    aspectRatios: COMMON_ASPECT_RATIOS,
+    outputSizes: Object.freeze({'4k': '3840x2160'}),
+    outputSizesByAspectRatio: Object.freeze({'4k': outputSizesForRatios()})
   })
 });
 
@@ -68,7 +71,7 @@ function publicImage2Channel(channel, configured = false) {
   const outputSizes = {...channel.outputSizes};
   for (const [resolution, ratios] of Object.entries(channel.outputSizesByAspectRatio || {})) {
     for (const [ratio, size] of Object.entries(ratios || {})) {
-      if (ratio !== channel.aspectRatios[0]) outputSizes[`${resolution} · ${ratio}`] = size;
+      outputSizes[`${resolution} · ${ratio}`] = size;
     }
   }
   return {
