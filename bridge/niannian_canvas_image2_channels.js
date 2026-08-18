@@ -1,6 +1,6 @@
 'use strict';
 
-const {COMMON_ASPECT_RATIOS, outputSizesForRatios} = require('./niannian_canvas_aspect_ratios');
+const {YUNWU_GENERATE_ASPECT_RATIOS, YUNWU_EDIT_ASPECT_RATIOS, outputSizesForRatios} = require('./niannian_canvas_aspect_ratios');
 
 const CHANNELS = Object.freeze({
   'yunwu-gpt-image-2-c': Object.freeze({
@@ -8,10 +8,10 @@ const CHANNELS = Object.freeze({
     provider: 'yunwu-agent-vault',
     label: '云雾 Image2 4K',
     resolutions: Object.freeze(['4k']),
-    aspectRatios: COMMON_ASPECT_RATIOS,
+    aspectRatios: YUNWU_GENERATE_ASPECT_RATIOS,
     outputSizes: Object.freeze({'4k': '2160x3840'}),
     outputSizesByAspectRatio: Object.freeze({
-      '4k': outputSizesForRatios()
+      '4k': outputSizesForRatios(YUNWU_GENERATE_ASPECT_RATIOS)
     })
   }),
   'yunwu-gpt-image-2-c-edit': Object.freeze({
@@ -19,9 +19,9 @@ const CHANNELS = Object.freeze({
     provider: 'yunwu-agent-vault',
     label: '云雾 Image2 图改图 4K',
     resolutions: Object.freeze(['4k']),
-    aspectRatios: COMMON_ASPECT_RATIOS,
+    aspectRatios: YUNWU_EDIT_ASPECT_RATIOS,
     outputSizes: Object.freeze({'4k': '3840x2160'}),
-    outputSizesByAspectRatio: Object.freeze({'4k': outputSizesForRatios()})
+    outputSizesByAspectRatio: Object.freeze({'4k': outputSizesForRatios(YUNWU_EDIT_ASPECT_RATIOS)})
   })
 });
 
