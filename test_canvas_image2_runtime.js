@@ -6,9 +6,12 @@ const sharp = require('sharp');
 const {createCanvasAssetService} = require('./bridge/niannian_canvas_assets');
 const {createCanvasGenerationJobService} = require('./bridge/niannian_canvas_generation_jobs');
 const {createCanvasImage2Runtime} = require('./bridge/niannian_canvas_image2_runtime');
+const {publicUnifiedImage2Channel} = require('./bridge/niannian_canvas_image2_channels');
 const {IMAGE_SIZES_BY_RESOLUTION} = require('./bridge/niannian_canvas_aspect_ratios');
 
 async function run() {
+  const catalog = publicUnifiedImage2Channel(true);
+  assert.equal(Object.prototype.hasOwnProperty.call(catalog, 'catalogImageSizeOptions'), false, 'Image2 catalog must not expose a duplicate size control');
   for (const sizes of Object.values(IMAGE_SIZES_BY_RESOLUTION)) for (const size of Object.values(sizes)) {
     const [width, height] = size.split('x').map(Number);
     assert.equal(width % 16, 0, `${size} width must be a 16-pixel multiple`);

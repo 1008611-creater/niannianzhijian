@@ -48,7 +48,7 @@ function createImage2Node({projectId, referenceAssetIds = [], existingNode = nul
     position: prior.position || {x:120, y:500},
     data: {
       title:'Image2 关键帧生成',
-      note:'输入提示词和参考资产，选择渠道、比例与输出尺寸。',
+      note:'输入提示词和参考资产，选择渠道、比例与清晰度。',
       prompt,
       assetIds,
       inputAssetIds:assetIds,

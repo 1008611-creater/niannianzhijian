@@ -1,6 +1,6 @@
 'use strict';
 
-const {COMMON_ASPECT_RATIOS, COMMON_IMAGE_RESOLUTIONS, IMAGE_SIZES_BY_RESOLUTION, YUNWU_GENERATE_ASPECT_RATIOS, YUNWU_EDIT_ASPECT_RATIOS, outputSizesForRatios} = require('./niannian_canvas_aspect_ratios');
+const {COMMON_ASPECT_RATIOS, COMMON_IMAGE_RESOLUTIONS, YUNWU_GENERATE_ASPECT_RATIOS, YUNWU_EDIT_ASPECT_RATIOS, outputSizesForRatios} = require('./niannian_canvas_aspect_ratios');
 
 const CHANNELS = Object.freeze({
   'yunwu-gpt-image-2-c': Object.freeze({
@@ -104,13 +104,6 @@ function publicUnifiedImage2Channel(configured = false) {
   };
   const outputSizes = {'4k': generate.outputSizes['4k']};
   for (const [ratio, size] of Object.entries(outputSizesByAspectRatio['4k'])) outputSizes[`4k · ${ratio}`] = size;
-  const allImageSizeOptions = COMMON_IMAGE_RESOLUTIONS.flatMap(resolution => COMMON_ASPECT_RATIOS.map(aspectRatio => ({
-    value: IMAGE_SIZES_BY_RESOLUTION[resolution][aspectRatio],
-    label: `${IMAGE_SIZES_BY_RESOLUTION[resolution][aspectRatio]}（${resolution.toUpperCase()} · ${aspectRatio}${resolution === '4k' && (generate.aspectRatios.includes(aspectRatio) || edit.aspectRatios.includes(aspectRatio)) ? '' : ' · 待验证'}）`,
-    resolution,
-    aspectRatio,
-    available: resolution === '4k' && (generate.aspectRatios.includes(aspectRatio) || edit.aspectRatios.includes(aspectRatio))
-  })));
   return {
     id: generate.id,
     label: '云雾 Image2',
@@ -127,7 +120,6 @@ function publicUnifiedImage2Channel(configured = false) {
     defaultImageSize: outputSizesByAspectRatio['4k']['9:16'],
     catalogAspectRatios: COMMON_ASPECT_RATIOS.map(value => ({value, label: value + (generate.aspectRatios.includes(value) || edit.aspectRatios.includes(value) ? '' : '（待验证）'), available: generate.aspectRatios.includes(value) || edit.aspectRatios.includes(value)})),
     catalogResolutions: COMMON_IMAGE_RESOLUTIONS.map(value => ({value, label:value.toUpperCase() + (value === '4k' ? '' : '（待验证）'), available: value === '4k'})),
-    catalogImageSizeOptions: allImageSizeOptions,
     modes: [
       {id: 'text-to-image', label: '文生图', referenceRequired: false, aspectRatios: [...generate.aspectRatios], outputSizesByAspectRatio: JSON.parse(JSON.stringify(generate.outputSizesByAspectRatio)), priceCredits: 10},
       {id: 'reference-image-edit', label: '添加参考图', referenceRequired: true, aspectRatios: [...edit.aspectRatios], outputSizesByAspectRatio: JSON.parse(JSON.stringify(edit.outputSizesByAspectRatio)), priceCredits: 12}
