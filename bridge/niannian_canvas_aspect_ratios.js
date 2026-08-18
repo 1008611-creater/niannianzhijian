@@ -11,8 +11,13 @@ const IMAGE_4K_SIZES = Object.freeze({
   '3:4': '2160x2880'
 });
 
+// Verified against the protected Yunwu account. The shared vocabulary remains
+// available to other providers, but a provider must expose only its proven subset.
+const YUNWU_GENERATE_ASPECT_RATIOS = Object.freeze(['9:16']);
+const YUNWU_EDIT_ASPECT_RATIOS = Object.freeze(['16:9']);
+
 function outputSizesForRatios(ratios = COMMON_ASPECT_RATIOS) {
   return Object.freeze(Object.fromEntries([...ratios].filter(ratio => IMAGE_4K_SIZES[ratio]).map(ratio => [ratio, IMAGE_4K_SIZES[ratio]])));
 }
 
-module.exports = {COMMON_ASPECT_RATIOS, IMAGE_4K_SIZES, outputSizesForRatios};
+module.exports = {COMMON_ASPECT_RATIOS, IMAGE_4K_SIZES, YUNWU_GENERATE_ASPECT_RATIOS, YUNWU_EDIT_ASPECT_RATIOS, outputSizesForRatios};
