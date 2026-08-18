@@ -75,6 +75,7 @@
     "test:canvas-assets-http": "node test_canvas_assets_http.js",
     "test:canvas-internal-asset-import": "node test_canvas_internal_asset_import_http.js",
     "test:canvas-image2-runtime": "node test_canvas_image2_runtime.js",
+    "test:canvas-asset-node-reference": "node test_canvas_asset_node_reference_contract.js",
     "test:canvas-shot-frame-preview": "node test_canvas_shot_frame_preview_contract.js",
     "test:canvas-h3-runtime": "node test_canvas_h3_runtime.js",
     "test:canvas-dola-runtime": "node test_canvas_dola_runtime.js",
