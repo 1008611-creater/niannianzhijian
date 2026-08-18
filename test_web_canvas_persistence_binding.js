@@ -32,6 +32,9 @@ assert.match(
 assert.match(baseNodeSource, /uploadStatus:"uploaded",localOnly:!1\}\)\}\),r\(\)\}\)/);
 assert.match(baseNodeSource, /P!==t&&\(i\(e,\{title:P\}\),x\(\)\)/);
 assert.match(source, /platform!==\"web\"&&n===\"image\"/);
+// Reference connections may start from a text-to-image target; the connection
+// validator must allow an available alternate image-edit mode to take over.
+assert.match(source, /some\(s=>i\.has\(s\)&&Od\[s\]\.includes\(r\)\)\|\|!!jh\(e,t,n\)/);
 assert.match(source, /uploadStatus:c\?\"local-only\":\"failed\"/);
 assert.match(source, /retryableImport:!c/);
 
