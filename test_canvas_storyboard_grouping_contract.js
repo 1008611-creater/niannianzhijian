@@ -25,6 +25,11 @@ const normalized = groups.normalizeGenerationCanvas({
 }, {now});
 
 assert.deepEqual(normalized.groupTaxonomy.topLevel.map(item => item.name), ['分镜','角色','场景','道具','声音']);
+assert.deepEqual(normalized.groups.filter(group => group.systemManaged).map(group => group.id).sort(), ['audio','characters','props','scenes','shots']);
+assert.equal(normalized.groups.find(group => group.id === 'E01-G1').parentGroupId, 'shots');
+assert.equal(normalized.nodes.find(node => node.id === 'character-asset').groupId, 'characters');
+assert.equal(normalized.nodes.find(node => node.id === 'scene-asset').groupId, 'scenes');
+assert.equal(normalized.nodes.find(node => node.id === 'prop-asset').groupId, 'props');
 assert.equal(normalized.nodes.find(node => node.id === 'character-asset').categoryId, 'characters');
 assert.equal(normalized.nodes.find(node => node.id === 'scene-asset').categoryId, 'scenes');
 assert.equal(normalized.nodes.find(node => node.id === 'prop-asset').categoryId, 'props');
@@ -36,12 +41,19 @@ assert.deepEqual(normalized.groups.find(group => group.id === 'E01-G1').nodeIds,
 assert.deepEqual(normalized.groups.find(group => group.id === 'E01-G1').assetIds, [sceneAsset]);
 assert.deepEqual(normalized.groups.find(group => group.id === 'E01-G2').nodeIds, ['legacy-image']);
 assert.deepEqual(normalized.groups.find(group => group.id === 'E01-G2').assetIds, [characterAsset]);
+assert.deepEqual(normalized.groups.find(group => group.id === 'characters').nodeIds, ['character-asset']);
+assert.deepEqual(normalized.groups.find(group => group.id === 'scenes').nodeIds, ['scene-asset']);
+assert.deepEqual(normalized.groups.find(group => group.id === 'props').nodeIds, ['prop-asset']);
 assert.equal(normalized.nodes.filter(node => node.kind === 'asset').length, 3);
 
 const reloaded = groups.normalizeGenerationCanvas(normalized, {now});
 assert.deepEqual(reloaded, normalized);
 assert.deepEqual(groups.resolveProjectGenerationDefaults({}), {aspectRatio:'9:16',durationSeconds:5});
 assert.deepEqual(groups.resolveProjectGenerationDefaults({metadata:{generationDefaults:{videoAspectRatio:'9:16',videoDurationSeconds:5}}}), {aspectRatio:'9:16',durationSeconds:5});
+const fresh = groups.normalizeGenerationCanvas({nodes:[{id:'fresh-image',kind:'image',meta:{inputAssetIds:[characterAsset]}}],edges:[]}, {now});
+assert.deepEqual(fresh.groups.filter(group => group.systemManaged).map(group => group.id).sort(), ['audio','characters','props','scenes','shots']);
+assert.equal(fresh.groups.find(group => group.id === groups.DEFAULT_STORYBOARD_GROUP_ID).parentGroupId, 'shots');
+assert.equal(fresh.nodes[0].groupId, groups.DEFAULT_STORYBOARD_GROUP_ID);
 
 console.log(JSON.stringify({ok:true,verified:[
   'image and video nodes always normalize into storyboard child groups',

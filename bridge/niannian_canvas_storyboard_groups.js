@@ -38,9 +38,9 @@ function defaultStoryboardGroup(now) {
     id:DEFAULT_STORYBOARD_GROUP_ID,
     name:'分镜·未分配',
     categoryId:STORYBOARD_CATEGORY,
+    parentGroupId:'shots',
     shotId:'UNASSIGNED',
     nodeIds:[],
-    systemManaged:true,
     createdAt:now,
     updatedAt:now
   };
@@ -60,7 +60,7 @@ function normalizeGroup(group, index, now) {
     createdAt:Number.isFinite(Number(group.createdAt)) ? Number(group.createdAt) : now,
     updatedAt:Number.isFinite(Number(group.updatedAt)) ? Number(group.updatedAt) : now
   };
-  if (categoryId === STORYBOARD_CATEGORY) normalized.shotId = shotIdFor(normalized) || normalized.id;
+  if (categoryId === STORYBOARD_CATEGORY && normalized.id !== 'shots') normalized.shotId = shotIdFor(normalized) || normalized.id;
   else delete normalized.shotId;
   return normalized;
 }
@@ -79,9 +79,9 @@ function assetIdsForNode(node) {
 
 function preferredStoryboardGroup(groups, requestedGroupId, now) {
   const requested = text(requestedGroupId, 120);
-  const existing = groups.find(group => group.id === requested && group.categoryId === STORYBOARD_CATEGORY)
-    || groups.find(group => group.categoryId === STORYBOARD_CATEGORY && group.shotId && group.shotId !== 'UNASSIGNED')
-    || groups.find(group => group.categoryId === STORYBOARD_CATEGORY);
+  const existing = groups.find(group => group.id === requested && group.id !== 'shots' && group.categoryId === STORYBOARD_CATEGORY)
+    || groups.find(group => group.id !== 'shots' && group.categoryId === STORYBOARD_CATEGORY && group.shotId && group.shotId !== 'UNASSIGNED')
+    || groups.find(group => group.id !== 'shots' && group.categoryId === STORYBOARD_CATEGORY);
   if (existing) return existing;
   const created = defaultStoryboardGroup(now);
   groups.push(created);
@@ -99,6 +99,31 @@ function normalizeGenerationCanvas(canvas, options = {}) {
   const groups = (Array.isArray(raw.groups) ? raw.groups : [])
     .map((group, index) => normalizeGroup(group, index, now))
     .filter(Boolean);
+  // Materialize the durable category rows in every document.  `groupTaxonomy`
+  // alone is not enough for clients that persist by group id; without these
+  // rows a fresh project looks empty and generation nodes can be routed by the
+  // currently selected sidebar group.
+  const existingGroupIds = new Set(groups.map(group => group.id));
+  for (const topLevel of TOP_LEVEL_GROUPS) {
+    if (existingGroupIds.has(topLevel.id)) continue;
+    groups.push({
+      id:topLevel.id,
+      name:topLevel.name,
+      categoryId:topLevel.id,
+      nodeIds:[],
+      assetIds:[],
+      parentGroupId:null,
+      systemManaged:true,
+      createdAt:now,
+      updatedAt:now
+    });
+    existingGroupIds.add(topLevel.id);
+  }
+  for (const group of groups) {
+    if (group.id !== 'shots' && group.categoryId === STORYBOARD_CATEGORY && !group.parentGroupId) {
+      group.parentGroupId = 'shots';
+    }
+  }
   const nodes = Array.isArray(raw.nodes) ? raw.nodes.map(node => ({...node})) : [];
   const nodeIds = new Set(nodes.map(node => text(node?.id, 120)).filter(Boolean));
   const requestedByNode = options.requestedGroupByNode && typeof options.requestedGroupByNode === 'object'
@@ -110,7 +135,14 @@ function normalizeGenerationCanvas(canvas, options = {}) {
     const nodeId = text(node.id, 120);
     const existingCategory = text(node.categoryId, 40);
     if (!TOP_LEVEL_IDS.has(existingCategory)) node.categoryId = isGenerationNode(node) ? STORYBOARD_CATEGORY : existingCategory || STORYBOARD_CATEGORY;
-    if (!isGenerationNode(node)) continue;
+    if (!isGenerationNode(node)) {
+      // Existing confirmed assets keep their own category and become visible
+      // in the corresponding durable top-level group without duplication.
+      if ((node.kind === 'asset' || node.type === 'asset') && TOP_LEVEL_IDS.has(node.categoryId) && !node.groupId) {
+        node.groupId = node.categoryId;
+      }
+      continue;
+    }
     // Image/video generation is always part of the storyboard. Sidebar state
     // must never route a generation request into roles, scenes, props or audio.
     node.categoryId = STORYBOARD_CATEGORY;
