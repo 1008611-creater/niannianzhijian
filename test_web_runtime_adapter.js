@@ -86,7 +86,7 @@ const context = {
       return {ok:true,json:async() => ({asset:{id:'CAS-1234567890abcdef12345678',downloadUrl:'/api/projects/NN-LOCAL-0001/assets/CAS-1234567890abcdef12345678/download'}})};
     }
     if (pathname.endsWith('/assets')) return {ok:true,json:async() => ({assets:[
-      {id:'CAS-111111111111111111111111',kind:'reference_image',originalName:'reference.png',mimeType:'image/png',createdAt:'2026-08-11T00:00:00.000Z',updatedAt:'2026-08-11T00:00:00.000Z',downloadUrl:'/api/projects/NN-LOCAL-0001/assets/CAS-111111111111111111111111/download'},
+      {id:'CAS-111111111111111111111111',kind:'reference_image',originalName:'reference.png',mimeType:'image/png',createdAt:'2026-08-11T00:00:00.000Z',updatedAt:'2026-08-11T00:00:00.000Z',downloadUrl:'/api/projects/NN-LOCAL-0001/assets/CAS-111111111111111111111111/download',thumbnailUrl:'/api/projects/NN-LOCAL-0001/assets/CAS-111111111111111111111111/thumbnail'},
       {id:'CAS-222222222222222222222222',kind:'generated_video',originalName:'result.mp4',mimeType:'video/mp4',createdAt:'2026-08-11T00:01:00.000Z',updatedAt:'2026-08-11T00:01:00.000Z',downloadUrl:'/api/projects/NN-LOCAL-0001/assets/CAS-222222222222222222222222/download'},
       {id:'CAS-333333333333333333333333',kind:'reference_audio',originalName:'voice.mp3',mimeType:'audio/mpeg',createdAt:'2026-08-11T00:02:00.000Z',updatedAt:'2026-08-11T00:02:00.000Z',downloadUrl:'/api/projects/NN-LOCAL-0001/assets/CAS-333333333333333333333333/download'}
     ]})};
@@ -122,6 +122,8 @@ assert.deepEqual(Array.from(listed.items, (asset) => [asset.id, asset.projectId,
   ['CAS-222222222222222222222222', 'NN-LOCAL-0001', 'result.mp4', 'video', 'project-assets/CAS-222222222222222222222222', '/api/projects/NN-LOCAL-0001/assets/CAS-222222222222222222222222/download'],
   ['CAS-333333333333333333333333', 'NN-LOCAL-0001', 'voice.mp3', 'audio', 'project-assets/CAS-333333333333333333333333', '/api/projects/NN-LOCAL-0001/assets/CAS-333333333333333333333333/download']
 ]);
+assert.equal(listed.items[0].data.thumbnailUrl, '/api/projects/NN-LOCAL-0001/assets/CAS-111111111111111111111111/thumbnail');
+assert.equal(listed.items[1].data.thumbnailUrl, '/api/projects/NN-LOCAL-0001/assets/CAS-222222222222222222222222/thumbnail');
 const download = await context.window.nomiDesktop.assets.download({url: '/api/projects/NN-LOCAL-0001/assets/CAS-222222222222222222222222/download', suggestedName: 'result.mp4'});
 assert.equal(download.ok, true);
 assert.equal(download.canceled, false);
