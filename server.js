@@ -8332,10 +8332,10 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         model:requestedModel || (nodeType === 'image' ? 'yunwu-gpt-image-2-c' : 'h3'),
         prompt:canvasText(compiledPrompt?.prompt || body.prompt || node.data?.prompt, 4000),
         inputAssetIds,
-        // Yunwu channels have fixed delivery shapes. Older canvas nodes still carry
-        // generic defaults, so prevent them from overriding the selected channel.
-        resolution:nodeType === 'image' && ['yunwu-gpt-image-2-c','yunwu-gpt-image-2-c-edit'].includes(requestedModel)
-          ? '4k'
+        // Preserve the user's selected spec so the Image2 contract can report
+        // the exact unsupported parameter instead of silently forcing 4K.
+        resolution:nodeType === 'image'
+          ? canvasText(body.resolution || nodeData.resolution || nodeMeta.resolution || '4k', 8)
           : canvasText(body.resolution || nodeData.resolution || nodeMeta.resolution || '2k', 8),
         outputSize:nodeType === 'image'
           ? canvasText(body.outputSize || body.imageSize || node.data?.outputSize || node.data?.imageSize || '', 32) || null
@@ -8343,7 +8343,7 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         aspectRatio:(nodeType === 'video' && h3Defaults)
           ? canvasText(body.aspectRatio || body.aspect_ratio || (nodeMeta.aspect_ratio_user_set === true ? (nodeMeta.aspectRatio || nodeMeta.aspect_ratio) : '') || h3Defaults.aspectRatio, 16)
           : (nodeType === 'image'
-          ? (['9:16','16:9'].includes(requestedImageAspect) ? requestedImageAspect : (imageHasReferences ? '16:9' : '9:16'))
+          ? (requestedImageAspect || (imageHasReferences ? '16:9' : '9:16'))
           : canvasText(
             body.aspectRatio
               || (nodeType === 'video'

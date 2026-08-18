@@ -12,7 +12,9 @@ const IMAGE_4K_SIZES = Object.freeze({
 });
 const COMMON_IMAGE_RESOLUTIONS = Object.freeze(['1k', '2k', '4k']);
 const IMAGE_SIZES_BY_RESOLUTION = Object.freeze({
-  '1k': Object.freeze({'9:16':'768x1365','16:9':'1365x768','1:1':'1024x1024','4:3':'1152x864','3:4':'864x1152'}),
+  // Yunwu requires every side to be a multiple of 16. Use the nearest
+  // legal dimensions instead of the mathematically rounded 1365-pixel side.
+  '1k': Object.freeze({'9:16':'768x1360','16:9':'1360x768','1:1':'1024x1024','4:3':'1152x864','3:4':'864x1152'}),
   '2k': Object.freeze({'9:16':'1440x2560','16:9':'2560x1440','1:1':'2048x2048','4:3':'2048x1536','3:4':'1536x2048'}),
   '4k': IMAGE_4K_SIZES
 });
