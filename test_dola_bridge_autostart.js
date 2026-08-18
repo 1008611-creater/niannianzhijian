@@ -1,11 +1,15 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { ensureRunning } = require('./bridge/niannian_dola_bridge_autostart');
 
 function response(ok) { return { ok }; }
 
 (async () => {
+  assert.equal(fs.existsSync(path.join(__dirname, 'bridge', 'Start-NianNianDolaBridge.ps1')), true);
+  assert.equal(fs.existsSync(path.join(__dirname, 'bridge', 'Install-NianNianDolaStartup.ps1')), true);
   let calls = 0;
   const already = await ensureRunning({ fetchImpl: async () => response(true), spawnImpl: () => { throw new Error('must not spawn'); } });
   assert.equal(already.status, 'already_running');

@@ -84,4 +84,17 @@ async function submit(options = {}) {
   return {browser, page, submitted:true, pageUrl:page.url()};
 }
 
-module.exports = { DEFAULT_CDP, connect, videoPage, preflight, prepare, submit, ensureDurationAndRatio };
+async function inspectJob(options = {}) {
+  const page = options.page || (options.browser && (await videoPage(options.browser)));
+  if (!page) throw controllerError('DOLA_PLAYWRIGHT_PAGE_MISSING', '未找到 Dola 页面');
+  const text = await page.locator('body').innerText();
+  const videos = await page.locator('video').evaluateAll(nodes => nodes.map(node => ({src: node.currentSrc || node.src || '', readyState: node.readyState, duration: Number(node.duration || 0)})));
+  const links = await page.locator('a').evaluateAll(nodes => nodes.map(node => ({href: node.href || '', text: (node.textContent || '').trim()})).filter(item => item.href));
+  const outputUrl = videos.find(item => item.src)?.src || links.find(item => /\.mp4(?:$|[?#])/i.test(item.href))?.href || '';
+  const lower = text.toLowerCase();
+  const failed = /失败|错误|failed|error/.test(text) && !outputUrl;
+  const completed = Boolean(outputUrl) || /已完成|完成|下载|done|completed/.test(lower);
+  return {pageUrl: page.url(), text: text.slice(-12000), videos, links, outputUrl, status: failed ? 'failed' : completed ? 'completed' : 'running'};
+}
+
+module.exports = { DEFAULT_CDP, connect, videoPage, preflight, prepare, submit, inspectJob, ensureDurationAndRatio };

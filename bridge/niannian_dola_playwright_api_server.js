@@ -99,11 +99,10 @@ function createDolaPlaywrightApiServer(options = {}) {
     try {
       const submitted = await control.submit({browser:prepared.browser,page:prepared.page,prompt:withDolaPromptPrefix(prompt),aspectRatio});
       const id = 'DOLA-' + crypto.randomBytes(12).toString('hex');
-      const record = {id,status:'queued',submittedAt:now(),updatedAt:now(),pageUrl:submitted.pageUrl || prepared.pageUrl,aspectRatio,durationSeconds:30,inputCounts:prepared.counts || {image:0,audio:0,video:0}};
+      const record = {id,status:'queued',submittedAt:now(),updatedAt:now(),pageUrl:submitted.pageUrl || prepared.pageUrl,aspectRatio,durationSeconds:30,inputCounts:prepared.counts || {image:0,audio:0,video:0},browser:submitted.browser || prepared.browser,page:submitted.page || prepared.page};
       jobs.set(id, record);
       return record;
     } finally {
-      await prepared.browser?.close?.().catch(() => {});
       for (const asset of preparedAssets) if (asset.path && asset.path.includes('niannian-dola-')) await require('fs').promises.rm(asset.path, {force:true}).catch(() => {});
     }
   }
@@ -119,7 +118,17 @@ function createDolaPlaywrightApiServer(options = {}) {
       if (request.method === 'GET' && match) {
         const job = jobs.get(match[1]);
         if (!job) return json(response, 404, {code:'DOLA_BRIDGE_JOB_NOT_FOUND',error:'Dola 任务不存在'});
-        return json(response, 200, {job_id:job.id,status:job.status,submitted_at:job.submittedAt,updated_at:job.updatedAt,aspect_ratio:job.aspectRatio,duration_seconds:job.durationSeconds});
+        if (job.status === 'queued' || job.status === 'running') {
+          try {
+            const inspected = await control.inspectJob({browser:job.browser,page:job.page});
+            job.status = inspected.status;
+            job.updatedAt = now();
+            if (inspected.outputUrl) job.outputUrl = inspected.outputUrl;
+            if (inspected.pageUrl) job.pageUrl = inspected.pageUrl;
+            if (inspected.status === 'failed') job.error = 'Dola 页面报告生成失败';
+          } catch (_) {}
+        }
+        return json(response, 200, {job_id:job.id,status:job.status,submitted_at:job.submittedAt,updated_at:job.updatedAt,aspect_ratio:job.aspectRatio,duration_seconds:job.durationSeconds,output_url:job.outputUrl || null,error:job.error || null});
       }
       return json(response, 404, {code:'DOLA_BRIDGE_ROUTE_NOT_FOUND',error:'接口不存在'});
     } catch (error) {
