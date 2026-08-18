@@ -1,7 +1,11 @@
 'use strict';
 
 const {createDolaDesktopApiAdapter} = require('./niannian_dola_desktop_api_adapter');
-const dolaPlaywrightController = require('./niannian_dola_playwright_controller');
+let dolaPlaywrightController;
+function playwrightController() {
+  if (!dolaPlaywrightController) dolaPlaywrightController = require('./niannian_dola_playwright_controller');
+  return dolaPlaywrightController;
+}
 const {withDolaPromptPrefix} = require('./niannian_dola_desktop_api_adapter');
 const {isDolaVideoChannel} = require('./niannian_canvas_video_channels');
 const {inspectDolaMedia} = require('./niannian_dola_media_validation');
@@ -37,9 +41,9 @@ function createCanvasDolaRuntime(options = {}) {
   const enabled = options.enabled === true;
   const playwrightMode = options.playwrightMode === true;
   const adapter = options.adapter || (!playwrightMode && enabled ? createDolaDesktopApiAdapter(options.dola || {}) : null);
-  const preflightPage = options.preflightPage || dolaPlaywrightController.preflight;
-  const preparePage = options.preparePage || dolaPlaywrightController.prepare;
-  const submitPage = options.submitPage || (playwrightMode ? dolaPlaywrightController.submit : null);
+  const preflightPage = options.preflightPage || (playwrightMode ? (...args) => playwrightController().preflight(...args) : null);
+  const preparePage = options.preparePage || (playwrightMode ? (...args) => playwrightController().prepare(...args) : null);
+  const submitPage = options.submitPage || (playwrightMode ? (...args) => playwrightController().submit(...args) : null);
   const inspectMedia = options.inspectMedia || inspectDolaMedia;
   const submissionsInFlight = new Map();
   if (!jobs || !assets) throw new Error('canvas Dola runtime requires job and asset services');
@@ -76,7 +80,7 @@ function createCanvasDolaRuntime(options = {}) {
 
   async function submitOnce(ownerId, projectId, jobId) {
     if (!enabled) throw runtimeError('CANVAS_PROVIDER_SUBMIT_DISABLED', 'Dola 视频生成尚未启用，当前任务仅完成准备。');
-    try { const check = await preflightPage(); if (!check.ready) throw new Error('Dola 页面未就绪'); }
+    try { if (!preflightPage) throw runtimeError('DOLA_PLAYWRIGHT_NOT_CONFIGURED', 'Dola 页面连接尚未配置'); const check = await preflightPage(); if (!check.ready) throw new Error('Dola 页面未就绪'); }
     catch (error) { throw runtimeError(error.code || 'DOLA_PLAYWRIGHT_NOT_READY', error.message || 'Dola 页面未就绪'); }
     const job = await jobs.getOwned(ownerId, projectId, jobId);
     if (!job) throw runtimeError('CANVAS_JOB_NOT_FOUND', '任务不存在', 404);
