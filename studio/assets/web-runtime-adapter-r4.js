@@ -167,7 +167,11 @@
     // Server model catalog is the only browser-facing configuration surface.
     // It contains enabled models and prices, never provider URLs or credentials.
     if (status.modelCatalog && Array.isArray(status.modelCatalog.models)) {
-      var catalogModels = status.modelCatalog.models.filter(function (item) { return item && item.enabled !== false; });
+      var catalogModels = status.modelCatalog.models.filter(function (item) {
+        // This legacy edit id is an internal adapter route, not a selectable
+        // browser model. Reference-image mode is exposed by the unified model.
+        return item && item.enabled !== false && item.id !== 'yunwu-gpt-image-2-c-edit';
+      });
       var catalogVendors = [];
       var catalogModelsPublic = catalogModels.map(function (item) {
         // The node stores providerKey, while providerLabel is display-only and may be non-ASCII.
@@ -203,7 +207,7 @@
               imageOptions: {
                 ...(item.imageOptions || {}),
                 aspectRatioOptions: Array.isArray(item.imageOptions?.aspectRatioOptions) ? item.imageOptions.aspectRatioOptions : (item.aspectRatios || []).map(function (value) { return {value: String(value), label: String(value)}; }),
-                imageSizeOptions: Array.isArray(item.imageOptions?.imageSizeOptions) ? item.imageOptions.imageSizeOptions : Object.entries(item.outputSizes || {}).map(function (entry) { return {value: String(entry[1]), label: String(entry[1]) + '（' + String(entry[0]).toUpperCase() + '）'}; }),
+                imageSizeOptions: Array.isArray(item.imageOptions?.imageSizeOptions) ? item.imageOptions.imageSizeOptions : Object.entries(item.outputSizesByAspectRatio || {}).flatMap(function (resolutionEntry) { return Object.entries(resolutionEntry[1] || {}).map(function (entry) { return {value: String(entry[1]), label: String(entry[1]) + '（' + String(resolutionEntry[0]).toUpperCase() + ' · ' + String(entry[0]) + '）'}; }); }).concat(Object.entries(item.outputSizes || {}).map(function (entry) { return {value: String(entry[1]), label: String(entry[1]) + '（' + String(entry[0]).toUpperCase() + '）'}; })).filter(function (option, index, options) { return options.findIndex(function (candidate) { return candidate.value === option.value; }) === index; }),
                 resolutionOptions: Array.isArray(item.imageOptions?.resolutionOptions) ? item.imageOptions.resolutionOptions : (item.resolutions || []).map(function (value) { return {value: String(value), label: String(value).toUpperCase()}; }),
                 defaultAspectRatio: item.imageOptions?.defaultAspectRatio || item.aspectRatios?.[0],
                 defaultImageSize: item.imageOptions?.defaultImageSize || Object.values(item.outputSizes || {})[0],

@@ -189,7 +189,7 @@ function createModelControlPlane(options = {}) {
       for (const item of defaults) {
         const existing = config.models.find(model => model.id === item.id);
         if (!existing) { config.models.push({...item, tenantId: 'default', enabled: false, updatedAt: new Date().toISOString()}); changed = true; }
-        else if (item.id === 'yunwu-gpt-image-2-c' && (JSON.stringify(existing.outputSizesByAspectRatio || {}) !== JSON.stringify(item.outputSizesByAspectRatio) || !existing.imageOptions || existing.label !== item.label)) {
+        else if (item.id === 'yunwu-gpt-image-2-c' && (JSON.stringify(existing.outputSizesByAspectRatio || {}) !== JSON.stringify(item.outputSizesByAspectRatio) || JSON.stringify(existing.imageOptions || {}) !== JSON.stringify(item.imageOptions || {}) || JSON.stringify(existing.aspectRatios || []) !== JSON.stringify(item.aspectRatios) || JSON.stringify(existing.resolutions || []) !== JSON.stringify(item.resolutions) || existing.label !== item.label)) {
           existing.label = item.label;
           existing.priceCredits = item.priceCredits;
           existing.priceCreditsByMode = item.priceCreditsByMode;
@@ -216,6 +216,17 @@ function createModelControlPlane(options = {}) {
         }
         else if (item.id === 'minimax-h3' && JSON.stringify(existing.aspectRatios || []) !== JSON.stringify(item.aspectRatios)) {
           existing.aspectRatios = item.aspectRatios;
+          changed = true;
+        }
+      }
+      // The edit channel is an internal route selected by reference-image
+      // presence. It must never remain as a second public model after the
+      // unified Image2 migration, including in existing persisted configs.
+      for (const legacyEdit of config.models.filter(item => item.id === 'yunwu-gpt-image-2-c-edit')) {
+        if (legacyEdit.enabled === true || legacyEdit.tenantId !== 'internal') {
+          legacyEdit.enabled = false;
+          legacyEdit.tenantId = 'internal';
+          legacyEdit.updatedAt = new Date().toISOString();
           changed = true;
         }
       }
