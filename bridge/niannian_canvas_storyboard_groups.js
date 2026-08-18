@@ -114,13 +114,25 @@ function isLegacyH3Node(node) {
     || values.some(value => /h3/.test(value) && /video|视频/.test(value));
 }
 
+function isFirstEntranceSegment(node) {
+  const {meta, data, parameters} = h3SpecSource(node);
+  const prompt = [
+    node.prompt, node.videoPrompt, node.video_prompt,
+    meta.prompt, meta.videoPrompt, meta.video_prompt,
+    data.prompt, data.videoPrompt, data.video_prompt,
+    parameters.prompt, parameters.videoPrompt, parameters.video_prompt
+  ].map(value => text(value, 2000)).join('\n');
+  return prompt.includes('只完成第1组的0.0-5.0秒进门子段');
+}
+
 function normalizeLegacyH3Node(node, options = {}) {
   if (!isLegacyH3Node(node)) return node;
   const {meta, data, parameters} = h3SpecSource(node);
   const source = options.generationDefaults && typeof options.generationDefaults === 'object'
     ? options.generationDefaults : {};
   const candidate = (...values) => values.map(value => text(value, 32)).find(Boolean) || '';
-  const aspectRatio = /^\d{1,2}:\d{1,2}$/.test(candidate(
+  const entranceSegment = isFirstEntranceSegment(node);
+  const aspectRatio = !entranceSegment && /^\d{1,2}:\d{1,2}$/.test(candidate(
     meta.aspectRatio, meta.aspect_ratio, data.aspectRatio, data.aspect_ratio,
     parameters.aspectRatio, parameters.aspect_ratio, node.aspectRatio, node.aspect_ratio
   )) ? candidate(
@@ -128,9 +140,9 @@ function normalizeLegacyH3Node(node, options = {}) {
     parameters.aspectRatio, parameters.aspect_ratio, node.aspectRatio, node.aspect_ratio
   ) : (/^\d{1,2}:\d{1,2}$/.test(text(source.aspectRatio, 16)) ? text(source.aspectRatio, 16) : '9:16');
   const rawResolution = candidate(meta.resolution, data.resolution, parameters.resolution, node.resolution).toLowerCase();
-  const resolution = ['1k', '2k', '4k'].includes(rawResolution) ? rawResolution : '2k';
+  const resolution = entranceSegment ? '2k' : (['1k', '2k', '4k'].includes(rawResolution) ? rawResolution : '2k');
   const rawDuration = Number(meta.durationSeconds ?? data.durationSeconds ?? parameters.durationSeconds ?? node.durationSeconds);
-  const durationSeconds = Number.isFinite(rawDuration) && rawDuration >= 4 && rawDuration <= 15 ? rawDuration : 5;
+  const durationSeconds = entranceSegment ? 5 : (Number.isFinite(rawDuration) && rawDuration >= 4 && rawDuration <= 15 ? rawDuration : 5);
   const canonical = {model:'minimax-h3', modelKey:'minimax-h3', modelAlias:'minimax-h3', aspectRatio, resolution, durationSeconds};
   node.meta = {...meta, ...canonical, generationSpecVersion:'h3.v1'};
   node.data = {...data, ...canonical, generationSpecVersion:'h3.v1'};
