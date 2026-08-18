@@ -60,6 +60,11 @@ function run() {
   const catalog = publicCanvasModelCatalog({AGENT_VAULT_ADDR:'http://127.0.0.1:14321', AGENT_VAULT_VAULT:'niannian-production', AGENT_VAULT_TOKEN:'protected-test-token', HTTPS_PROXY:'http://127.0.0.1:14322', NIANNIAN_CANVAS_YUNWU_SUBMIT:'on'});
   assert.deepEqual(catalog.models.filter(model => model.kind === 'image').map(model => model.id), ['yunwu-gpt-image-2-c']);
   assert.equal(catalog.models.find(model => model.id === 'yunwu-gpt-image-2-c').imageOptions.supportsReferenceImages, true);
+  const dola = catalog.models.find(model => model.id === 'dola-seedance-2-5');
+  assert(dola, 'dola model must be present in public catalog');
+  assert.deepEqual(dola.videoOptions.durationOptions, [30]);
+  assert.equal(dola.videoOptions.defaultDurationSeconds, 30);
+  assert.deepEqual(dola.videoOptions.aspectRatioOptions, ['9:16', '16:9', '1:1', '4:3', '3:4']);
   const yunwu = readCanvasProviderConfig({AGENT_VAULT_ADDR:'http://127.0.0.1:14321',AGENT_VAULT_VAULT:'niannian-production',AGENT_VAULT_TOKEN:'protected-test-token',HTTPS_PROXY:'http://127.0.0.1:14322',NIANNIAN_CANVAS_YUNWU_SUBMIT:'on'});
   assert.equal(yunwu.imageChannelEnabled['yunwu-gpt-image-2-c'], true);
   assert.equal(Object.hasOwn(publicStatus, 'apiKey'), false);
