@@ -5,7 +5,7 @@ const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
 const {COMMON_ASPECT_RATIOS} = require('./niannian_canvas_aspect_ratios');
-const {CHANNELS} = require('./niannian_canvas_image2_channels');
+const {CHANNELS, publicUnifiedImage2Channel} = require('./niannian_canvas_image2_channels');
 
 function clean(value, limit = 200) {
   return String(value == null ? '' : value).replace(/[\u0000-\u001f]/g, '').trim().slice(0, limit);
@@ -174,6 +174,7 @@ function createModelControlPlane(options = {}) {
       if (!dolaProvider) { config.providers.push({id: 'dola-desktop-api', label: 'Dola', kind: 'video', enabled: false, secretRef: 'env://NIANNIAN_DOLA_API_KEY', baseUrl: '', updatedAt: new Date().toISOString()}); changed = true; }
       const compilerProvider = config.providers.find(item => item.id === 'mcgrox-server');
       if (!compilerProvider) { config.providers.push({id: 'mcgrox-server', label: 'MCGrox 编排服务', kind: 'text', enabled: false, secretRef: 'agent-vault://mcgrox/compiler', baseUrl: '', updatedAt: new Date().toISOString()}); changed = true; }
+      const publicImage = publicUnifiedImage2Channel(CHANNELS['yunwu-gpt-image-2-c']);
       const defaults = [
         {id: 'yunwu-gpt-image-2-c', label: '云雾 Image2', kind: 'image', providerId: 'yunwu-agent-vault', providerLabel: '云雾', priceCredits: 10, priceCreditsByMode: publicImage.priceCreditsByMode, imageOptions: {supportsReferenceImages:true, supportsTextToImage:true, supportsImageToImage:true, modes:publicImage.modes, aspectRatioOptions:publicImage.catalogAspectRatios, imageSizeOptions:publicImage.catalogImageSizeOptions, resolutionOptions:publicImage.catalogResolutions, defaultAspectRatio:publicImage.defaultAspectRatio, defaultImageSize:publicImage.defaultImageSize, defaultResolution:'4k'}, resolutions: [...publicImage.resolutions], aspectRatios: [...publicImage.aspectRatios], outputSizes: {...publicImage.outputSizes}, outputSizesByAspectRatio: JSON.parse(JSON.stringify(publicImage.outputSizesByAspectRatio)), supportsReferenceImages:true, supportsTextToImage:true, supportsImageToImage:true},
         {id: 'minimax-h3', label: 'H3 生视频', kind: 'video', providerId: 'runninghub-consumer', providerLabel: 'RunningHub', priceCredits: 20, resolutions: ['2k'], aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'], outputSizes: {}, videoOptions: {aspectRatioOptions: ['9:16', '16:9', '1:1', '4:3', '3:4'], resolutionOptions: ['2k'], durationOptions: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], defaultAspectRatio: '9:16', defaultResolution: '2k', defaultDurationSeconds: 5}},
