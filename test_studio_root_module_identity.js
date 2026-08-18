@@ -32,6 +32,11 @@ function assertPhysicalName(name) {
   assert.match(name, new RegExp(`-${releaseTag}\\.(?:js|css)$`), `non-versioned Studio dependency: ${name}`);
 }
 
+function modulePreloadUrls(html) {
+  return [...html.matchAll(/<link\s+rel=["']modulepreload["'][^>]*\shref=["'](\.\/assets\/[^"']+)["']/g)]
+    .map(match => match[1]);
+}
+
 const html = fs.readFileSync(path.join(projectRoot, 'studio', 'index.html'), 'utf8');
 assert.match(html, new RegExp(`\\./assets/index-M-8MrEH2-r28-19b89ec-${releaseTag}\\.js\\?v=${moduleCacheVersion}`));
 assert.match(html, new RegExp(`\\./assets/web-runtime-adapter-${releaseTag}\\.js\\?v=[A-Za-z0-9._-]+`));
@@ -64,6 +69,12 @@ while (queue.length) {
 
 for (const name of reachable) assertPhysicalName(name);
 assert.equal([...reachable].filter(name => name.endsWith('.js')).length >= 150, true);
+
+for (const href of modulePreloadUrls(html)) {
+  const importUrl = href.replace(/^\.\/assets\//, './');
+  const isImported = [...reachable].some(name => fs.readFileSync(path.join(assetsRoot, name), 'utf8').includes(importUrl));
+  assert.equal(isImported, true, `modulepreload must use the exact same URL as a reachable module import: ${href}`);
+}
 
 for (const name of reachable) {
   if (!name.endsWith('.js')) continue;
