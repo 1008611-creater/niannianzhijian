@@ -179,6 +179,19 @@
     var image2AssetsEl = panel.querySelector('[data-s2-assets]');
     var image2PreviewEl = panel.querySelector('[data-s2-preview]');
     var image2JobId = null;
+    function installGenerationControls() {
+      // Keep the menu aligned with the server registry. The old Yunfei and
+      // RunningHub labels were UI-only values and were rejected on save.
+      image2Channel.innerHTML = '<option value="yunwu-gpt-image-2-c">云雾 Image2 竖版 4K</option><option value="yunwu-gpt-image-2-c-edit">云雾 Image2 横版 4K</option>';
+      var heading = document.createElement('strong');
+      heading.textContent = '生成节点';
+      var imageButton = document.createElement('button');
+      imageButton.type = 'button'; imageButton.dataset.s1AddGeneration = 'image2'; imageButton.textContent = 'Image2 关键帧生成';
+      var videoButton = document.createElement('button');
+      videoButton.type = 'button'; videoButton.dataset.s1AddGeneration = 'h3'; videoButton.textContent = 'H3 生视频';
+      var menu = panel.querySelector('[data-s1-context]');
+      menu.appendChild(heading); menu.appendChild(imageButton); menu.appendChild(videoButton);
+    }
     function installH3NodeCard() {
       if (panel.querySelector('[data-node="h3"]')) return;
       var card = document.createElement('article');
@@ -187,6 +200,7 @@
       nodesEl.insertBefore(card, panel.querySelector('[data-s1-context]'));
     }
     installH3NodeCard();
+    installGenerationControls();
     // Retire the old source-chain prototype. New canvases must only contain
     // nodes explicitly added by the user from the native menu or Skill menu.
     function retireLegacyCards() {
@@ -290,8 +304,8 @@
     function syncButton() { createBtn.disabled = selectedIds().length === 0 || !rightsEl.checked || preflightEl.value !== 'passed'; startBtn.disabled = !chainReady || selectedIds().length === 0 || !rightsEl.checked || preflightEl.value !== 'passed'; }
     function syncImage2Spec() {
       var channel = image2Channel.value; var resolution = image2Resolution.value; var aspect = image2Aspect.value;
-      var valid = (channel === 'yunfei-gpt-image-2-1k' && resolution === '1k' && aspect === '1:1') || (channel === 'yunfei-gpt-image-2-hd' && (resolution === '2k' || resolution === '4k') && aspect === '16:9') || (channel === 'runninghub-gpt-image-2');
-      image2Output.textContent = valid ? ((channel === 'yunfei-gpt-image-2-1k' ? '1024x1024' : channel === 'yunfei-gpt-image-2-hd' ? (resolution === '2k' ? '2048x1152' : '3840x2160') : '由 RunningHub 返回尺寸') + ' · 未授权不提交 Provider') : '当前渠道不支持该分辨率/比例组合';
+      var valid = (channel === 'yunwu-gpt-image-2-c' && resolution === '4k' && aspect === '9:16') || (channel === 'yunwu-gpt-image-2-c-edit' && resolution === '4k' && aspect === '16:9');
+      image2Output.textContent = valid ? ((channel === 'yunwu-gpt-image-2-c' ? '2160x3840' : '3840x2160') + ' · 未授权不提交 Provider') : '当前渠道仅支持 4K 与对应比例';
       image2Create.disabled = !image2Prompt.value.trim() || !valid;
       image2Dry.disabled = image2Create.disabled;
     }
@@ -588,8 +602,22 @@
         preflightEl.value = sourceParameters.preflightStatus === 'passed' ? 'passed' : 'pending';
       }
       var image2 = (Array.isArray(nodes) ? nodes : []).find(function (node) { return node.id === 's2-image2-keyframe'; });
+      if (image2) {
+        image2Card.hidden = false;
+        image2Card.removeAttribute('aria-hidden');
+        panel.dataset.s1Empty = 'false';
+        var image2Ids = new Set([].concat(image2.data && image2.data.inputAssetIds || [], image2.assetRefs || []).map(function (item) { return typeof item === 'string' ? item : item && item.assetId; }).filter(Boolean));
+        panel.querySelectorAll('input[data-s2-asset]').forEach(function (input) { input.checked = image2Ids.has(input.value); });
+      }
       if (image2) { image2Card.dataset.status = image2.status; image2Card.querySelector('[data-node-status]').textContent = image2.status; image2Prompt.value = image2.data && image2.data.prompt || ''; image2Channel.value = image2.data && image2.data.imageChannel || image2Channel.value; image2Resolution.value = image2.data && image2.data.resolution || image2Resolution.value; image2Aspect.value = image2.data && image2.data.aspectRatio || image2Aspect.value; image2Status.textContent = '节点合同已保存；生成仍需通过画布生成授权。'; syncImage2Spec(); }
       var h3 = (Array.isArray(nodes) ? nodes : []).find(function (node) { return node.id === 's3-h3-video'; });
+      if (h3) {
+        h3Card.hidden = false;
+        h3Card.removeAttribute('aria-hidden');
+        panel.dataset.s1Empty = 'false';
+        var h3Ids = new Set([].concat(h3.data && h3.data.inputAssetIds || [], h3.assetRefs || []).map(function (item) { return typeof item === 'string' ? item : item && item.assetId; }).filter(Boolean));
+        panel.querySelectorAll('input[data-s3-asset]').forEach(function (input) { input.checked = h3Ids.has(input.value); });
+      }
       if (h3) { h3Card.dataset.status = h3.status; h3Card.querySelector('[data-node-status]').textContent = h3.status; h3Prompt.value = h3.data && h3.data.prompt || ''; h3Aspect.value = h3.data && h3.data.aspectRatio || h3Aspect.value; h3Duration.value = String(h3.data && h3.data.durationSeconds || h3Duration.value); h3Status.textContent = '节点合同已保存；任务会先进入等待授权状态。'; }
       syncH3Spec();
       renderChampionNodes(nodes);
@@ -671,7 +699,7 @@
     async function dryRunImage2() {
       image2Dry.disabled = true; image2Status.textContent = '正在建立 Image2 候选并执行 dry-run（不提交 Provider）...';
       try {
-        var prepared = await api('/api/projects/' + encodeURIComponent(projectId()) + '/canvas/jobs', {method:'POST', headers:{'content-type':'application/json','idempotency-key':'s2-image2-' + Date.now()}, body:JSON.stringify({projectKind:projectKind(),nodeId:'s2-image2-keyframe',model:image2Channel.value,prompt:image2Prompt.value,resolution:image2Resolution.value,aspectRatio:image2Aspect.value,inputAssetIds:[]})});
+        var prepared = await api('/api/projects/' + encodeURIComponent(projectId()) + '/canvas/jobs', {method:'POST', headers:{'content-type':'application/json','idempotency-key':'s2-image2-' + Date.now()}, body:JSON.stringify({projectKind:projectKind(),nodeId:'s2-image2-keyframe',model:image2Channel.value,prompt:image2Prompt.value,resolution:image2Resolution.value,aspectRatio:image2Aspect.value,inputAssetIds:selectedImage2Ids()})});
         image2JobId = prepared.body.job && prepared.body.job.id;
         if (!image2JobId) throw new Error('服务器没有返回 Image2 候选任务');
         var dry = await api('/api/projects/' + encodeURIComponent(projectId()) + '/canvas/jobs/' + encodeURIComponent(image2JobId) + '/dry-run', {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({projectKind:projectKind()})});
@@ -724,6 +752,16 @@
       event.stopPropagation();
     }
     host.addEventListener('contextmenu', showCanvasSkillMenu, true);
+    function revealGenerationCard(kind) {
+      var card = kind === 'image2' ? image2Card : h3Card;
+      if (!card) return;
+      card.hidden = false;
+      card.removeAttribute('aria-hidden');
+      panel.dataset.s1Empty = 'false';
+      card.scrollIntoView({block:'nearest', inline:'nearest'});
+      selectNode(card);
+      setStatus(kind === 'image2' ? '已添加 Image2 节点，请填写提示词并选择参考资产后保存。' : '已添加 H3 节点，请填写视频提示词并选择首帧后保存。');
+    }
     contextMenu.addEventListener('click', function (event) {
       var nativeAdd = event.target.closest('[data-s1-native-add]');
       var generation = event.target.closest('[data-s1-add-generation]');
@@ -734,7 +772,7 @@
         if (original) original.click();
         return;
       }
-      if (generation) { createH3().catch(function (error) { setStatus((error.code ? error.code + ': ' : '') + (error.message || '添加节点失败'), true); }); return; }
+      if (generation) { revealGenerationCard(generation.dataset.s1AddGeneration); return; }
     });
     panel.addEventListener('pointerdown', function (event) {
       if (!event.target.closest('[data-s1-context]')) hideContextMenu();

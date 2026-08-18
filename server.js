@@ -7966,6 +7966,7 @@ function internalCanvasAssetNode(asset, title, categoryId, role) {
     prompt:'',
     position:{x:120,y:120},
     categoryId,
+    groupId:categoryId,
     result,
     history:[result],
     status:'success',
@@ -7986,10 +7987,11 @@ async function attachInternalCanvasAssetNode(owned, asset, input) {
     const existing = nodes.find(node => node?.meta?.canvasAssetId === asset.id || node?.result?.assetId === asset.id);
     if (existing) {
       const meta = existing.meta && typeof existing.meta === 'object' && !Array.isArray(existing.meta) ? existing.meta : {};
-      const needsUpdate = existing.title !== title || existing.categoryId !== category.categoryId || meta.canvasAssetId !== asset.id || meta.assetRole !== category.role || meta.fileName !== asset.originalName;
+      const needsUpdate = existing.title !== title || existing.categoryId !== category.categoryId || existing.groupId !== category.categoryId || meta.canvasAssetId !== asset.id || meta.assetRole !== category.role || meta.fileName !== asset.originalName;
       if (!needsUpdate) return {node:existing,revision:Number(current?.revision || 0),created:false,updatedAt:current?.updatedAt || null};
       existing.title = title;
       existing.categoryId = category.categoryId;
+      existing.groupId = category.categoryId;
       existing.meta = {...meta,source:'project-asset',canvasAssetId:asset.id,assetRole:category.role,fileName:asset.originalName};
       const record = {...current,revision:Number(current?.revision || 0) + 1,document,updatedAt:new Date().toISOString()};
       documents[key] = record;
