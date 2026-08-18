@@ -1,6 +1,7 @@
 'use strict';
 
 const {createDolaDesktopApiAdapter} = require('./niannian_dola_desktop_api_adapter');
+const dolaPlaywrightController = require('./niannian_dola_playwright_controller');
 const {isDolaVideoChannel} = require('./niannian_canvas_video_channels');
 const {inspectDolaMedia} = require('./niannian_dola_media_validation');
 
@@ -34,6 +35,8 @@ function createCanvasDolaRuntime(options = {}) {
   const assets = options.assetService;
   const enabled = options.enabled === true;
   const adapter = options.adapter || (enabled ? createDolaDesktopApiAdapter(options.dola || {}) : null);
+  const preflightPage = options.preflightPage || dolaPlaywrightController.preflight;
+  const preparePage = options.preparePage || dolaPlaywrightController.prepare;
   const inspectMedia = options.inspectMedia || inspectDolaMedia;
   const submissionsInFlight = new Map();
   if (!jobs || !assets) throw new Error('canvas Dola runtime requires job and asset services');
@@ -63,6 +66,8 @@ function createCanvasDolaRuntime(options = {}) {
 
   async function submitOnce(ownerId, projectId, jobId) {
     if (!enabled) throw runtimeError('CANVAS_PROVIDER_SUBMIT_DISABLED', 'Dola 视频生成尚未启用，当前任务仅完成准备。');
+    try { const check = await preflightPage(); if (!check.ready) throw new Error('Dola 页面未就绪'); }
+    catch (error) { throw runtimeError(error.code || 'DOLA_PLAYWRIGHT_NOT_READY', error.message || 'Dola 页面未就绪'); }
     const job = await jobs.getOwned(ownerId, projectId, jobId);
     if (!job) throw runtimeError('CANVAS_JOB_NOT_FOUND', '任务不存在', 404);
     assertDolaJob(job);
@@ -70,6 +75,12 @@ function createCanvasDolaRuntime(options = {}) {
     const retryable = job.status === 'failed' && !job.providerTaskId && job.providerSubmitState === 'failed';
     if (job.status !== 'awaiting_authorization' && !retryable) throw runtimeError('CANVAS_JOB_STATE_INVALID', '当前任务不能重复提交', 409);
     const input = await ownedInputs(job);
+    await preparePage({
+      prompt:job.prompt,
+      aspectRatio:job.aspectRatio,
+      accountSlot:job.accountSlot,
+      assets:input.map(asset => ({kind:asset.kind,path:asset.storedPath,storedPath:asset.storedPath}))
+    });
     await jobs.updateOwned(ownerId, projectId, jobId, {status:'queued',providerSubmitState:'submitting',publicError:null});
     try {
       const submitted = await adapter.submit({prompt:job.prompt,aspectRatio:job.aspectRatio,accountSlot:job.accountSlot,idempotencyKey:job.id}, input);
