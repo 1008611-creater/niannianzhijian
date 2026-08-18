@@ -7,7 +7,7 @@ const vm = require('vm');
 (async () => {
 const source = fs.readFileSync(require('path').join(__dirname, 'studio/assets/web-runtime-adapter-r4.js'), 'utf8');
 const studioIndex = fs.readFileSync(require('path').join(__dirname, 'studio/index.html'), 'utf8');
-assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260818-h3-video-controls-r1/);
+assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260819-dola-local-bridge-r2/);
 assert.match(source, /\/api\/canvas\/provider-status/);
 assert.match(source, /\/api\/projects\/.*\/canvas\/jobs/);
 assert.match(source, /\/api\/projects\/.*\/text\/jobs/);
@@ -37,6 +37,7 @@ assert.match(source, /niannian-project-document-conflict/);
 
 const calls = [];
 const requestBodies = [];
+const localBridgeRequests = [];
 const uploadRequests = [];
 const downloadedLinks = [];
 let downloadClicks = 0;
@@ -59,10 +60,19 @@ const context = {
   Blob,
   FormData,
   Uint8Array,
+  btoa: (value) => Buffer.from(value, 'binary').toString('base64'),
   setTimeout,
   crypto: {randomUUID: () => '00000000-0000-0000-0000-000000000000'},
   fetch: async (pathname, options = {}) => {
     calls.push(pathname);
+    if (pathname === 'http://127.0.0.1:9190/v1/jobs') {
+      localBridgeRequests.push({pathname, options, body: JSON.parse(options.body)});
+      return {ok:true,json:async() => ({job_id:'CGJ-test',status:'queued'})};
+    }
+    if (pathname === 'http://127.0.0.1:9190/v1/jobs/CGJ-test') {
+      localBridgeRequests.push({pathname, options});
+      return {ok:true,json:async() => ({job_id:'CGJ-test',status:'queued'})};
+    }
     if (pathname === '/api/canvas/provider-status') return {ok:true,json:async() => ({providerStatus:{
       modelCatalog: {models: [
         {id:'yunwu-gpt-image-2-c',label:'云雾 Image2 竖版 4K',kind:'image',providerKey:'yunwu-agent-vault',providerLabel:'云雾',priceCredits:10,resolutions:['4k'],aspectRatios:['9:16'],outputSizes:{'4k':'2160x3840'}}
@@ -88,6 +98,8 @@ const context = {
       uploadRequests.push({pathname, options});
       return {ok:true,json:async() => ({asset:{id:'CAS-1234567890abcdef12345678',downloadUrl:'/api/projects/NN-LOCAL-0001/assets/CAS-1234567890abcdef12345678/download'}})};
     }
+    if (pathname.endsWith('/assets/CAS-dola-image')) return {ok:true,json:async() => ({asset:{id:'CAS-dola-image',kind:'reference_image',originalName:'dola.png',mimeType:'image/png',downloadUrl:'/api/projects/NN-LOCAL-0001/assets/CAS-dola-image/download'}})};
+    if (pathname.endsWith('/assets/CAS-dola-image/download')) return {ok:true,arrayBuffer:async() => new Uint8Array([1,2,3]).buffer};
     if (pathname.endsWith('/assets')) return {ok:true,json:async() => ({assets:[
       {id:'CAS-111111111111111111111111',kind:'reference_image',originalName:'reference.png',mimeType:'image/png',createdAt:'2026-08-11T00:00:00.000Z',updatedAt:'2026-08-11T00:00:00.000Z',downloadUrl:'/api/projects/NN-LOCAL-0001/assets/CAS-111111111111111111111111/download',thumbnailUrl:'/api/projects/NN-LOCAL-0001/assets/CAS-111111111111111111111111/thumbnail'},
       {id:'CAS-222222222222222222222222',kind:'generated_video',originalName:'result.mp4',mimeType:'video/mp4',createdAt:'2026-08-11T00:01:00.000Z',updatedAt:'2026-08-11T00:01:00.000Z',downloadUrl:'/api/projects/NN-LOCAL-0001/assets/CAS-222222222222222222222222/download'},
@@ -160,27 +172,27 @@ assert.equal(requestBodies[0].durationSeconds, 5);
 assert.equal(requestBodies[1].confirmProviderSpend, true);
 const dolaTask = await context.window.nomiDesktop.tasks.run({request:{kind:'image_to_video',prompt:'dola regression',extras:{nodeId:'dola-node-1',modelKey:'dola-seedance-2-5',referenceImages:['CAS-dola-image'],aspectRatio:'16:9'}}});
 assert.equal(dolaTask.id, 'CGJ-test');
-assert.equal(requestBodies[2].model, 'dola-seedance-2-5');
-assert.deepEqual(requestBodies[2].inputAssetIds, ['CAS-dola-image']);
-assert.equal(requestBodies[2].durationSeconds, 30);
-assert.equal(requestBodies[3].confirmProviderSpend, true);
+assert.equal(localBridgeRequests.length, 1);
+assert.equal(localBridgeRequests[0].body.aspectRatio, '16:9');
+assert.equal(localBridgeRequests[0].body.durationSeconds, 30);
+assert.equal(localBridgeRequests[0].body.assets[0].name, 'dola.png');
 const animateTask = await context.window.nomiDesktop.tasks.run({request:{kind:'image_to_video',prompt:'',extras:{nodeId:'animate-node-1',modelKey:'runninghub-animate-motion-transfer',referenceImages:['/api/projects/NN-LOCAL-0001/assets/CAS-image-001/download'],referenceVideos:['/api/projects/NN-LOCAL-0001/assets/CAS-video-001/download'],aspectRatio:'9:16',durationSeconds:5}}});
 assert.equal(animateTask.id, 'CGJ-test');
-assert.equal(requestBodies[4].model, 'runninghub-animate-motion-transfer');
-assert.deepEqual(requestBodies[4].inputAssetIds, ['CAS-image-001', 'CAS-video-001']);
-assert.equal(requestBodies[5].confirmProviderSpend, true);
+assert.equal(requestBodies[2].model, 'runninghub-animate-motion-transfer');
+assert.deepEqual(requestBodies[2].inputAssetIds, ['CAS-image-001', 'CAS-video-001']);
+assert.equal(requestBodies[3].confirmProviderSpend, true);
 const animateFromArchetype = await context.window.nomiDesktop.tasks.run({request:{kind:'image_to_video',prompt:'动作迁移',extras:{nodeId:'animate-node-2',modelAlias:'runninghub-animate-motion-transfer',archetypeInput:{reference_image:'CAS-image-002',video_url:'CAS-video-002'}}}});
 assert.equal(animateFromArchetype.id, 'CGJ-test');
-assert.deepEqual(requestBodies[6].inputAssetIds, ['CAS-image-002', 'CAS-video-002']);
+assert.deepEqual(requestBodies[4].inputAssetIds, ['CAS-image-002', 'CAS-video-002']);
 const animateAiApp = await context.window.nomiDesktop.tasks.run({request:{kind:'image_to_video',prompt:'',extras:{nodeId:'animate-node-3',modelKey:'runninghub-animate-ai-app',referenceImages:['CAS-image-003'],referenceVideos:['CAS-video-003']}}});
 assert.equal(animateAiApp.id, 'CGJ-test');
-assert.equal(requestBodies[8].model, 'runninghub-animate-ai-app');
-assert.deepEqual(requestBodies[8].inputAssetIds, ['CAS-image-003', 'CAS-video-003']);
+assert.equal(requestBodies[6].model, 'runninghub-animate-ai-app');
+assert.deepEqual(requestBodies[6].inputAssetIds, ['CAS-image-003', 'CAS-video-003']);
 const imageTask = await context.window.nomiDesktop.tasks.run({request:{kind:'image_edit',prompt:'1K 节点回归',extras:{nodeId:'image-node-1',modelKey:'yunfei-gpt-image-2-1k',resolution:'1k',outputSize:'1024x1024',aspectRatio:'1:1'}}});
 assert.equal(imageTask.id, 'CGJ-test');
-assert.equal(requestBodies[10].model, 'yunfei-gpt-image-2-1k');
-assert.equal(requestBodies[10].resolution, '1k');
-assert.equal(requestBodies[10].outputSize, '1024x1024');
-assert.equal(requestBodies[10].aspectRatio, '1:1');
+assert.equal(requestBodies[8].model, 'yunfei-gpt-image-2-1k');
+assert.equal(requestBodies[8].resolution, '1k');
+assert.equal(requestBodies[8].outputSize, '1024x1024');
+assert.equal(requestBodies[8].aspectRatio, '1:1');
 console.log('WEB_RUNTIME_ADAPTER_CONTRACT_OK');
 })().catch((error) => { console.error(error); process.exitCode = 1; });
