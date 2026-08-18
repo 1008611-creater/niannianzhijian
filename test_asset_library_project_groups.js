@@ -18,6 +18,8 @@ assert.match(bundle, /"data-asset-project-filter":"true"/);
 assert.match(bundle, /asset-library-project-filter-trigger/);
 assert.match(bundle, /asset-library-project-filter-menu/);
 assert.match(bundle, /assetId:String\(e\.id\|\|""\)\.trim\(\)\|\|void 0/);
+assert.match(bundle, /thumbUrl:n\|\|void 0/);
+assert.match(bundle, /thumbnailUrl=="string"/);
 assert.match(bundle, /se=c\.useMemo\(\(\)=>Re\(M\.filter\(a=>a\.origin\?\.projectId===e\)\),\[M,e\]\)/);
 assert.match(bundle, /CrossProjectReuse=c\.useCallback/);
 assert.match(bundle, /引用到当前项目/);

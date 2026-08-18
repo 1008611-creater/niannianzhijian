@@ -414,6 +414,8 @@
       ? 'image'
       : (contentType.startsWith('video/') ? 'video' : (contentType.startsWith('audio/') ? 'audio' : ''));
     if (!mediaType) return null;
+    var downloadUrl = String(asset.downloadUrl || '');
+    var thumbnailUrl = String(asset.thumbnailUrl || '').trim() || projectThumbnailUrl(downloadUrl);
     return {
       id: String(asset.id),
       projectId: assetProjectId,
@@ -426,7 +428,8 @@
         kind: String(asset.kind || 'project-asset'),
         title: String(asset.originalName || ''),
         relativePath: 'project-assets/' + String(asset.id),
-        url: String(asset.downloadUrl || '')
+        url: downloadUrl,
+        thumbnailUrl: thumbnailUrl
       }
     };
   }
