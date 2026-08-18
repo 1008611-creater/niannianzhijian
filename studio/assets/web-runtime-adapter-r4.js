@@ -161,7 +161,8 @@
     return response.providerStatus || {};
   }
 
-  // Dola duration contract: the desktop model only accepts exactly 30 seconds.\r\n  var dolaLocalBridgeBase = 'http://127.0.0.1:9190';
+  // Dola duration contract: the desktop model only accepts exactly 30 seconds.
+  var dolaLocalBridgeBase = 'http://127.0.0.1:9190';
   function isDolaModel(extras) {
     return [extras && extras.modelKey, extras && extras.modelAlias].some(function (value) {
       return String(value || '').trim().toLowerCase() === 'dola-seedance-2-5';
