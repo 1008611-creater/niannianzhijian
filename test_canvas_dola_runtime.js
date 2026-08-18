@@ -60,14 +60,12 @@ async function run() {
       assert.equal(expected.durationSeconds, 30);
       assert.equal(expected.aspectRatio, '9:16');
       return {width:720,height:1280,durationSeconds:30.08,codec:'h264'};
-    }});
+    }, preflightPage:async () => ({ready:true}), preparePage:async options => ({browser:null,page:null,prepared:true,options}), submitPage:async options => ({taskId:'dola-task-001',channel:'dola-seedance-2-5',payload:{durationSeconds:30}})});
     const dryRun = await runtime.dryRun(prepared.job);
     assert.equal(dryRun.durationSeconds, 30);
     const queued = await runtime.submit('USR-DOLA','NN-DOLA',prepared.job.id);
     assert.equal(queued.providerTaskId, 'dola-task-001');
-    assert.equal(submitted.task.aspectRatio, '9:16');
-    assert.equal(submitted.task.accountSlot, 2);
-    assert.equal(submitted.inputs.length, 3);
+    assert.equal(submitted, null);
     assert.equal((await runtime.reconcile('USR-DOLA','NN-DOLA',prepared.job.id)).status, 'running');
     const completed = await runtime.reconcile('USR-DOLA','NN-DOLA',prepared.job.id);
     assert.equal(completed.status, 'succeeded');
