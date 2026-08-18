@@ -7247,6 +7247,11 @@ async function handleCanvasAssetsApi(request, response, pathname, user) {
     }
     return json(response, 200, {projectId,projectKind:owned.projectKind,assets:publicAssets});
   }
+  if (assetId && !action && request.method === 'GET') {
+    const asset = await canvasAssetService.getOwned(user.id, projectId, assetId);
+    if (!asset) return json(response, 404, {code:'CANVAS_ASSET_NOT_FOUND',error:'素材不存在'});
+    return json(response, 200, {asset:publicCanvasAsset(asset)});
+  }
   if (!assetId && !action && request.method === 'POST') {
     await fsp.mkdir(canvasAssetsRoot, {recursive:true});
     const token = crypto.randomBytes(12).toString('hex');
