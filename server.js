@@ -8318,6 +8318,10 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         // every new project asset created by this API uses CAS IDs and is ownership-checked.
         if (/^CAS-/.test(assetId) && !await canvasAssetService.getOwned(user.id, projectId, assetId)) return json(response, 404, {code:'CANVAS_ASSET_NOT_FOUND',error:'画布引用的素材不存在'});
       }
+      const requestedImageAspect = nodeType === 'image'
+        ? canvasText(body.aspectRatio || nodeData.aspectRatio || nodeMeta.aspectRatio || nodeMeta.aspect_ratio || (requestedModel === 'yunwu-gpt-image-2-c-edit' ? '16:9' : ''), 16)
+        : '';
+      const imageHasReferences = nodeType === 'image' && inputAssetIds.length > 0;
       const created = await canvasGenerationJobService.create({
         ownerId:user.id,
         tenantId:modelControlPlaneModule.tenantForUser(user),
@@ -8338,8 +8342,8 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
           : null,
         aspectRatio:(nodeType === 'video' && h3Defaults)
           ? canvasText(body.aspectRatio || body.aspect_ratio || (nodeMeta.aspect_ratio_user_set === true ? (nodeMeta.aspectRatio || nodeMeta.aspect_ratio) : '') || h3Defaults.aspectRatio, 16)
-          : (nodeType === 'image' && ['yunwu-gpt-image-2-c','yunwu-gpt-image-2-c-edit'].includes(requestedModel)
-          ? (requestedModel === 'yunwu-gpt-image-2-c-edit' ? '16:9' : '9:16')
+          : (nodeType === 'image'
+          ? (['9:16','16:9'].includes(requestedImageAspect) ? requestedImageAspect : (imageHasReferences ? '16:9' : '9:16'))
           : canvasText(
             body.aspectRatio
               || (nodeType === 'video'
@@ -8409,13 +8413,15 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       }
       const catalog = await modelControlPlane.publicCatalogForTenant(modelControlPlaneModule.tenantForUser(user));
       const requestedCatalogModelId = job.nodeType === 'image'
-        ? job.imageChannel || job.model
+        ? 'yunwu-gpt-image-2-c'
         : (job.videoChannel === 'h3' ? 'minimax-h3' : job.videoChannel || job.model);
       const catalogModel = catalog.models.find(item => item.id === requestedCatalogModelId);
       if (!catalogModel) return json(response, 409, {code:'CANVAS_MODEL_NOT_ENABLED',error:'当前模型尚未由管理员启用'});
-      const reservation = await modelControlPlane.reserveCredits({tenantId:modelControlPlaneModule.tenantForUser(user),userId:user.id,jobId:job.id,idempotencyKey:job.id + ':reserve',amount:catalogModel.priceCredits});
+      const billingMode = job.nodeType === 'image' && job.inputAssetIds?.length ? 'reference-image-edit' : 'text-to-image';
+      const billingAmount = Number(catalogModel.priceCreditsByMode?.[billingMode] ?? catalogModel.priceCredits ?? 0);
+      const reservation = await modelControlPlane.reserveCredits({tenantId:modelControlPlaneModule.tenantForUser(user),userId:user.id,jobId:job.id,idempotencyKey:job.id + ':reserve',amount:billingAmount});
       try {
-        job = await canvasGenerationJobService.updateOwned(user.id, projectId, jobId, {tenantId:modelControlPlaneModule.tenantForUser(user),creditReservationId:reservation.reservationId,creditAmount:catalogModel.priceCredits,creditState:'reserved'});
+        job = await canvasGenerationJobService.updateOwned(user.id, projectId, jobId, {tenantId:modelControlPlaneModule.tenantForUser(user),creditReservationId:reservation.reservationId,creditAmount:billingAmount,creditState:'reserved'});
       } catch (error) {
         await modelControlPlane.refundCredits({reservationId:reservation.reservationId,reason:'job_persistence_failed',idempotencyKey:job.id + ':refund'});
         throw error;
@@ -8465,7 +8471,7 @@ async function browserCanvasProviderStatus(user) {
   return {
     schemaVersion: catalog.schemaVersion,
     modelCatalog: catalog,
-    imageChannels: enabled.filter(item => item.kind === 'image').map(item => ({id:item.id,label:item.label,provider:item.providerLabel,resolutions:item.resolutions,aspectRatios:item.aspectRatios,outputSizes:item.outputSizes,submitEnabled:true,priceCredits:item.priceCredits})),
+    imageChannels: enabled.filter(item => item.kind === 'image').map(item => ({id:item.id,label:item.label,provider:item.providerLabel,resolutions:item.resolutions,aspectRatios:item.aspectRatios,outputSizes:item.outputSizes,outputSizesByAspectRatio:item.outputSizesByAspectRatio || {},imageOptions:item.imageOptions || null,supportsReferenceImages:item.supportsReferenceImages === true,supportsTextToImage:item.supportsTextToImage === true,supportsImageToImage:item.supportsImageToImage === true,priceCredits:item.priceCredits,priceCreditsByMode:item.priceCreditsByMode || {},submitEnabled:true})),
     imageSubmitEnabled: enabled.some(item => item.kind === 'image'),
     videoSubmitEnabled: enabled.some(item => item.kind === 'video' && !canvasVideoChannels.isDolaVideoChannel(item.id)),
     animateSubmitEnabled: false,
