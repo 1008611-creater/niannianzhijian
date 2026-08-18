@@ -161,6 +161,34 @@
     return response.providerStatus || {};
   }
 
+  var dolaLocalBridgeBase = 'http://127.0.0.1:9190';
+  function isDolaModel(extras) {
+    return [extras && extras.modelKey, extras && extras.modelAlias].some(function (value) {
+      return String(value || '').trim().toLowerCase() === 'dola-seedance-2-5';
+    });
+  }
+  async function dolaLocalRequest(path, init) {
+    var response;
+    try { response = await fetch(dolaLocalBridgeBase + path, Object.assign({mode:'cors'}, init || {})); }
+    catch (_) { throw new Error('本机 Dola 通道未启动，请先打开 Dola 客户端'); }
+    var body = await response.json().catch(function () { return {}; });
+    if (!response.ok) throw new Error(body.error || '本机 Dola 通道请求失败');
+    return body;
+  }
+  async function runDolaLocalTask(request, extras) {
+    var assets = [];
+    var ids = assetIds(extras);
+    for (var i = 0; i < ids.length; i += 1) {
+      var asset = await api('/api/projects/' + encodeURIComponent(projectId()) + '/assets/' + encodeURIComponent(ids[i]), {headers:{'x-niannian-project-kind':canvasProjectKind()}});
+      if (asset && asset.asset) assets.push({kind:asset.asset.kind, path:asset.asset.downloadUrl || asset.asset.storedPath});
+    }
+    var local = await dolaLocalRequest('/v1/jobs', {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({
+      prompt:request.prompt || '', aspectRatio:extras.aspectRatio || '9:16', durationSeconds:30,
+      assets:assets, confirmProviderSpend:true
+    })});
+    return {id:local.job_id, kind:'text_to_video', status:local.status || 'queued', raw:{localBridge:true,localJobId:local.job_id}};
+  }
+
   var catalogState = {vendors: [], models: []};
 
   function catalogForStatus(status) {
@@ -979,6 +1007,7 @@
       return taskFromTextJob(textPrepared.job);
     }
     var video = request.kind === 'text_to_video' || request.kind === 'image_to_video';
+    if (video && isDolaModel(extras)) return runDolaLocalTask(request, extras);
     var animateTransfer = video && isAnimateTransfer(extras);
     var prepared = await api('/api/projects/' + encodeURIComponent(project) + '/canvas/jobs', {
       method: 'POST',
@@ -1014,6 +1043,10 @@
     if (payload && (payload.taskKind === 'chat' || payload.kind === 'chat')) {
       var textResponse = await api('/api/projects/' + encodeURIComponent(project) + '/text/jobs/' + encodeURIComponent(payload.taskId) + '?projectKind=' + encodeURIComponent(canvasProjectKind()));
       return {vendor: 'asxs', result: taskFromTextJob(textResponse.job)};
+    }
+    if (String(payload && payload.taskId || '').startsWith('DOLA-')) {
+      var local = await dolaLocalRequest('/v1/jobs/' + encodeURIComponent(payload.taskId));
+      return {vendor:'dola', result:{id:payload.taskId,kind:'text_to_video',status:local.status || 'queued',assets:[],raw:{localBridge:true,localJobId:payload.taskId}}};
     }
     var response = await api('/api/projects/' + encodeURIComponent(project) + '/canvas/jobs/' + encodeURIComponent(payload.taskId) + '?projectKind=' + encodeURIComponent(canvasProjectKind()));
     return {vendor: response.job && response.job.imageChannel ? response.job.imageChannel : 'runninghub', result: taskFromCanvasJob(response.job, project)};
