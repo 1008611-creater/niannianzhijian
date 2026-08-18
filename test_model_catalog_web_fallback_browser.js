@@ -116,6 +116,8 @@ async function main() {
       {value: '3:4', label: '3:4'}
     ]);
     assert.deepEqual(result.videoModels[1].meta.videoOptions.resolutionOptions, [{value: '720p', label: '720P'}]);
+    assert.deepEqual(result.videoModels[1].meta.videoOptions.durationOptions, [{value: 30, label: '30 秒'}]);
+    assert.equal(result.videoModels[1].meta.videoOptions.defaultDurationSeconds, 30);
     assert.equal(result.health.byKind.find(item => item.kind === 'image').enabledModels, 1);
     assert.deepEqual(result.vendors, [
       {key: 'yunwu-image', name: '云雾', enabled: true, authType: 'none', hasApiKey: true},
