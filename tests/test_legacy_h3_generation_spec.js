@@ -22,11 +22,21 @@ assert.equal(normalized.parameters.resolution, '2k');
 
 const explicit = normalizeLegacyH3Node({
   ...legacy,
-  meta:{modelKey:'minimax-h3', aspectRatio:'16:9', resolution:'4k', durationSeconds:8}
+  meta:{modelKey:'minimax-h3', aspectRatio:'16:9', resolution:'4k', durationSeconds:8},
+  data:{prompt:'普通视频段'}
 });
 assert.equal(explicit.meta.aspectRatio, '16:9');
 assert.equal(explicit.meta.resolution, '4k');
 assert.equal(explicit.meta.durationSeconds, 8);
+
+const migratedEntrance = normalizeLegacyH3Node({
+  ...legacy,
+  meta:{modelKey:'minimax-h3', aspectRatio:'16:9', resolution:'4k', durationSeconds:8},
+  data:{prompt:'只完成第1组的0.0-5.0秒进门子段'}
+});
+assert.equal(migratedEntrance.meta.aspectRatio, '9:16');
+assert.equal(migratedEntrance.meta.resolution, '2k');
+assert.equal(migratedEntrance.meta.durationSeconds, 5);
 
 const canvas = normalizeGenerationCanvas({nodes:[legacy],groups:[]});
 assert.equal(canvas.nodes[0].meta.aspectRatio, '9:16');
