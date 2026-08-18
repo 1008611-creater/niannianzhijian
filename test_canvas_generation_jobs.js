@@ -11,33 +11,34 @@ async function run() {
     const service = createCanvasGenerationJobService({filePath:path.join(directory, 'jobs.json')});
     const request = {
       ownerId:'USR-A', projectId:'NN-PROJECT-A', projectKind:'redraw', nodeId:'image-node-001', nodeType:'image',
-      prompt:'商品主视觉，白色背景', inputAssetIds:['asset-001'], idempotencyKey:'canvas-job-0001'
+      prompt:'商品主视觉，白色背景', inputAssetIds:['asset-001'], aspectRatio:'16:9', idempotencyKey:'canvas-job-0001'
     };
     const first = await service.create(request);
     assert.equal(first.created, true);
     assert.equal(first.job.status, 'awaiting_authorization');
     assert.equal(first.job.providerSubmitEnabled, false);
-    assert.equal(first.job.imageChannel, 'yunwu-gpt-image-2-c');
-    assert.equal(first.job.outputSize, '2160x3840');
-    const yunwu4k = await service.create({...request, model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'9:16', idempotencyKey:'canvas-job-yunwu-4k'});
+    assert.equal(first.job.imageChannel, 'yunwu-gpt-image-2-c-edit');
+    assert.equal(first.job.generationMode, 'reference-image-edit');
+    assert.equal(first.job.outputSize, '3840x2160');
+    const yunwu4k = await service.create({...request, inputAssetIds:[], model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'9:16', idempotencyKey:'canvas-job-yunwu-4k'});
     assert.equal(yunwu4k.job.imageChannel, 'yunwu-gpt-image-2-c');
     assert.equal(yunwu4k.job.aspectRatio, '9:16');
     assert.equal(yunwu4k.job.outputSize, '2160x3840');
     await assert.rejects(
-      () => service.create({...request, model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'3:4', idempotencyKey:'canvas-job-yunwu-3-4'}),
+      () => service.create({...request, inputAssetIds:[], model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'3:4', idempotencyKey:'canvas-job-yunwu-3-4'}),
       error => error.code === 'CANVAS_IMAGE2_ASPECT_RATIO_UNSUPPORTED'
     );
-    const explicitOutputSize = await service.create({...request, model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'9:16', outputSize:'2160x3840', idempotencyKey:'canvas-job-yunwu-output-size'});
+    const explicitOutputSize = await service.create({...request, inputAssetIds:[], model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'9:16', outputSize:'2160x3840', idempotencyKey:'canvas-job-yunwu-output-size'});
     assert.equal(explicitOutputSize.job.outputSize, '2160x3840');
     await assert.rejects(
-      () => service.create({...request, model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'9:16', outputSize:'1024x1024', idempotencyKey:'canvas-job-yunwu-output-size-invalid'}),
+      () => service.create({...request, inputAssetIds:[], model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'9:16', outputSize:'1024x1024', idempotencyKey:'canvas-job-yunwu-output-size-invalid'}),
       error => error.code === 'CANVAS_IMAGE2_OUTPUT_SIZE_UNSUPPORTED'
     );
     await assert.rejects(
-      () => service.create({...request, model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'3:4', outputSize:'2160x3840', idempotencyKey:'canvas-job-yunwu-3-4-invalid'}),
+      () => service.create({...request, inputAssetIds:[], model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'3:4', outputSize:'2160x3840', idempotencyKey:'canvas-job-yunwu-3-4-invalid'}),
       error => error.code === 'CANVAS_IMAGE2_ASPECT_RATIO_UNSUPPORTED'
     );
-    const yunwuEdit = await service.create({...request, model:'yunwu-gpt-image-2-c-edit', resolution:'4k', aspectRatio:'16:9', idempotencyKey:'canvas-job-yunwu-edit'});
+    const yunwuEdit = await service.create({...request, model:'yunwu-gpt-image-2-c', resolution:'4k', aspectRatio:'16:9', idempotencyKey:'canvas-job-yunwu-edit'});
     assert.equal(yunwuEdit.job.imageChannel, 'yunwu-gpt-image-2-c-edit');
     assert.equal(yunwuEdit.job.outputSize, '3840x2160');
     await assert.rejects(
@@ -105,7 +106,7 @@ async function run() {
     assert.equal(dryRun.model, 'yunwu-gpt-image-2-c');
     assert.equal(dryRun.spendRequested, false);
     assert.equal(dryRun.providerSubmitEnabled, false);
-    assert.equal(dryRun.imageChannel, 'yunwu-gpt-image-2-c');
+    assert.equal(dryRun.imageChannel, 'yunwu-gpt-image-2-c-edit');
     console.log('CANVAS_GENERATION_JOBS_CONTRACT_OK');
   } finally {
     await fsp.rm(directory, {recursive:true, force:true});

@@ -8,7 +8,7 @@ const root = __dirname;
 const html = fs.readFileSync(path.join(root, 'studio', 'index.html'), 'utf8');
 const source = fs.readFileSync(path.join(root, 'studio', 'assets', 's1-chain-ui.js'), 'utf8');
 
-assert.match(html, /assets\/s1-chain-ui\.js\?v=20260818-generation-node-contract-r2/);
+assert.match(html, /assets\/s1-chain-ui\.js\?v=20260818-yunwu-unified-image2-r1/);
 assert.match(source, /\/api\/canvas\/documents\//);
 assert.match(source, /\/api\/projects\//);
 assert.match(source, /step01Projection/);
@@ -36,7 +36,7 @@ assert.match(source, /输出/);
 assert.match(source, /Image2 关键帧生成/);
 assert.match(source, /image2-storyboard-video/);
 assert.match(source, /yunwu-gpt-image-2-c/);
-assert.match(source, /yunwu-gpt-image-2-c-edit/);
+assert.doesNotMatch(source, /云雾 Image2 竖版 4K|云雾 Image2 横版 4K/);
 assert.match(source, /data-s2-resolution/);
 assert.match(source, /data-s2-aspect/);
 assert.match(source, /data-s2-assets/);

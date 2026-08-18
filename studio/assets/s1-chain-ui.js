@@ -182,7 +182,7 @@
     function installGenerationControls() {
       // Keep the menu aligned with the server registry. The old Yunfei and
       // RunningHub labels were UI-only values and were rejected on save.
-      image2Channel.innerHTML = '<option value="yunwu-gpt-image-2-c">云雾 Image2 竖版 4K</option><option value="yunwu-gpt-image-2-c-edit">云雾 Image2 横版 4K</option>';
+      image2Channel.innerHTML = '<option value="yunwu-gpt-image-2-c">云雾 Image2</option>';
       var heading = document.createElement('strong');
       heading.textContent = '生成节点';
       var imageButton = document.createElement('button');
@@ -305,8 +305,9 @@
     function syncButton() { createBtn.disabled = selectedIds().length === 0 || !rightsEl.checked || preflightEl.value !== 'passed'; startBtn.disabled = !chainReady || selectedIds().length === 0 || !rightsEl.checked || preflightEl.value !== 'passed'; }
     function syncImage2Spec() {
       var channel = image2Channel.value; var resolution = image2Resolution.value; var aspect = image2Aspect.value;
-      var valid = (channel === 'yunwu-gpt-image-2-c' && resolution === '4k' && aspect === '9:16') || (channel === 'yunwu-gpt-image-2-c-edit' && resolution === '4k' && aspect === '16:9');
-      image2Output.textContent = valid ? ((channel === 'yunwu-gpt-image-2-c' ? '2160x3840' : '3840x2160') + ' · 未授权不提交 Provider') : '当前渠道仅支持 4K 与对应比例';
+      var hasReferences = selectedImage2Ids().length > 0;
+      var valid = channel === 'yunwu-gpt-image-2-c' && resolution === '4k' && ((hasReferences && aspect === '16:9') || (!hasReferences && aspect === '9:16'));
+      image2Output.textContent = valid ? ((hasReferences ? '3840x2160' : '2160x3840') + ' · ' + (hasReferences ? '参考图模式' : '文生图模式') + ' · 未授权不提交 Provider') : (hasReferences ? '添加参考图时仅支持 4K 横向 16:9' : '无参考图时仅支持 4K 竖向 9:16');
       image2Create.disabled = !image2Prompt.value.trim() || !valid;
       image2Dry.disabled = image2Create.disabled;
     }

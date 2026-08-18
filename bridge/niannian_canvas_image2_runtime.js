@@ -69,7 +69,8 @@ function createCanvasImage2Runtime(options = {}) {
 
   async function dryRun(job) {
     if (job.nodeType !== 'image') throw runtimeError('CANVAS_IMAGE2_NODE_INVALID', '当前任务不是作图任务', 422);
-    return adapterFor(job).dryRun(taskFor(job), []);
+    const references = await ownedReferences(job);
+    return adapterFor(job).dryRun(taskFor(job), references.map(asset => asset.storedPath));
   }
 
   async function submit(ownerId, projectId, jobId) {

@@ -1,7 +1,7 @@
 'use strict';
 
 const DEFAULT_BASE_URL = 'https://www.runninghub.cn';
-const {CHANNELS, publicImage2Channel} = require('./niannian_canvas_image2_channels');
+const {CHANNELS, publicUnifiedImage2Channel} = require('./niannian_canvas_image2_channels');
 
 function isOn(value) {
   return String(value || '').trim().toLowerCase() === 'on';
@@ -47,7 +47,9 @@ function readCanvasProviderConfig(env = process.env) {
     credentialConfigured,
     imageSubmitEnabled: yunwuSubmitEnabled,
     imageChannelEnabled,
-    imageChannels: Object.freeze(Object.values(CHANNELS).map(channel => publicImage2Channel(channel, imageChannelEnabled[channel.id]))),
+    // The edit route remains an internal adapter detail. The browser receives
+    // one Image2 model with a reference-image mode and shared controls.
+    imageChannels: Object.freeze([publicUnifiedImage2Channel(yunwuSubmitEnabled)]),
     yunwuSubmitEnabled,
     h3CredentialConfigured,
     videoSubmitEnabled,
@@ -92,7 +94,28 @@ function publicCanvasModelCatalog(env = process.env) {
         aspectRatios: channel.aspectRatios,
         outputSizes: channel.outputSizes,
         outputSizesByAspectRatio: channel.outputSizesByAspectRatio || {},
-        priceCredits: channel.id === 'yunwu-gpt-image-2-c-edit' ? 12 : 10
+        imageOptions: {
+          aspectRatioOptions: channel.catalogAspectRatios || channel.aspectRatios.map(value => ({value, label: value})),
+          imageSizeOptions: channel.catalogImageSizeOptions || Object.entries(channel.outputSizesByAspectRatio?.['4k'] || {}).map(([ratio, value]) => ({value, label: `${value}（${ratio}）`, aspectRatio: ratio})),
+          resolutionOptions: channel.catalogResolutions || channel.resolutions.map(value => ({value, label: value.toUpperCase()})),
+          defaultAspectRatio: channel.defaultAspectRatio,
+          defaultImageSize: channel.defaultImageSize,
+          defaultResolution: channel.resolutions[0],
+          supportsReferenceImages: channel.supportsReferenceImages === true,
+          supportsTextToImage: channel.supportsTextToImage === true,
+          supportsImageToImage: channel.supportsImageToImage === true,
+          modes: channel.modes || [],
+          controls: [
+            {key: 'aspect_ratio', label: '比例', binding: 'aspectRatio', optionSource: 'aspectRatioOptions'},
+            {key: 'outputSize', label: '大小', binding: 'imageSize', optionSource: 'imageSizeOptions'},
+            {key: 'resolution', label: '清晰度', binding: 'resolution', optionSource: 'resolutionOptions'}
+          ]
+        },
+        supportsReferenceImages: channel.supportsReferenceImages === true,
+        supportsTextToImage: channel.supportsTextToImage === true,
+        supportsImageToImage: channel.supportsImageToImage === true,
+        priceCredits: channel.priceCredits,
+        priceCreditsByMode: channel.priceCreditsByMode || {}
       })),
       {
         id: 'minimax-h3',

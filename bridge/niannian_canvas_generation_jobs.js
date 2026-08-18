@@ -79,7 +79,8 @@ function publicJob(job, options = {}) {
     inputAssetIds: Array.isArray(job.inputAssetIds) ? job.inputAssetIds : [],
     outputAssetIds: Array.isArray(job.outputAssetIds) ? job.outputAssetIds : [],
     imageChannel: job.nodeType === 'image' ? (job.imageChannel || 'yunwu-gpt-image-2-c') : null,
-    imageChannelLabel: job.nodeType === 'image' ? (job.imageChannelLabel || '云雾 Image2 竖版 4K') : null,
+    imageChannelLabel: job.nodeType === 'image' ? (job.imageChannelLabel || '云雾 Image2') : null,
+    generationMode: job.nodeType === 'image' ? (job.generationMode || (job.inputAssetIds?.length ? 'reference-image-edit' : 'text-to-image')) : null,
     videoChannel: videoChannel?.id || null,
     videoChannelLabel: videoChannel?.label || null,
     resolution: job.resolution || '2k',
@@ -119,7 +120,8 @@ function dryRunContract(job, options = {}) {
     spendRequested: false,
     inputAssetCount: job.inputAssetIds.length,
     imageChannel: job.nodeType === 'image' ? (job.imageChannel || 'yunwu-gpt-image-2-c') : null,
-    imageChannelLabel: job.nodeType === 'image' ? (job.imageChannelLabel || '云雾 Image2 竖版 4K') : null,
+    imageChannelLabel: job.nodeType === 'image' ? (job.imageChannelLabel || '云雾 Image2') : null,
+    generationMode: job.nodeType === 'image' ? (job.generationMode || (job.inputAssetIds?.length ? 'reference-image-edit' : 'text-to-image')) : null,
     videoChannel: videoChannel?.id || null,
     videoChannelLabel: videoChannel?.label || null,
     resolution: job.resolution || '2k',
@@ -190,7 +192,7 @@ function createCanvasGenerationJobService(options = {}) {
     if (!prompt && nodeType === 'video' && ['h3','dola-seedance-2-5'].includes(videoSpec?.id)) throw jobError('CANVAS_JOB_PROMPT_REQUIRED', '视频节点需要填写提示词', 422);
     if (nodeType === 'video' && videoSpec?.id === 'h3' && inputAssetIds.length < 1) throw jobError('CANVAS_H3_FIRST_FRAME_REQUIRED', 'H3 视频节点需要先绑定一张项目内图片作为首帧', 422);
     const imageSpec = nodeType === 'image'
-      ? normalizeImage2Spec({model: input.imageChannel || input.model, resolution, aspectRatio, outputSize: input.outputSize || input.imageSize})
+      ? normalizeImage2Spec({model: input.imageChannel || input.model, resolution, aspectRatio, outputSize: input.outputSize || input.imageSize, referenceCount: inputAssetIds.length})
       : null;
     return {
       projectId, projectKind, nodeId, nodeType, prompt, inputAssetIds,
@@ -199,6 +201,7 @@ function createCanvasGenerationJobService(options = {}) {
       imageChannel: imageSpec?.imageChannel || null,
       imageChannelLabel: imageSpec?.imageChannelLabel || null,
       imageProvider: imageSpec?.imageProvider || null,
+      generationMode: imageSpec?.generationMode || null,
       outputSize: imageSpec?.outputSize || null,
       videoChannel: videoSpec?.id || null,
       videoChannelLabel: videoSpec?.label || null,
@@ -244,6 +247,7 @@ function createCanvasGenerationJobService(options = {}) {
         imageChannel: normalized.imageChannel,
         imageChannelLabel: normalized.imageChannelLabel,
         imageProvider: normalized.imageProvider,
+        generationMode: normalized.generationMode,
         videoChannel: normalized.videoChannel,
         videoChannelLabel: normalized.videoChannelLabel,
         resolution: normalized.resolution,

@@ -121,7 +121,11 @@
           imageChannel: imageChannel.id,
           supportedResolutions: imageChannel.resolutions || [],
           supportedAspectRatios: imageChannel.aspectRatios || [],
-          outputSizes: imageChannel.outputSizes || {}
+          outputSizes: imageChannel.outputSizes || {},
+          imageOptions: imageChannel.imageOptions || null,
+          supportsReferenceImages: imageChannel.supportsReferenceImages === true,
+          supportsTextToImage: imageChannel.supportsTextToImage === true,
+          supportsImageToImage: imageChannel.supportsImageToImage === true
         }
       };
     }
@@ -197,12 +201,16 @@
               }
             } : {
               imageOptions: {
-                aspectRatioOptions: (item.aspectRatios || []).map(function (value) { return {value: String(value), label: String(value)}; }),
-                imageSizeOptions: Object.entries(item.outputSizes || {}).map(function (entry) { return {value: String(entry[1]), label: String(entry[1]) + '（' + String(entry[0]).toUpperCase() + '）'}; }),
-                resolutionOptions: (item.resolutions || []).map(function (value) { return {value: String(value), label: String(value).toUpperCase()}; }),
-                defaultAspectRatio: item.aspectRatios?.[0],
-                defaultImageSize: Object.values(item.outputSizes || {})[0],
-                defaultResolution: item.resolutions?.[0],
+                ...(item.imageOptions || {}),
+                aspectRatioOptions: Array.isArray(item.imageOptions?.aspectRatioOptions) ? item.imageOptions.aspectRatioOptions : (item.aspectRatios || []).map(function (value) { return {value: String(value), label: String(value)}; }),
+                imageSizeOptions: Array.isArray(item.imageOptions?.imageSizeOptions) ? item.imageOptions.imageSizeOptions : Object.entries(item.outputSizes || {}).map(function (entry) { return {value: String(entry[1]), label: String(entry[1]) + '（' + String(entry[0]).toUpperCase() + '）'}; }),
+                resolutionOptions: Array.isArray(item.imageOptions?.resolutionOptions) ? item.imageOptions.resolutionOptions : (item.resolutions || []).map(function (value) { return {value: String(value), label: String(value).toUpperCase()}; }),
+                defaultAspectRatio: item.imageOptions?.defaultAspectRatio || item.aspectRatios?.[0],
+                defaultImageSize: item.imageOptions?.defaultImageSize || Object.values(item.outputSizes || {})[0],
+                defaultResolution: item.imageOptions?.defaultResolution || item.resolutions?.[0],
+                supportsReferenceImages: item.supportsReferenceImages === true || item.imageOptions?.supportsReferenceImages === true,
+                supportsTextToImage: item.supportsTextToImage === true || item.imageOptions?.supportsTextToImage === true,
+                supportsImageToImage: item.supportsImageToImage === true || item.imageOptions?.supportsImageToImage === true,
                 controls: [
                   {key: 'aspect_ratio', label: '比例', binding: 'aspectRatio', optionSource: 'aspectRatioOptions'},
                   {key: 'outputSize', label: '大小', binding: 'imageSize', optionSource: 'imageSizeOptions'},
