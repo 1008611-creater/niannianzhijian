@@ -140,8 +140,10 @@ async function run() {
   assert.deepEqual(h3Node.body.node.outputPorts.map(port => port.id), ['video_asset']);
   assert.equal(h3Node.body.node.status, 'ready');
   assert.equal(h3Node.body.node.data.firstFrameAssetId, firstFrameAssetId);
-  assert.equal(h3Node.body.node.data.aspectRatio, '9:16');
-  assert.equal(h3Node.body.node.data.durationSeconds, 5);
+  assert.equal(h3Node.body.node.data.aspectRatio, '16:9');
+  assert.equal(h3Node.body.node.data.resolution, '2k');
+  assert.equal(h3Node.body.node.data.durationSeconds, 12);
+  assert.equal(h3Node.body.node.data.model, 'minimax-h3');
   etag = h3Node.response.headers.get('etag');
   const h3NodeJob = await request('/api/projects/' + project.id + '/canvas/jobs', {method:'POST',headers:headers({'content-type':'application/json','idempotency-key':'champion-s3-h3-job-0001'}),body:JSON.stringify({projectKind:'redraw',nodeId:'s3-h3-video',model:'h3',durationSeconds:5,aspectRatio:'9:16'})});
   assert.equal(h3NodeJob.response.status, 201, JSON.stringify(h3NodeJob.body));

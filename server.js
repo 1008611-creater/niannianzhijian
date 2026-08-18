@@ -6960,6 +6960,9 @@ function normalizeCanvasDocument(value, project) {
         title:canvasText(sourceData.title || type, 120) || type,
         prompt:canvasText(sourceData.prompt, 4000),
         note:canvasText(sourceData.note, 2000),
+        model:canvasText(sourceData.model || sourceData.modelKey || sourceData.modelAlias, 120) || null,
+        modelKey:canvasText(sourceData.modelKey || sourceData.model, 120) || null,
+        modelAlias:canvasText(sourceData.modelAlias || sourceData.modelKey || sourceData.model, 120) || null,
         resolution:['1k','2k','4k'].includes(canvasText(sourceData.resolution || '2k', 8).toLowerCase()) ? canvasText(sourceData.resolution || '2k', 8).toLowerCase() : '2k',
         aspectRatio:/^\d{1,2}:\d{1,2}$/.test(canvasText(sourceData.aspectRatio || '1:1', 16)) ? canvasText(sourceData.aspectRatio || '1:1', 16) : '1:1',
         durationSeconds:Number.isFinite(Number(sourceData.durationSeconds)) ? Math.max(4, Math.min(15, Number(sourceData.durationSeconds))) : 5,
@@ -7531,7 +7534,14 @@ async function handleCanvasH3NodeApi(request, response, pathname, user) {
       const currentDocument = normalizeCanvasDocument(current?.document, project);
       const prior = currentDocument.nodes.find(node => node.id === canvasH3Node.H3_NODE_ID) || null;
       const defaults = canvasStoryboardGroups.resolveProjectGenerationDefaults(project);
-      const node = canvasH3Node.createH3Node({projectId, referenceAssetIds, existingNode:{...prior, data:{...(prior?.data || {}), prompt:body.prompt, aspectRatio:defaults.aspectRatio, durationSeconds:defaults.durationSeconds, storyboardGroupId:body.storyboardGroupId || prior?.data?.storyboardGroupId || null}}});
+      const bodyAspectRatio = String(body.aspectRatio || '').trim();
+      const priorAspectRatio = String(prior?.data?.aspectRatio || prior?.meta?.aspect_ratio || '').trim();
+      const requestedAspectRatio = ['9:16', '16:9', '1:1', '4:3', '3:4'].includes(bodyAspectRatio)
+        ? bodyAspectRatio
+        : (prior?.meta?.aspect_ratio_user_set === true && ['9:16', '16:9', '1:1', '4:3', '3:4'].includes(priorAspectRatio) ? priorAspectRatio : defaults.aspectRatio);
+      const requestedResolution = canvasH3Node.resolution(body.resolution || prior?.data?.resolution || prior?.parameters?.resolution);
+      const requestedDuration = Number(body.durationSeconds || defaults.durationSeconds);
+      const node = canvasH3Node.createH3Node({projectId, referenceAssetIds, existingNode:{...prior, data:{...(prior?.data || {}), prompt:body.prompt, aspectRatio:requestedAspectRatio, resolution:requestedResolution, durationSeconds:requestedDuration, storyboardGroupId:body.storyboardGroupId || prior?.data?.storyboardGroupId || null}}});
       const document = normalizeCanvasDocument({...currentDocument,nodes:[...currentDocument.nodes.filter(item => item.id !== node.id),node]}, project);
       const revision = currentRevision + 1;
       const record = {schemaVersion:'niannian.canvas-document.v1',projectId:project.id,projectKind,ownerId:user.id,revision,document,updatedAt:new Date().toISOString()};
@@ -8277,6 +8287,8 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       const h3Defaults = requestedVideoChannel?.id === 'h3'
         ? canvasStoryboardGroups.resolveProjectGenerationDefaults(owned.project)
         : null;
+      const nodeMeta = node?.meta && typeof node.meta === 'object' ? node.meta : {};
+      const nodeData = node?.data && typeof node.data === 'object' ? node.data : {};
       if (nodeType === 'video' && requestedModel && !canvasVideoChannels.resolveVideoChannel(requestedModel)) return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'模型与当前节点类型不匹配'});
       if (nodeType === 'image' && requestedModel && !canvasImage2Channels.resolveImage2Channel(requestedModel)) {
         return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'请选择已接入的 Image2 作图渠道'});
@@ -8301,24 +8313,24 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         // generic defaults, so prevent them from overriding the selected channel.
         resolution:nodeType === 'image' && ['yunwu-gpt-image-2-c','yunwu-gpt-image-2-c-edit'].includes(requestedModel)
           ? '4k'
-          : canvasText(body.resolution || node.data?.resolution || '2k', 8),
+          : canvasText(body.resolution || nodeData.resolution || nodeMeta.resolution || '2k', 8),
         outputSize:nodeType === 'image'
           ? canvasText(body.outputSize || body.imageSize || node.data?.outputSize || node.data?.imageSize || '', 32) || null
           : null,
-        aspectRatio:h3Defaults
-          ? h3Defaults.aspectRatio
+        aspectRatio:(nodeType === 'video' && h3Defaults)
+          ? canvasText(body.aspectRatio || body.aspect_ratio || (nodeMeta.aspect_ratio_user_set === true ? (nodeMeta.aspectRatio || nodeMeta.aspect_ratio) : '') || h3Defaults.aspectRatio, 16)
           : (nodeType === 'image' && ['yunwu-gpt-image-2-c','yunwu-gpt-image-2-c-edit'].includes(requestedModel)
           ? (requestedModel === 'yunwu-gpt-image-2-c-edit' ? '16:9' : '9:16')
           : canvasText(
             body.aspectRatio
               || (nodeType === 'video'
-                ? (node.data?.aspectRatio && node.data.aspectRatio !== '1:1' ? node.data.aspectRatio : '9:16')
-                : node.data?.aspectRatio || '1:1'),
+                ? (nodeData.aspectRatio || nodeMeta.aspectRatio || nodeMeta.aspect_ratio || '9:16')
+                : nodeData.aspectRatio || nodeMeta.aspectRatio || nodeMeta.aspect_ratio || '1:1'),
             16
           )),
-        durationSeconds:h3Defaults
-          ? h3Defaults.durationSeconds
-          : (body.durationSeconds || body.duration_seconds || node.data?.durationSeconds || node.data?.duration_seconds || (requestedModel === 'dola-seedance-2-5' ? 30 : (nodeType === 'video' ? 5 : 0))),
+        durationSeconds:(nodeType === 'video' && h3Defaults)
+          ? (body.durationSeconds || body.duration_seconds || nodeData.durationSeconds || nodeMeta.durationSeconds || h3Defaults.durationSeconds)
+          : (body.durationSeconds || body.duration_seconds || nodeData.durationSeconds || nodeData.duration_seconds || nodeMeta.durationSeconds || (requestedModel === 'dola-seedance-2-5' ? 30 : (nodeType === 'video' ? 5 : 0))),
         accountSlot:body.accountSlot || body.account_slot || node.data?.accountSlot || node.data?.account_slot || 1,
         idempotencyKey:request.headers['idempotency-key']
       });

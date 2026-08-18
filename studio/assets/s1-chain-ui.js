@@ -196,7 +196,7 @@
       if (panel.querySelector('[data-node="h3"]')) return;
       var card = document.createElement('article');
       card.className = 's1-node'; card.dataset.node = 'h3'; card.dataset.status = 'draft';
-      card.innerHTML = '<div class="s1-meta"><span>Skill 节点 · minimaxh3skill</span><small data-node-status>draft</small></div><h3>H3 生视频</h3><p>接收视频提示词与关键帧参考，生成任务始终由念念服务端创建、轮询并回库。</p><div class="s1-ports"><div class="s1-port-group input"><small>输入</small><button type="button" class="s1-port-handle s1-input-port" data-s1-input-node="s3-h3-video" data-s1-input-port="prompt" title="拖入 prompt 输出">prompt</button><button type="button" class="s1-port-handle s1-input-port" data-s1-input-node="s3-h3-video" data-s1-input-port="image_asset" title="拖入 image_asset 输出">image_asset</button></div><div class="s1-port-group output"><small>输出</small><button type="button" class="s1-port-handle s1-output-port" data-s1-output-node="s3-h3-video" data-s1-output-port="video_asset" title="从此端口拖到兼容输入">video_asset</button></div></div><div class="s1-assets" data-s3-assets><span>正在读取关键帧参考...</span></div><label class="s1-row"><span>提示词</span><input data-s3-prompt placeholder="描述镜头运动和画面连续性" style="flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:7px"></label><div class="s1-row"><span>规格</span><select data-s3-aspect><option value="9:16">9:16</option><option value="16:9">16:9</option></select><select data-s3-duration><option value="5">5 秒</option><option value="10">10 秒</option><option value="15">15 秒</option></select></div><div class="s1-status" data-s3-status>未创建任务；先保存 H3 节点合同。</div><div class="s1-preview" data-s3-preview>结果预览：等待 H3 产物</div><div class="s1-row"><button type="button" data-s3-create class="s1-secondary">保存 H3 节点</button><button type="button" data-s3-dry disabled>准备任务</button></div>';
+      card.innerHTML = '<div class="s1-meta"><span>Skill 节点 · minimaxh3skill</span><small data-node-status>draft</small></div><h3>H3 生视频</h3><p>接收视频提示词与关键帧参考，生成任务始终由念念服务端创建、轮询并回库。</p><div class="s1-ports"><div class="s1-port-group input"><small>输入</small><button type="button" class="s1-port-handle s1-input-port" data-s1-input-node="s3-h3-video" data-s1-input-port="prompt" title="拖入 prompt 输出">prompt</button><button type="button" class="s1-port-handle s1-input-port" data-s1-input-node="s3-h3-video" data-s1-input-port="image_asset" title="拖入 image_asset 输出">image_asset</button></div><div class="s1-port-group output"><small>输出</small><button type="button" class="s1-port-handle s1-output-port" data-s1-output-node="s3-h3-video" data-s1-output-port="video_asset" title="从此端口拖到兼容输入">video_asset</button></div></div><div class="s1-assets" data-s3-assets><span>正在读取关键帧参考...</span></div><label class="s1-row"><span>提示词</span><input data-s3-prompt placeholder="描述镜头运动和画面连续性" style="flex:1;min-width:0;padding:6px;border:1px solid rgba(90,64,42,.2);border-radius:7px"></label><div class="s1-row"><span>规格</span><select data-s3-aspect><option value="9:16">9:16</option><option value="16:9">16:9</option><option value="1:1">1:1</option><option value="4:3">4:3</option><option value="3:4">3:4</option></select><select data-s3-resolution><option value="2k">2K</option><option value="1k">1K</option><option value="4k">4K</option></select><select data-s3-duration><option value="5">5 秒</option><option value="10">10 秒</option><option value="15">15 秒</option></select></div><div class="s1-status" data-s3-status>未创建任务；先保存 H3 节点合同。</div><div class="s1-preview" data-s3-preview>结果预览：等待 H3 产物</div><div class="s1-row"><button type="button" data-s3-create class="s1-secondary">保存 H3 节点</button><button type="button" data-s3-dry disabled>准备任务</button></div>';
       nodesEl.insertBefore(card, panel.querySelector('[data-s1-context]'));
     }
     installH3NodeCard();
@@ -216,6 +216,7 @@
     var h3Card = panel.querySelector('[data-node="h3"]');
     var h3Prompt = panel.querySelector('[data-s3-prompt]');
     var h3Aspect = panel.querySelector('[data-s3-aspect]');
+    var h3Resolution = panel.querySelector('[data-s3-resolution]');
     var h3Duration = panel.querySelector('[data-s3-duration]');
     var h3Status = panel.querySelector('[data-s3-status]');
     var h3Create = panel.querySelector('[data-s3-create]');
@@ -618,7 +619,7 @@
         var h3Ids = new Set([].concat(h3.data && h3.data.inputAssetIds || [], h3.assetRefs || []).map(function (item) { return typeof item === 'string' ? item : item && item.assetId; }).filter(Boolean));
         panel.querySelectorAll('input[data-s3-asset]').forEach(function (input) { input.checked = h3Ids.has(input.value); });
       }
-      if (h3) { h3Card.dataset.status = h3.status; h3Card.querySelector('[data-node-status]').textContent = h3.status; h3Prompt.value = h3.data && h3.data.prompt || ''; h3Aspect.value = h3.data && h3.data.aspectRatio || h3Aspect.value; h3Duration.value = String(h3.data && h3.data.durationSeconds || h3Duration.value); h3Status.textContent = '节点合同已保存；任务会先进入等待授权状态。'; }
+      if (h3) { h3Card.dataset.status = h3.status; h3Card.querySelector('[data-node-status]').textContent = h3.status; h3Prompt.value = h3.data && h3.data.prompt || ''; h3Aspect.value = h3.data && h3.data.aspectRatio || h3Aspect.value; h3Resolution.value = h3.data && h3.data.resolution || h3.parameters && h3.parameters.resolution || h3Resolution.value; h3Duration.value = String(h3.data && h3.data.durationSeconds || h3Duration.value); h3Status.textContent = '节点合同已保存；任务会先进入等待授权状态。'; }
       syncH3Spec();
       renderChampionNodes(nodes);
       if (selectedNodeId && nodeById[selectedNodeId]) {
@@ -709,7 +710,7 @@
     async function createH3() {
       h3Create.disabled = true; h3Status.textContent = '正在保存 H3 节点合同...';
       try {
-        var result = await api('/api/canvas/documents/' + encodeURIComponent(projectKind()) + '/' + encodeURIComponent(projectId()) + '/s3-h3', {method:'POST',headers:{'content-type':'application/json','if-match':'"canvas-rev-' + revision + '"'},body:JSON.stringify({prompt:h3Prompt.value,aspectRatio:h3Aspect.value,durationSeconds:Number(h3Duration.value),referenceAssetIds:selectedH3Ids()})});
+        var result = await api('/api/canvas/documents/' + encodeURIComponent(projectKind()) + '/' + encodeURIComponent(projectId()) + '/s3-h3', {method:'POST',headers:{'content-type':'application/json','if-match':'"canvas-rev-' + revision + '"'},body:JSON.stringify({prompt:h3Prompt.value,aspectRatio:h3Aspect.value,resolution:h3Resolution.value,durationSeconds:Number(h3Duration.value),referenceAssetIds:selectedH3Ids()})});
         revision = Number(result.body.revision || revision); canvasDocument.nodes = (canvasDocument.nodes || []).filter(function (node) { return node.id !== 's3-h3-video'; }).concat([result.body.node]); renderNodes(canvasDocument.nodes); h3Status.textContent = 'H3 节点已保存。下一步只能准备服务端候选，提交仍需明确授权。';
       } catch (error) { h3Status.textContent = (error.code ? error.code + ': ' : '') + (error.message || '保存失败'); }
       syncH3Spec();
@@ -717,7 +718,7 @@
     async function dryRunH3() {
       h3Dry.disabled = true; h3Status.textContent = '正在建立 H3 候选并执行 dry-run（不提交 Provider）...';
       try {
-        var prepared = await api('/api/projects/' + encodeURIComponent(projectId()) + '/canvas/jobs', {method:'POST',headers:{'content-type':'application/json','idempotency-key':'s3-h3-' + Date.now()},body:JSON.stringify({projectKind:projectKind(),nodeId:'s3-h3-video',model:'h3',prompt:h3Prompt.value,aspectRatio:h3Aspect.value,durationSeconds:Number(h3Duration.value),inputAssetIds:selectedH3Ids()})});
+        var prepared = await api('/api/projects/' + encodeURIComponent(projectId()) + '/canvas/jobs', {method:'POST',headers:{'content-type':'application/json','idempotency-key':'s3-h3-' + Date.now()},body:JSON.stringify({projectKind:projectKind(),nodeId:'s3-h3-video',model:'minimax-h3',prompt:h3Prompt.value,aspectRatio:h3Aspect.value,resolution:h3Resolution.value,durationSeconds:Number(h3Duration.value),inputAssetIds:selectedH3Ids()})});
         h3JobId = prepared.body.job && prepared.body.job.id;
         if (!h3JobId) throw new Error('服务器没有返回 H3 候选任务');
         var dry = await api('/api/projects/' + encodeURIComponent(projectId()) + '/canvas/jobs/' + encodeURIComponent(h3JobId) + '/dry-run', {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({projectKind:projectKind()})});
@@ -819,7 +820,7 @@
     image2Create.addEventListener('click', createImage2); image2Dry.addEventListener('click', dryRunImage2);
     h3Create.addEventListener('click', createH3); h3Dry.addEventListener('click', dryRunH3);
     [image2Prompt,image2Channel,image2Resolution,image2Aspect].forEach(function (el) { el.addEventListener('input', syncImage2Spec); el.addEventListener('change', syncImage2Spec); });
-    [h3Prompt,h3Aspect,h3Duration].forEach(function (el) { el.addEventListener('input', syncH3Spec); el.addEventListener('change', syncH3Spec); });
+    [h3Prompt,h3Aspect,h3Resolution,h3Duration].forEach(function (el) { el.addEventListener('input', syncH3Spec); el.addEventListener('change', syncH3Spec); });
     syncImage2Spec();
     syncH3Spec();
     rightsEl.addEventListener('change', syncButton); preflightEl.addEventListener('change', syncButton); createBtn.addEventListener('click', create);

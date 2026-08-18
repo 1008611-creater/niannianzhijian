@@ -971,13 +971,13 @@
         nodeId: nodeId,
         // Preserve the model selected in the canvas node. Older builds forced every
         // video request through the H3 alias, which made Dola selection UI-only.
-        model: animateTransfer ? animateModel(extras) : (video ? (extras.modelKey || extras.modelAlias || 'h3') : (extras.modelKey || extras.modelAlias || 'runninghub-gpt-image-2')),
+        model: animateTransfer ? animateModel(extras) : (video ? (extras.modelKey || extras.modelAlias || 'minimax-h3') : (extras.modelKey || extras.modelAlias || 'runninghub-gpt-image-2')),
         prompt: request.prompt || '',
         inputAssetIds: animateTransfer ? animateAssetIds(extras) : assetIds(extras),
         resolution: extras.resolution || '2k',
         outputSize: extras.outputSize || extras.imageSize || null,
         aspectRatio: video
-          ? (extras.aspectRatio && extras.aspectRatio !== '1:1' ? extras.aspectRatio : '9:16')
+          ? (extras.aspectRatio || '9:16')
           : (extras.aspectRatio || '1:1'),
         durationSeconds: extras.durationSeconds || (video && (extras.modelKey === 'dola-seedance-2-5' || extras.modelAlias === 'dola-seedance-2-5') ? 30 : 5)
       })
