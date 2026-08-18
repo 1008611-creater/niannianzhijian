@@ -7,6 +7,7 @@ const now = 1770000000000;
 const characterAsset = 'CAS-000000000000000000000019';
 const sceneAsset = 'CAS-000000000000000000000001';
 const propAsset = 'CAS-000000000000000000000011';
+const firstFrameAsset = 'CAS-000000000000000000000021';
 
 const normalized = groups.normalizeGenerationCanvas({
   nodes:[
@@ -14,9 +15,11 @@ const normalized = groups.normalizeGenerationCanvas({
     {id:'scene-asset',kind:'asset',categoryId:'scenes',meta:{canvasAssetId:sceneAsset}},
     {id:'prop-asset',kind:'asset',categoryId:'props',meta:{canvasAssetId:propAsset}},
     {id:'legacy-image',kind:'image',categoryId:'characters',groupId:'E01-G2',meta:{inputAssetIds:[characterAsset]}},
-    {id:'legacy-video',kind:'video',categoryId:'props',groupId:'E01-G1',meta:{firstFrameAssetId:sceneAsset}}
+    {id:'legacy-video',kind:'video',categoryId:'props',groupId:'E01-G1',meta:{firstFrameAssetId:sceneAsset}},
+    {id:'old-runninghub-h3',kind:'video',categoryId:'props',groupId:'E01-G1',title:'H3 生视频',status:'blocked',prompt:'只完成第1组的0.0-5.0秒进门子段',meta:{modelLabel:'H3 生视频',aspectRatio:'16:9',resolution:'2k'}} ,
+    {id:'first-frame-image',kind:'image',categoryId:'shots',result:{type:'image',assetId:firstFrameAsset,url:'https://example.invalid/first-frame.webp'}}
   ],
-  edges:[],
+  edges:[{id:'first-frame-edge',source:'first-frame-image',target:'old-runninghub-h3',mode:'reference'}],
   groups:[
     {id:'E01-G1',name:'分镜·E01-G1 进门侵入',categoryId:'shots',nodeIds:[],createdAt:now,updatedAt:now},
     {id:'E01-G2',name:'分镜·E01-G2 汤碗施压',categoryId:'shots',nodeIds:[],createdAt:now,updatedAt:now},
@@ -37,8 +40,17 @@ assert.equal(normalized.nodes.find(node => node.id === 'legacy-image').categoryI
 assert.equal(normalized.nodes.find(node => node.id === 'legacy-video').categoryId, 'shots');
 assert.equal(normalized.nodes.find(node => node.id === 'legacy-image').shotId, 'E01-G2');
 assert.equal(normalized.nodes.find(node => node.id === 'legacy-video').shotId, 'E01-G1');
-assert.deepEqual(normalized.groups.find(group => group.id === 'E01-G1').nodeIds, ['legacy-video']);
-assert.deepEqual(normalized.groups.find(group => group.id === 'E01-G1').assetIds, [sceneAsset]);
+const migratedH3 = normalized.nodes.find(node => node.id === 'old-runninghub-h3');
+assert.equal(migratedH3.meta.aspectRatio, '9:16');
+assert.equal(migratedH3.meta.aspect_ratio, '9:16');
+assert.equal(migratedH3.data.aspectRatio, '9:16');
+assert.equal(migratedH3.meta.resolution, '2k');
+assert.equal(migratedH3.meta.durationSeconds, 5);
+assert.equal(migratedH3.meta.firstFrameAssetId, firstFrameAsset);
+assert.equal(migratedH3.status, 'ready');
+assert.deepEqual(migratedH3.data.inputAssetIds, [firstFrameAsset]);
+assert.deepEqual(normalized.groups.find(group => group.id === 'E01-G1').nodeIds, ['legacy-video', 'old-runninghub-h3', 'first-frame-image']);
+assert.deepEqual(normalized.groups.find(group => group.id === 'E01-G1').assetIds, [sceneAsset, firstFrameAsset]);
 assert.deepEqual(normalized.groups.find(group => group.id === 'E01-G2').nodeIds, ['legacy-image']);
 assert.deepEqual(normalized.groups.find(group => group.id === 'E01-G2').assetIds, [characterAsset]);
 assert.deepEqual(normalized.groups.find(group => group.id === 'characters').nodeIds, ['character-asset']);

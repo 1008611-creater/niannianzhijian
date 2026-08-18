@@ -105,13 +105,30 @@ function isLegacyH3Node(node) {
   const {meta, data, parameters} = h3SpecSource(node);
   const values = [
     node.skillKey, node.modelKey, node.modelAlias, node.model,
+    node.modelLabel, node.videoModel, node.videoModelAlias, node.title,
     meta.skillKey, meta.modelKey, meta.modelAlias, meta.model,
+    meta.modelLabel, meta.videoModel, meta.videoModelAlias,
     data.skillKey, data.modelKey, data.modelAlias, data.model,
+    data.modelLabel, data.videoModel, data.videoModelAlias,
     parameters.modelKey, parameters.modelAlias, parameters.model
-  ].map(value => text(value, 160).toLowerCase());
-  return values.some(value => ['minimaxh3skill', 'minimax-h3', 'niannian/minimax-h3', 'minimax-h3-fl2va', 'minimax_h3_fl2va'].includes(value))
-    || values.some(value => value.includes('minimaxh3'))
+  ].map(value => text(value, 160).toLowerCase().replace(/\s+/g, ''));
+  return values.some(value => ['minimaxh3skill', 'minimax-h3', 'niannian/minimax-h3', 'minimax-h3-fl2va', 'minimax_h3_fl2va', 'runninghub-h3', 'h3生视频'].includes(value))
+    || values.some(value => value.includes('minimaxh3') || value.includes('runninghubh3'))
     || values.some(value => /h3/.test(value) && /video|视频/.test(value));
+}
+
+function firstFrameAssetFromEdges(node, nodes, edges) {
+  const nodeId = text(node?.id, 160);
+  if (!nodeId || !Array.isArray(edges) || !Array.isArray(nodes)) return null;
+  const byId = new Map(nodes.map(item => [text(item?.id, 160), item]));
+  for (const edge of edges) {
+    if (text(edge?.target, 160) !== nodeId || !['first_frame', 'reference'].includes(text(edge?.mode, 40))) continue;
+    const source = byId.get(text(edge?.source, 160));
+    if (!['image', 'asset'].includes(text(source?.kind || source?.type, 40).toLowerCase())) continue;
+    const assetId = assetIdsForNode(source)[0];
+    if (assetId) return assetId;
+  }
+  return null;
 }
 
 function isFirstEntranceSegment(node) {
@@ -194,6 +211,7 @@ function normalizeGenerationCanvas(canvas, options = {}) {
     }
   }
   const nodes = Array.isArray(raw.nodes) ? raw.nodes.map(node => ({...node})) : [];
+  const edges = Array.isArray(raw.edges) ? raw.edges : [];
   const nodeIds = new Set(nodes.map(node => text(node?.id, 120)).filter(Boolean));
   const requestedByNode = options.requestedGroupByNode && typeof options.requestedGroupByNode === 'object'
     ? options.requestedGroupByNode
@@ -202,6 +220,28 @@ function normalizeGenerationCanvas(canvas, options = {}) {
   for (const node of nodes) {
     if (!node || typeof node !== 'object' || Array.isArray(node)) continue;
     normalizeLegacyH3Node(node, options);
+    if (isLegacyH3Node(node)) {
+      const meta = node.meta && typeof node.meta === 'object' && !Array.isArray(node.meta) ? node.meta : {};
+      const data = node.data && typeof node.data === 'object' && !Array.isArray(node.data) ? node.data : {};
+      const parameters = node.parameters && typeof node.parameters === 'object' && !Array.isArray(node.parameters) ? node.parameters : {};
+      const firstFrameAssetId = text(
+        meta.firstFrameAssetId || data.firstFrameAssetId || parameters.firstFrameAssetId || firstFrameAssetFromEdges(node, nodes, edges),
+        120
+      ) || null;
+      if (firstFrameAssetId) {
+        node.meta = {...meta, firstFrameAssetId, inputAssetIds:[...new Set([...(Array.isArray(meta.inputAssetIds) ? meta.inputAssetIds : []), firstFrameAssetId])]};
+        node.data = {...data, firstFrameAssetId, inputAssetIds:[...new Set([...(Array.isArray(data.inputAssetIds) ? data.inputAssetIds : []), firstFrameAssetId])]};
+        node.parameters = {...parameters, firstFrameAssetId};
+        node.firstFrameAssetId = firstFrameAssetId;
+        const currentStatus = text(node.status || node.meta.status || node.data.status, 40).toLowerCase();
+        const prompt = text(node.prompt || node.meta.prompt || node.data.prompt || node.parameters.prompt, 4000);
+        if (prompt && ['draft', 'blocked', 'idle', 'needs_input'].includes(currentStatus)) {
+          node.status = 'ready';
+          node.meta.status = 'ready';
+          node.data.status = 'ready';
+        }
+      }
+    }
     const nodeId = text(node.id, 120);
     const existingCategory = text(node.categoryId, 40);
     if (!TOP_LEVEL_IDS.has(existingCategory)) node.categoryId = isGenerationNode(node) ? STORYBOARD_CATEGORY : existingCategory || STORYBOARD_CATEGORY;
