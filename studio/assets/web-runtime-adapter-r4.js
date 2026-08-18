@@ -969,13 +969,13 @@
       body: JSON.stringify({
         projectKind: canvasProjectKind(),
         nodeId: nodeId,
-        model: animateTransfer ? animateModel(extras) : (video ? 'h3' : (extras.modelKey || extras.modelAlias || 'runninghub-gpt-image-2')),
+        model: animateTransfer ? animateModel(extras) : (video ? (extras.modelKey || extras.modelAlias || 'minimax-h3') : (extras.modelKey || extras.modelAlias || 'runninghub-gpt-image-2')),
         prompt: request.prompt || '',
         inputAssetIds: animateTransfer ? animateAssetIds(extras) : assetIds(extras),
         resolution: extras.resolution || '2k',
         outputSize: extras.outputSize || extras.imageSize || null,
         aspectRatio: video
-          ? (extras.aspectRatio && extras.aspectRatio !== '1:1' ? extras.aspectRatio : '9:16')
+          ? (extras.aspectRatio || '9:16')
           : (extras.aspectRatio || '1:1'),
         durationSeconds: extras.durationSeconds || 5
       })
