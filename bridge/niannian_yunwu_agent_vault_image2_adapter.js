@@ -7,6 +7,7 @@ const os = require('os');
 const path = require('path');
 const {spawn} = require('child_process');
 const {imageMime} = require('./niannian_runninghub_image_adapter');
+const {IMAGE_4K_SIZES} = require('./niannian_canvas_aspect_ratios');
 
 const DEFAULT_WINDOWS_SCRIPT = 'C:\\Users\\lsb\\.codex\\skills\\image2-skill\\scripts\\image2_channel.py';
 const DEFAULT_WINDOWS_PYTHON = 'C:\\Users\\lsb\\anaconda3\\python.exe';
@@ -16,7 +17,7 @@ const DEFAULT_SCRIPT = process.platform === 'win32'
 const DEFAULT_PYTHON = process.platform === 'win32' ? DEFAULT_WINDOWS_PYTHON : 'python3';
 const EDIT_CHANNEL = 'yunwu-gpt-image-2-c-edit';
 const EDIT_OUTPUT_SIZE = '3840x2160';
-const GENERATE_OUTPUT_SIZE = '2160x3840';
+const GENERATE_OUTPUT_SIZES = IMAGE_4K_SIZES;
 
 function adapterError(code, message, httpStatus = 502) {
   const error = new Error(message || code);
@@ -87,7 +88,9 @@ function createYunwuAgentVaultImage2Adapter(options = {}) {
     const isEdit = referenceFiles.length > 0;
     if (isEdit && (referenceFiles.length > 16 || task.image_channel !== EDIT_CHANNEL)) throw adapterError('YUNWU_IMAGE_REFERENCE_INVALID', '云雾图改图需要一至十六张参考图和图改图通道', 422);
     if (!isEdit && referenceFiles.length) throw adapterError('YUNWU_IMAGE_REFERENCE_INVALID', '云雾图改图参考图无效', 422);
-    const expectedSize = isEdit ? EDIT_OUTPUT_SIZE : GENERATE_OUTPUT_SIZE;
+    const aspectRatio = String(task.aspect_ratio || task.aspectRatio || (isEdit ? '16:9' : '9:16')).trim();
+    const expectedSize = isEdit ? GENERATE_OUTPUT_SIZES[aspectRatio] : GENERATE_OUTPUT_SIZES[aspectRatio];
+    if (!expectedSize) throw adapterError('YUNWU_ASPECT_RATIO_INVALID', `云雾 Image2 不支持 ${aspectRatio} 比例`, 422);
     if (String(task.output_size || task.outputSize || '') !== expectedSize) throw adapterError('YUNWU_OUTPUT_SIZE_INVALID', `云雾 Image2 当前只支持 ${expectedSize} 输出`, 422);
     if (!vaultReady(env)) throw adapterError('YUNWU_AGENT_VAULT_NOT_CONFIGURED', '云雾受保护代理会话尚未配置', 503);
     return {endpoint:isEdit ? '/v1/images/edits' : '/v1/images/generations', payload:{model:'gpt-image-2-c', size:expectedSize, referenceCount:referenceFiles.length, operation:isEdit ? 'edit' : 'generate', credentialMode:'agent_vault_proxy'}};
@@ -178,7 +181,7 @@ async function executionExitFailure(result, receiptPath) {
     }
   }
 
-  return {dryRun, submit, query, constants:{generateEndpoint:'https://yunwu.ai/v1/images/generations', editEndpoint:'https://yunwu.ai/v1/images/edits', model:'gpt-image-2-c', generateOutputSize:GENERATE_OUTPUT_SIZE, editOutputSize:EDIT_OUTPUT_SIZE}};
+  return {dryRun, submit, query, constants:{generateEndpoint:'https://yunwu.ai/v1/images/generations', editEndpoint:'https://yunwu.ai/v1/images/edits', model:'gpt-image-2-c', generateOutputSizes:GENERATE_OUTPUT_SIZES, editOutputSize:EDIT_OUTPUT_SIZE}};
 }
 
 module.exports = {createYunwuAgentVaultImage2Adapter, vaultReady, protectedProxyEnv, DEFAULT_PYTHON, DEFAULT_SCRIPT};

@@ -91,6 +91,7 @@ function publicCanvasModelCatalog(env = process.env) {
         resolutions: channel.resolutions,
         aspectRatios: channel.aspectRatios,
         outputSizes: channel.outputSizes,
+        outputSizesByAspectRatio: channel.outputSizesByAspectRatio || {},
         priceCredits: channel.id === 'yunwu-gpt-image-2-c-edit' ? 12 : 10
       })),
       {
@@ -100,7 +101,7 @@ function publicCanvasModelCatalog(env = process.env) {
         providerLabel: 'RunningHub',
         enabled: config.videoSubmitEnabled === true,
         resolutions: ['2k'],
-        aspectRatios: ['9:16', '16:9', '1:1'],
+        aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'],
         outputSizes: {},
         priceCredits: 20
       },

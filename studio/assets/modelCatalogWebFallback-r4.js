@@ -29,7 +29,9 @@ function generationOptions(model, normalized) {
     ? rawRatios.map((value) => option(value)).filter(Boolean)
     : [];
   const outputSizes = model?.outputSizes && typeof model.outputSizes === "object" ? model.outputSizes : {};
-  const imageSizes = Object.entries(outputSizes).map(([resolution, size]) => option(size, `${size}（${String(resolution).toUpperCase()}）`)).filter(Boolean);
+  const outputSizesByAspectRatio = model?.outputSizesByAspectRatio && typeof model.outputSizesByAspectRatio === "object" ? model.outputSizesByAspectRatio : {};
+  const mappedImageSizes = Object.entries(outputSizesByAspectRatio).flatMap(([resolution, ratios]) => Object.entries(ratios || {}).map(([ratio, size]) => option(size, `${size}（${String(resolution).toUpperCase()} · ${ratio}）`)));
+  const imageSizes = (mappedImageSizes.length ? mappedImageSizes : Object.entries(outputSizes).map(([resolution, size]) => option(size, `${size}（${String(resolution).toUpperCase()}）`))).filter(Boolean);
   if (normalized === "image") {
     return {
       imageOptions: {
@@ -93,6 +95,7 @@ export async function webCatalogModels(kind) {
           supportedResolutions: model?.resolutions || model?.supportedResolutions || [],
           supportedAspectRatios: model?.aspectRatios || model?.supportedAspectRatios || [],
           outputSizes: model?.outputSizes || {},
+          outputSizesByAspectRatio: model?.outputSizesByAspectRatio || {},
           ...generationOptions(model, normalized),
         },
       };

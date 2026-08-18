@@ -42,6 +42,9 @@ function targetDimensions(aspectRatio, channel = '') {
   const normalized = String(aspectRatio || '16:9').trim();
   if (normalized === '9:16') return channel === 'one-image' ? {width:576, height:1024} : {width:480, height:832};
   if (normalized === '16:9') return {width:832, height:480};
+  if (normalized === '1:1') return {width:832, height:832};
+  if (normalized === '4:3') return {width:832, height:624};
+  if (normalized === '3:4') return {width:624, height:832};
   throw adapterError('RUNNINGHUB_TARGET_DIMENSION_UNSUPPORTED', '当前 H3 画幅没有经过验证', 422);
 }
 

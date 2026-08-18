@@ -26,6 +26,9 @@ async function run() {
       return {code:0};
     }});
     assert.equal((await adapter.dryRun({prompt:'预检',output_size:'2160x3840'}, [])).payload.model, 'gpt-image-2-c');
+    const propPreflight = await adapter.dryRun({prompt:'道具预检',aspect_ratio:'3:4',output_size:'2160x2880'}, []);
+    assert.equal(propPreflight.payload.size, '2160x2880');
+    await assert.rejects(() => adapter.dryRun({prompt:'比例尺寸不匹配',aspect_ratio:'3:4',output_size:'2160x3840'}, []), error => error.code === 'YUNWU_OUTPUT_SIZE_INVALID');
     const editPreflight = await adapter.dryRun({prompt:'预检',image_channel:'yunwu-gpt-image-2-c-edit',output_size:'3840x2160'}, ['reference.png']);
     assert.equal(editPreflight.payload.operation, 'edit');
     await assert.rejects(() => adapter.dryRun({prompt:'预检',image_channel:'yunwu-gpt-image-2-c-edit',output_size:'2160x3840'}, ['reference.png']), error => error.code === 'YUNWU_OUTPUT_SIZE_INVALID');

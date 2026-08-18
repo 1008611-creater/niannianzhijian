@@ -1,21 +1,27 @@
 'use strict';
 
+const {COMMON_ASPECT_RATIOS, outputSizesForRatios} = require('./niannian_canvas_aspect_ratios');
+
 const CHANNELS = Object.freeze({
   'yunwu-gpt-image-2-c': Object.freeze({
     id: 'yunwu-gpt-image-2-c',
     provider: 'yunwu-agent-vault',
-    label: '云雾 Image2 竖版 4K',
+    label: '云雾 Image2 4K',
     resolutions: Object.freeze(['4k']),
-    aspectRatios: Object.freeze(['9:16']),
-    outputSizes: Object.freeze({'4k': '2160x3840'})
+    aspectRatios: COMMON_ASPECT_RATIOS,
+    outputSizes: Object.freeze({'4k': '2160x3840'}),
+    outputSizesByAspectRatio: Object.freeze({
+      '4k': outputSizesForRatios()
+    })
   }),
   'yunwu-gpt-image-2-c-edit': Object.freeze({
     id: 'yunwu-gpt-image-2-c-edit',
     provider: 'yunwu-agent-vault',
     label: '云雾 Image2 图改图 4K',
     resolutions: Object.freeze(['4k']),
-    aspectRatios: Object.freeze(['16:9']),
-    outputSizes: Object.freeze({'4k': '3840x2160'})
+    aspectRatios: COMMON_ASPECT_RATIOS,
+    outputSizes: Object.freeze({'4k': '3840x2160'}),
+    outputSizesByAspectRatio: Object.freeze({'4k': outputSizesForRatios()})
   })
 });
 
@@ -47,7 +53,7 @@ function normalizeImage2Spec(input = {}) {
     throw channelError('CANVAS_IMAGE2_ASPECT_RATIO_UNSUPPORTED', `${channel.label}不支持 ${aspectRatio} 比例`);
   }
   const outputSize = clean(input.outputSize || input.imageSize, 32);
-  const expectedOutputSize = channel.outputSizes[resolution] || null;
+  const expectedOutputSize = expectedOutputSizeFor(channel, resolution, aspectRatio);
   if (outputSize && outputSize !== expectedOutputSize) {
     throw channelError('CANVAS_IMAGE2_OUTPUT_SIZE_UNSUPPORTED', `${channel.label}不支持 ${outputSize} 输出尺寸`);
   }
@@ -62,15 +68,28 @@ function normalizeImage2Spec(input = {}) {
 }
 
 function publicImage2Channel(channel, configured = false) {
+  const outputSizes = {...channel.outputSizes};
+  for (const [resolution, ratios] of Object.entries(channel.outputSizesByAspectRatio || {})) {
+    for (const [ratio, size] of Object.entries(ratios || {})) {
+      outputSizes[`${resolution} · ${ratio}`] = size;
+    }
+  }
   return {
     id: channel.id,
     label: channel.label,
     provider: channel.provider,
     resolutions: [...channel.resolutions],
     aspectRatios: [...channel.aspectRatios],
-    outputSizes: {...channel.outputSizes},
+    outputSizes,
+    outputSizesByAspectRatio: JSON.parse(JSON.stringify(channel.outputSizesByAspectRatio || {})),
     submitEnabled: configured === true
   };
 }
 
-module.exports = {CHANNELS, resolveImage2Channel, normalizeImage2Spec, publicImage2Channel};
+function expectedOutputSizeFor(channel, resolution, aspectRatio) {
+  return channel.outputSizesByAspectRatio?.[resolution]?.[aspectRatio]
+    || channel.outputSizes[resolution]
+    || null;
+}
+
+module.exports = {CHANNELS, resolveImage2Channel, normalizeImage2Spec, publicImage2Channel, expectedOutputSizeFor};
