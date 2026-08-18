@@ -190,9 +190,11 @@ function createModelControlPlane(options = {}) {
         const existing = config.models.find(model => model.id === item.id);
         if (!existing) { config.models.push({...item, tenantId: 'default', enabled: false, updatedAt: new Date().toISOString()}); changed = true; }
         else if (item.id === 'yunwu-gpt-image-2-c' && (JSON.stringify(existing.outputSizesByAspectRatio || {}) !== JSON.stringify(item.outputSizesByAspectRatio) || JSON.stringify(existing.imageOptions || {}) !== JSON.stringify(item.imageOptions || {}) || JSON.stringify(existing.aspectRatios || []) !== JSON.stringify(item.aspectRatios) || JSON.stringify(existing.resolutions || []) !== JSON.stringify(item.resolutions) || existing.label !== item.label)) {
-          existing.label = item.label;
-          existing.priceCredits = item.priceCredits;
-          existing.priceCreditsByMode = item.priceCreditsByMode;
+          // Defaults may repair catalog shape, but must never overwrite an
+          // administrator's commercial label or price after it is saved.
+          if (!existing.label) existing.label = item.label;
+          if (!Number.isFinite(Number(existing.priceCredits))) existing.priceCredits = item.priceCredits;
+          if (!existing.priceCreditsByMode || typeof existing.priceCreditsByMode !== 'object') existing.priceCreditsByMode = item.priceCreditsByMode;
           existing.imageOptions = item.imageOptions;
           existing.supportsReferenceImages = true;
           existing.supportsTextToImage = true;
