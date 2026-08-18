@@ -8377,7 +8377,10 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
         if (!selectedRuntime.enabled) return json(response, 409, {code:'CANVAS_PROVIDER_SUBMIT_DISABLED',error:'视频生成尚未启用，当前任务仅完成准备'});
       }
       const catalog = await modelControlPlane.publicCatalogForTenant(modelControlPlaneModule.tenantForUser(user));
-      const catalogModel = catalog.models.find(item => item.id === (job.nodeType === 'image' ? job.imageChannel || job.model : job.videoChannel || job.model));
+      const requestedCatalogModelId = job.nodeType === 'image'
+        ? job.imageChannel || job.model
+        : (job.videoChannel === 'h3' ? 'minimax-h3' : job.videoChannel || job.model);
+      const catalogModel = catalog.models.find(item => item.id === requestedCatalogModelId);
       if (!catalogModel) return json(response, 409, {code:'CANVAS_MODEL_NOT_ENABLED',error:'当前模型尚未由管理员启用'});
       const reservation = await modelControlPlane.reserveCredits({tenantId:modelControlPlaneModule.tenantForUser(user),userId:user.id,jobId:job.id,idempotencyKey:job.id + ':reserve',amount:catalogModel.priceCredits});
       try {
