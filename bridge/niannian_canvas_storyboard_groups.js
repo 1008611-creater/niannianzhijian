@@ -145,6 +145,15 @@ function normalizeLegacyH3Node(node, options = {}) {
   const durationSeconds = entranceSegment ? 5 : (Number.isFinite(rawDuration) && rawDuration >= 4 && rawDuration <= 15 ? rawDuration : 5);
   const canonical = {model:'minimax-h3', modelKey:'minimax-h3', modelAlias:'minimax-h3', aspectRatio, resolution, durationSeconds};
   node.meta = {...meta, ...canonical, generationSpecVersion:'h3.v1'};
+  // Older Studio cards read these aliases before the canonical field. Keep
+  // them synchronized during migration so an explicit legacy 16:9 value
+  // cannot override the recovered project specification.
+  if (entranceSegment) {
+    node.meta.aspect_ratio = aspectRatio;
+    node.meta.videoSize = aspectRatio;
+    node.meta.size = aspectRatio;
+    node.meta.aspect = aspectRatio;
+  }
   node.data = {...data, ...canonical, generationSpecVersion:'h3.v1'};
   node.parameters = {...parameters, ...canonical};
   node.aspectRatio = aspectRatio;
