@@ -93,6 +93,54 @@ function isGenerationNode(node) {
   return node?.kind === 'image' || node?.kind === 'video' || node?.type === 'image' || node?.type === 'video';
 }
 
+function h3SpecSource(node) {
+  const meta = node?.meta && typeof node.meta === 'object' && !Array.isArray(node.meta) ? node.meta : {};
+  const data = node?.data && typeof node.data === 'object' && !Array.isArray(node.data) ? node.data : {};
+  const parameters = node?.parameters && typeof node.parameters === 'object' && !Array.isArray(node.parameters) ? node.parameters : {};
+  return {meta, data, parameters};
+}
+
+function isLegacyH3Node(node) {
+  if (!node || (node.kind !== 'video' && node.type !== 'video')) return false;
+  const {meta, data, parameters} = h3SpecSource(node);
+  const values = [
+    node.skillKey, node.modelKey, node.modelAlias, node.model,
+    meta.skillKey, meta.modelKey, meta.modelAlias, meta.model,
+    data.skillKey, data.modelKey, data.modelAlias, data.model,
+    parameters.modelKey, parameters.modelAlias, parameters.model
+  ].map(value => text(value, 160).toLowerCase());
+  return values.some(value => ['minimaxh3skill', 'minimax-h3', 'niannian/minimax-h3', 'minimax-h3-fl2va', 'minimax_h3_fl2va'].includes(value))
+    || values.some(value => value.includes('minimaxh3'))
+    || values.some(value => /h3/.test(value) && /video|视频/.test(value));
+}
+
+function normalizeLegacyH3Node(node, options = {}) {
+  if (!isLegacyH3Node(node)) return node;
+  const {meta, data, parameters} = h3SpecSource(node);
+  const source = options.generationDefaults && typeof options.generationDefaults === 'object'
+    ? options.generationDefaults : {};
+  const candidate = (...values) => values.map(value => text(value, 32)).find(Boolean) || '';
+  const aspectRatio = /^\d{1,2}:\d{1,2}$/.test(candidate(
+    meta.aspectRatio, meta.aspect_ratio, data.aspectRatio, data.aspect_ratio,
+    parameters.aspectRatio, parameters.aspect_ratio, node.aspectRatio, node.aspect_ratio
+  )) ? candidate(
+    meta.aspectRatio, meta.aspect_ratio, data.aspectRatio, data.aspect_ratio,
+    parameters.aspectRatio, parameters.aspect_ratio, node.aspectRatio, node.aspect_ratio
+  ) : (/^\d{1,2}:\d{1,2}$/.test(text(source.aspectRatio, 16)) ? text(source.aspectRatio, 16) : '9:16');
+  const rawResolution = candidate(meta.resolution, data.resolution, parameters.resolution, node.resolution).toLowerCase();
+  const resolution = ['1k', '2k', '4k'].includes(rawResolution) ? rawResolution : '2k';
+  const rawDuration = Number(meta.durationSeconds ?? data.durationSeconds ?? parameters.durationSeconds ?? node.durationSeconds);
+  const durationSeconds = Number.isFinite(rawDuration) && rawDuration >= 4 && rawDuration <= 15 ? rawDuration : 5;
+  const canonical = {model:'minimax-h3', modelKey:'minimax-h3', modelAlias:'minimax-h3', aspectRatio, resolution, durationSeconds};
+  node.meta = {...meta, ...canonical, generationSpecVersion:'h3.v1'};
+  node.data = {...data, ...canonical, generationSpecVersion:'h3.v1'};
+  node.parameters = {...parameters, ...canonical};
+  node.aspectRatio = aspectRatio;
+  node.resolution = resolution;
+  node.durationSeconds = durationSeconds;
+  return node;
+}
+
 function normalizeGenerationCanvas(canvas, options = {}) {
   const now = Number(options.now || Date.now());
   const raw = canvas && typeof canvas === 'object' && !Array.isArray(canvas) ? canvas : {};
@@ -132,6 +180,7 @@ function normalizeGenerationCanvas(canvas, options = {}) {
 
   for (const node of nodes) {
     if (!node || typeof node !== 'object' || Array.isArray(node)) continue;
+    normalizeLegacyH3Node(node, options);
     const nodeId = text(node.id, 120);
     const existingCategory = text(node.categoryId, 40);
     if (!TOP_LEVEL_IDS.has(existingCategory)) node.categoryId = isGenerationNode(node) ? STORYBOARD_CATEGORY : existingCategory || STORYBOARD_CATEGORY;
@@ -197,5 +246,6 @@ module.exports = {
   STORYBOARD_CATEGORY,
   DEFAULT_STORYBOARD_GROUP_ID,
   normalizeGenerationCanvas,
+  normalizeLegacyH3Node,
   resolveProjectGenerationDefaults
 };
