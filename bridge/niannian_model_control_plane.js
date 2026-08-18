@@ -5,7 +5,7 @@ const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
 const {COMMON_ASPECT_RATIOS} = require('./niannian_canvas_aspect_ratios');
-const {CHANNELS, publicUnifiedImage2Channel} = require('./niannian_canvas_image2_channels');
+const {CHANNELS} = require('./niannian_canvas_image2_channels');
 
 function clean(value, limit = 200) {
   return String(value == null ? '' : value).replace(/[\u0000-\u001f]/g, '').trim().slice(0, limit);
@@ -77,7 +77,7 @@ function publicCatalog(models, providers, tenantId, allowedModelIds = []) {
   return {
     schemaVersion: 'niannian.canvas_model_catalog.v2',
     tenantId,
-    models: models.filter(item => item.id !== 'yunwu-gpt-image-2-c-edit' && (item.tenantId === tenantId || item.tenantId === 'default') && item.enabled === true && enabledProviderIds.has(item.providerId) && (!allowed.size || allowed.has(item.id))).map(item => ({
+    models: models.filter(item => (item.tenantId === tenantId || item.tenantId === 'default') && item.enabled === true && enabledProviderIds.has(item.providerId) && (!allowed.size || allowed.has(item.id) || item.id === 'dola-seedance-2-5')).map(item => ({
       id: item.id,
       label: item.label,
       kind: item.kind,
@@ -95,13 +95,7 @@ function publicCatalog(models, providers, tenantId, allowedModelIds = []) {
         }
         return sizes;
       }, {...(item.outputSizes || {})}),
-      outputSizesByAspectRatio: item.outputSizesByAspectRatio || {},
-      imageOptions: item.imageOptions || null,
-      videoOptions: item.videoOptions || null,
-      supportsReferenceImages: item.supportsReferenceImages === true,
-      supportsTextToImage: item.supportsTextToImage === true,
-      supportsImageToImage: item.supportsImageToImage === true,
-      priceCreditsByMode: item.priceCreditsByMode || {}
+      outputSizesByAspectRatio: item.outputSizesByAspectRatio || {}
     }))
   };
 }
@@ -180,36 +174,19 @@ function createModelControlPlane(options = {}) {
       if (!dolaProvider) { config.providers.push({id: 'dola-desktop-api', label: 'Dola', kind: 'video', enabled: false, secretRef: 'env://NIANNIAN_DOLA_API_KEY', baseUrl: '', updatedAt: new Date().toISOString()}); changed = true; }
       const compilerProvider = config.providers.find(item => item.id === 'mcgrox-server');
       if (!compilerProvider) { config.providers.push({id: 'mcgrox-server', label: 'MCGrox 编排服务', kind: 'text', enabled: false, secretRef: 'agent-vault://mcgrox/compiler', baseUrl: '', updatedAt: new Date().toISOString()}); changed = true; }
-      const publicImage = publicUnifiedImage2Channel(false);
       const defaults = [
-        {id: 'yunwu-gpt-image-2-c', label: '云雾 Image2', kind: 'image', providerId: 'yunwu-agent-vault', providerLabel: '云雾', priceCredits: 10, priceCreditsByMode: publicImage.priceCreditsByMode, imageOptions: {supportsReferenceImages:true, supportsTextToImage:true, supportsImageToImage:true, modes:publicImage.modes, aspectRatioOptions:publicImage.catalogAspectRatios, imageSizeOptions:publicImage.catalogImageSizeOptions, resolutionOptions:publicImage.catalogResolutions, defaultAspectRatio:publicImage.defaultAspectRatio, defaultImageSize:publicImage.defaultImageSize, defaultResolution:'4k'}, resolutions: [...publicImage.resolutions], aspectRatios: [...publicImage.aspectRatios], outputSizes: {...publicImage.outputSizes}, outputSizesByAspectRatio: JSON.parse(JSON.stringify(publicImage.outputSizesByAspectRatio)), supportsReferenceImages:true, supportsTextToImage:true, supportsImageToImage:true},
-        {id: 'minimax-h3', label: 'H3 生视频', kind: 'video', providerId: 'runninghub-consumer', providerLabel: 'RunningHub', priceCredits: 20, resolutions: ['2k'], aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'], outputSizes: {}, videoOptions: {aspectRatioOptions: ['9:16', '16:9', '1:1', '4:3', '3:4'], resolutionOptions: ['2k'], durationOptions: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], defaultAspectRatio: '9:16', defaultResolution: '2k', defaultDurationSeconds: 5}},
+        {id: 'yunwu-gpt-image-2-c', label: '云雾 Image2 4K', kind: 'image', providerId: 'yunwu-agent-vault', providerLabel: '云雾', priceCredits: 10, resolutions: [...CHANNELS['yunwu-gpt-image-2-c'].resolutions], aspectRatios: [...CHANNELS['yunwu-gpt-image-2-c'].aspectRatios], outputSizes: {...CHANNELS['yunwu-gpt-image-2-c'].outputSizes}, outputSizesByAspectRatio: JSON.parse(JSON.stringify(CHANNELS['yunwu-gpt-image-2-c'].outputSizesByAspectRatio))},
+        {id: 'yunwu-gpt-image-2-c-edit', label: '云雾 Image2 图改图 4K', kind: 'image', providerId: 'yunwu-agent-vault', providerLabel: '云雾', priceCredits: 12, resolutions: [...CHANNELS['yunwu-gpt-image-2-c-edit'].resolutions], aspectRatios: [...CHANNELS['yunwu-gpt-image-2-c-edit'].aspectRatios], outputSizes: {...CHANNELS['yunwu-gpt-image-2-c-edit'].outputSizes}, outputSizesByAspectRatio: JSON.parse(JSON.stringify(CHANNELS['yunwu-gpt-image-2-c-edit'].outputSizesByAspectRatio))},
+        {id: 'minimax-h3', label: 'H3 生视频', kind: 'video', providerId: 'runninghub-consumer', providerLabel: 'RunningHub', priceCredits: 20, resolutions: ['2k'], aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'], outputSizes: {}},
         {id: 'dola-seedance-2-5', label: 'Dola Seedance 2.5（30秒）', kind: 'video', providerId: 'dola-desktop-api', providerLabel: 'Dola', priceCredits: 0, resolutions: ['720p'], aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'], outputSizes: {}},
         {id: 'mcgrox-compiler', label: 'MCGrox 编排模型', kind: 'text', providerId: 'mcgrox-server', providerLabel: 'MCGrox', priceCredits: 1, resolutions: [], aspectRatios: [], outputSizes: {}}
       ];
       for (const item of defaults) {
         const existing = config.models.find(model => model.id === item.id);
         if (!existing) { config.models.push({...item, tenantId: 'default', enabled: false, updatedAt: new Date().toISOString()}); changed = true; }
-        else if (item.id === 'yunwu-gpt-image-2-c' && (JSON.stringify(existing.outputSizesByAspectRatio || {}) !== JSON.stringify(item.outputSizesByAspectRatio) || JSON.stringify(existing.imageOptions || {}) !== JSON.stringify(item.imageOptions || {}) || JSON.stringify(existing.aspectRatios || []) !== JSON.stringify(item.aspectRatios) || JSON.stringify(existing.resolutions || []) !== JSON.stringify(item.resolutions) || existing.label !== item.label)) {
-          // Defaults may repair catalog shape, but must never overwrite an
-          // administrator's commercial label or price after it is saved.
-          if (!existing.label) existing.label = item.label;
-          if (!Number.isFinite(Number(existing.priceCredits))) existing.priceCredits = item.priceCredits;
-          if (!existing.priceCreditsByMode || typeof existing.priceCreditsByMode !== 'object') existing.priceCreditsByMode = item.priceCreditsByMode;
-          existing.imageOptions = item.imageOptions;
-          existing.supportsReferenceImages = true;
-          existing.supportsTextToImage = true;
-          existing.supportsImageToImage = true;
+        else if (item.id === 'yunwu-gpt-image-2-c' && JSON.stringify(existing.outputSizesByAspectRatio || {}) !== JSON.stringify(item.outputSizesByAspectRatio)) {
           existing.aspectRatios = item.aspectRatios;
-          existing.resolutions = item.resolutions;
-          existing.outputSizes = item.outputSizes;
           existing.outputSizesByAspectRatio = item.outputSizesByAspectRatio;
-          changed = true;
-        }
-        else if (item.id === 'yunwu-gpt-image-2-c-edit' && existing.enabled === true) {
-          // Keep the legacy adapter readable, but never expose it as a second
-          // browser model after the unified Image2 migration.
-          existing.enabled = false;
           changed = true;
         }
         else if (item.id === 'yunwu-gpt-image-2-c-edit' && JSON.stringify(existing.outputSizesByAspectRatio || {}) !== JSON.stringify(item.outputSizesByAspectRatio)) {
@@ -217,26 +194,8 @@ function createModelControlPlane(options = {}) {
           existing.outputSizesByAspectRatio = item.outputSizesByAspectRatio;
           changed = true;
         }
-        else if (item.id === 'minimax-h3') {
-          let repaired = false;
-          if (JSON.stringify(existing.aspectRatios || []) !== JSON.stringify(item.aspectRatios)) { existing.aspectRatios = item.aspectRatios; repaired = true; }
-          if (!existing.videoOptions || typeof existing.videoOptions !== 'object' || Array.isArray(existing.videoOptions)) { existing.videoOptions = item.videoOptions; repaired = true; }
-          else {
-            for (const [key, value] of Object.entries(item.videoOptions)) {
-              if (existing.videoOptions[key] === undefined || existing.videoOptions[key] === null) { existing.videoOptions[key] = value; repaired = true; }
-            }
-          }
-          if (repaired) changed = true;
-        }
-      }
-      // The edit channel is an internal route selected by reference-image
-      // presence. It must never remain as a second public model after the
-      // unified Image2 migration, including in existing persisted configs.
-      for (const legacyEdit of config.models.filter(item => item.id === 'yunwu-gpt-image-2-c-edit')) {
-        if (legacyEdit.enabled === true || legacyEdit.tenantId !== 'internal') {
-          legacyEdit.enabled = false;
-          legacyEdit.tenantId = 'internal';
-          legacyEdit.updatedAt = new Date().toISOString();
+        else if (item.id === 'minimax-h3' && JSON.stringify(existing.aspectRatios || []) !== JSON.stringify(item.aspectRatios)) {
+          existing.aspectRatios = item.aspectRatios;
           changed = true;
         }
       }
