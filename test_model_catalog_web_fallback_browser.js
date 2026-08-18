@@ -18,8 +18,8 @@ async function waitForHealth(baseUrl) {
 
 async function main() {
   const studioIndex = require('node:fs').readFileSync(root + '/studio/index.html', 'utf8');
-  assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260819-dola-duration-r2/);
-  assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260819-dola-duration-r2/);
+  assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260819-dola-persistence-r3/);
+  assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260819-dola-persistence-r3/);
   assert.match(studioIndex, /index-M-8MrEH2-r28-19b89ec-r6\.js\?v=20260818-storyboard-group-contract-r8/);
   const generationController = require('node:fs').readFileSync(root + '/studio/assets/generationRunController-DH5v5RRt-r4.js', 'utf8');
   assert.match(generationController, /window\.nomiDesktop\?\.modelCatalog\?\.listVendors/);

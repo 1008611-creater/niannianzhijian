@@ -847,12 +847,22 @@
       persistProjectDocument(id, record, expectedRevision).then(function (saved) {
         var remoteRecord = remoteProjectRecord(id, saved, record) || record;
         updateWebProjectFromRecord(remoteRecord);
+        webProjectRecords.set(id, remoteRecord);
+        writeLocalProjectDocument(id, remoteRecord);
         window.dispatchEvent(new CustomEvent('niannian-project-document-saved', {detail:{projectId:id,revision:remoteRecord.revision}}));
       }).catch(function (error) {
         var eventName = Number(error && error.status) === 409 ? 'niannian-project-document-conflict' : 'niannian-project-document-error';
-        window.dispatchEvent(new CustomEvent(eventName, {detail:{projectId:id,message:error.message || '画布保存失败'}}));
-      });
-      if (!previous || previous.metadataSynced !== true || projectMetadataSignature(previous) !== projectMetadataSignature(next)) {
+        // Keep the draft recoverable, but do not treat it as a confirmed project document.
+        var confirmed = webProjectRecords.get(id) || readLocalProjectDocument(id);
+        if (confirmed && confirmed.payload) {
+          var summary = projectSummary(confirmed, previous);
+          webProjects = [summary].concat(webProjects.filter(function (item) { return item.id !== id; }));
+          webProjectRecords.set(id, confirmed);
+          writeLocalProjectDocument(id, confirmed);
+          writeWebProjects(webProjects);
+        }
+        window.dispatchEvent(new CustomEvent(eventName, {detail:{projectId:id,message:error.message || '画布保存失败',confirmed:false}}));
+      });      if (!previous || previous.metadataSynced !== true || projectMetadataSignature(previous) !== projectMetadataSignature(next)) {
         next.metadataSynced = false;
         writeWebProjects(webProjects);
         persistProjectMetadata(next).then(function () {
