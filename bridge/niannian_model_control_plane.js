@@ -89,6 +89,9 @@ function publicCatalog(models, providers, tenantId, allowedModelIds = []) {
       priceCredits: Number(item.priceCredits),
       resolutions: item.resolutions || [],
       aspectRatios: item.aspectRatios || [],
+      // Video controls are part of the model contract. Omitting them made the
+      // canvas fall back to H3's 4-15 second duration list for Dola.
+      videoOptions: item.kind === 'video' && item.videoOptions ? JSON.parse(JSON.stringify(item.videoOptions)) : undefined,
       outputSizes: Object.entries(item.outputSizesByAspectRatio || {}).reduce((sizes, [resolution, ratios]) => {
         for (const [ratio, size] of Object.entries(ratios || {})) {
           sizes[`${resolution} · ${ratio}`] = size;
@@ -238,7 +241,15 @@ function createModelControlPlane(options = {}) {
     const id = clean(input.id, 120);
     if (!id) throw controlError('MODEL_ID_REQUIRED', '模型标识不能为空', 422);
     const tenantId = clean(input.tenantId || 'default', 120);
-    const model = {id, label: clean(input.label || id, 160), kind: clean(input.kind, 30), providerId: clean(input.providerId, 120), providerLabel: clean(input.providerLabel, 80), priceCredits: Math.max(0, Number(input.priceCredits || 0)), resolutions: Array.isArray(input.resolutions) ? input.resolutions.map(item => clean(item, 20)).filter(Boolean).slice(0, 8) : [], aspectRatios: Array.isArray(input.aspectRatios) ? input.aspectRatios.map(item => clean(item, 20)).filter(Boolean).slice(0, 8) : [], outputSizes: input.outputSizes && typeof input.outputSizes === 'object' ? input.outputSizes : {}, tenantId, enabled: input.enabled === true, updatedAt: new Date().toISOString()};
+    const defaultDolaVideoOptions = id === 'dola-seedance-2-5' ? {
+      aspectRatioOptions:['9:16', '16:9', '1:1', '4:3', '3:4'],
+      resolutionOptions:['720p'],
+      durationOptions:[30],
+      defaultAspectRatio:'9:16',
+      defaultResolution:'720p',
+      defaultDurationSeconds:30
+    } : null;
+    const model = {id, label: clean(input.label || id, 160), kind: clean(input.kind, 30), providerId: clean(input.providerId, 120), providerLabel: clean(input.providerLabel, 80), priceCredits: Math.max(0, Number(input.priceCredits || 0)), resolutions: Array.isArray(input.resolutions) ? input.resolutions.map(item => clean(item, 20)).filter(Boolean).slice(0, 8) : [], aspectRatios: Array.isArray(input.aspectRatios) ? input.aspectRatios.map(item => clean(item, 20)).filter(Boolean).slice(0, 8) : [], outputSizes: input.outputSizes && typeof input.outputSizes === 'object' ? input.outputSizes : {}, videoOptions: defaultDolaVideoOptions || (input.videoOptions && typeof input.videoOptions === 'object' ? JSON.parse(JSON.stringify(input.videoOptions)) : undefined), tenantId, enabled: input.enabled === true, updatedAt: new Date().toISOString()};
     await configStore.withLock(async () => {
       const config = await configStore.read();
       const index = config.models.findIndex(item => item.id === id && item.tenantId === tenantId);
