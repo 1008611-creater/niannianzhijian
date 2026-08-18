@@ -78,14 +78,21 @@ function createDolaPlaywrightApiServer(options = {}) {
     if (!['9:16','16:9','1:1','4:3','3:4'].includes(aspectRatio)) throw bridgeError('DOLA_BRIDGE_ASPECT_RATIO_INVALID', 'Dola 画幅比例无效', 422);
     if (durationSeconds !== 30) throw bridgeError('DOLA_BRIDGE_DURATION_REQUIRED', 'Dola 只支持严格 30 秒视频', 422);
     for (const asset of assets) {
-      if (!asset || !['reference_image','generated_image','reference_audio','reference_video','generated_video'].includes(clean(asset.kind, 40)) || !clean(asset.path, 1200)) {
+      if (!asset || !['reference_image','generated_image','reference_audio','reference_video','generated_video'].includes(clean(asset.kind, 40)) || (!clean(asset.path, 1200) && !clean(asset.dataBase64, 128 * 1024 * 1024))) {
         throw bridgeError('DOLA_BRIDGE_ASSET_INVALID', 'Dola 素材无效', 422);
       }
     }
     const preparedAssets = [];
     for (const asset of assets) {
       const source = clean(asset.path, 1200);
-      if (/^https:\/\//i.test(source)) {
+      if (asset.dataBase64) {
+        const bytes = Buffer.from(String(asset.dataBase64), 'base64');
+        if (!bytes.length) throw bridgeError('DOLA_BRIDGE_ASSET_INVALID', 'Dola 素材内容为空', 422);
+        const extension = String(asset.kind).includes('audio') ? '.mp3' : String(asset.kind).includes('video') ? '.mp4' : '.png';
+        const file = require('path').join(require('os').tmpdir(), 'niannian-dola-' + crypto.randomBytes(8).toString('hex') + extension);
+        await require('fs').promises.writeFile(file, bytes, {flag:'wx'});
+        preparedAssets.push({...asset, path:file});
+      } else if (/^https:\/\//i.test(source)) {
         const response = await fetch(source, {credentials:'omit', signal:AbortSignal.timeout(30000)}).catch(() => null);
         if (!response?.ok) throw bridgeError('DOLA_BRIDGE_ASSET_DOWNLOAD_FAILED', '无法读取画布素材', 422);
         const bytes = Buffer.from(await response.arrayBuffer());

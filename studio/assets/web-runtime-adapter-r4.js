@@ -176,11 +176,28 @@
     return body;
   }
   async function runDolaLocalTask(request, extras) {
+    function base64FromBytes(bytes) {
+      var chunk = 0x8000;
+      var binary = '';
+      for (var start = 0; start < bytes.length; start += chunk) binary += String.fromCharCode.apply(null, bytes.subarray(start, start + chunk));
+      return btoa(binary);
+    }
     var assets = [];
     var ids = assetIds(extras);
     for (var i = 0; i < ids.length; i += 1) {
       var asset = await api('/api/projects/' + encodeURIComponent(projectId()) + '/assets/' + encodeURIComponent(ids[i]), {headers:{'x-niannian-project-kind':canvasProjectKind()}});
-      if (asset && asset.asset) assets.push({kind:asset.asset.kind, path:asset.asset.downloadUrl || asset.asset.storedPath});
+      if (asset && asset.asset) {
+        var source = asset.asset.downloadUrl || asset.asset.storedPath;
+        // The desktop bridge is local and has no session cookie for ai.cauai.fun.
+        // Fetch the protected project asset in the logged-in browser, then send
+        // its bytes to the local bridge for temporary-file upload to Dola.
+        if (source && /^\//.test(source)) {
+          var sourceResponse = await fetch(source, {credentials:'include'});
+          if (!sourceResponse.ok) throw new Error('画布素材读取失败');
+          var bytes = await sourceResponse.arrayBuffer();
+          assets.push({kind:asset.asset.kind, name:asset.asset.originalName || asset.asset.id, contentType:asset.asset.mimeType || '', dataBase64:base64FromBytes(new Uint8Array(bytes))});
+        } else assets.push({kind:asset.asset.kind, path:source});
+      }
     }
     var local = await dolaLocalRequest('/v1/jobs', {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({
       prompt:request.prompt || '', aspectRatio:extras.aspectRatio || '9:16', durationSeconds:30,

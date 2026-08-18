@@ -25,6 +25,10 @@ const {createDolaPlaywrightApiServer} = require('./bridge/niannian_dola_playwrig
     assert.match(body.job_id, /^DOLA-[a-f0-9]{24}$/);
     assert.equal(prepared.aspectRatio, '16:9');
     assert.match(prepared.prompt, /^【强制约束】/);
+    const browserAsset = await fetch('http://127.0.0.1:19191/v1/jobs', {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({prompt:'浏览器素材',aspectRatio:'9:16',durationSeconds:30,assets:[{kind:'reference_image',dataBase64:Buffer.from('png-bytes').toString('base64')}],confirmProviderSpend:true})});
+    assert.equal(browserAsset.status, 202);
+    assert.equal(prepared.assets.length, 1);
+    assert.match(prepared.assets[0].path, /niannian-dola-/);
     const status = await fetch('http://127.0.0.1:19191/v1/jobs/' + body.job_id);
     assert.equal((await status.json()).status, 'queued');
     console.log('DOLA_PLAYWRIGHT_API_SERVER_CONTRACT_OK');
