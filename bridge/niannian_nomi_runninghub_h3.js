@@ -49,7 +49,7 @@ function providerEnvelopeRejection(value) {
 }
 
 function targetFor(input = {}) {
-  const aspectRatio = String(input.aspectRatio || '16:9').trim();
+  const aspectRatio = String(input.aspectRatio || '9:16').trim();
   const oneImagePortrait = aspectRatio === '9:16' && Array.isArray(input.images) && input.images.length === 1;
   const defaults = oneImagePortrait
     ? {width:576, height:1024}
