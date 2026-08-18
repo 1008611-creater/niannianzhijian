@@ -161,6 +161,7 @@
     return response.providerStatus || {};
   }
 
+  // Dola duration contract: the desktop model only accepts exactly 30 seconds.
   var dolaLocalBridgeBase = 'http://127.0.0.1:9190';
   function isDolaModel(extras) {
     return [extras && extras.modelKey, extras && extras.modelAlias].some(function (value) {
@@ -242,7 +243,7 @@
                 ...(item.videoOptions || {}),
                 sizeOptions: Array.isArray(item.videoOptions?.aspectRatioOptions) ? item.videoOptions.aspectRatioOptions.map(function (value) { return typeof value === 'object' ? value : {value: String(value), label: String(value)}; }) : (item.aspectRatios || []).map(function (value) { return {value: String(value), label: String(value)}; }),
                 resolutionOptions: Array.isArray(item.videoOptions?.resolutionOptions) ? item.videoOptions.resolutionOptions.map(function (value) { return typeof value === 'object' ? value : {value: String(value), label: String(value).toUpperCase()}; }) : (item.resolutions || []).map(function (value) { return {value: String(value), label: String(value).toUpperCase()}; }),
-                durationOptions: Array.isArray(item.videoOptions?.durationOptions) ? item.videoOptions.durationOptions.map(function (value) { return typeof value === 'object' ? value : {value: Number(value), label: String(value) + ' 秒'}; }) : (String(item.id || '') === 'dola-seedance-2-5' ? [30] : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]).map(function (value) { return {value: value, label: String(value) + ' 秒'}; }),
+                durationOptions: Array.isArray(item.videoOptions?.durationOptions) && item.videoOptions.durationOptions.length ? item.videoOptions.durationOptions.map(function (value) { return typeof value === 'object' ? value : {value: Number(value), label: String(value) + ' 秒'}; }) : (String(item.id || '') === 'dola-seedance-2-5' ? [30] : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]).map(function (value) { return {value: value, label: String(value) + ' 秒'}; }),
                 defaultSize: item.videoOptions?.defaultAspectRatio || item.aspectRatios?.[0],
                 defaultAspectRatio: item.videoOptions?.defaultAspectRatio || item.aspectRatios?.[0],
                 defaultResolution: item.videoOptions?.defaultResolution || item.resolutions?.[0],
