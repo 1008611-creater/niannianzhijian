@@ -8293,7 +8293,26 @@ async function handleCanvasGenerationApi(request, response, pathname, user) {
       if (nodeType === 'image' && requestedModel && !canvasImage2Channels.resolveImage2Channel(requestedModel)) {
         return json(response, 422, {code:'CANVAS_JOB_MODEL_INVALID',error:'请选择已接入的 Image2 作图渠道'});
       }
-      const inputAssetIds = await canvasGenerationInputAssetIds({project:owned.project, projectKind:owned.projectKind, nodeId, node, body});
+      let inputAssetIds = await canvasGenerationInputAssetIds({project:owned.project, projectKind:owned.projectKind, nodeId, node, body});
+      // Canvas documents can retain a valid thumbnail from another project while
+      // the stored CAS id is not yet referenced by the current project. Re-home
+      // same-owner assets before rejecting the generation request.
+      const ownerAssets = inputAssetIds.length ? await canvasAssetService.listByOwner(user.id) : [];
+      const ownerAssetById = new Map(ownerAssets.map(asset => [asset.id, asset]));
+      inputAssetIds = await Promise.all(inputAssetIds.map(async assetId => {
+        if (!/^CAS-/.test(assetId)) return assetId;
+        if (await canvasAssetService.getOwned(user.id, projectId, assetId)) return assetId;
+        const source = ownerAssetById.get(assetId);
+        if (!source || source.projectId === projectId || source.projectKind !== owned.projectKind) return assetId;
+        const referenced = await canvasAssetService.referenceOwned({
+          ownerId:user.id,
+          projectId,
+          projectKind:owned.projectKind,
+          sourceProjectId:source.projectId,
+          sourceAssetId:source.id
+        });
+        return referenced.asset.id;
+      }));
       for (const assetId of inputAssetIds) {
         // Historical canvas documents may contain pre-CAS asset references. Keep those readable;
         // every new project asset created by this API uses CAS IDs and is ownership-checked.
