@@ -18,6 +18,9 @@ async function run() {
   const catalog = await plane.publicCatalogForTenant('tenant-a');
   assert.equal(catalog.models[0].priceCredits, 10);
   assert.equal(catalog.models[0].providerKey, 'yunwu-agent-vault');
+  assert.equal(catalog.models.some(model => model.id === 'yunwu-gpt-image-2-c-edit'), false);
+  assert.deepEqual(catalog.models[0].imageOptions.aspectRatioOptions.map(option => option.value), ['9:16', '16:9', '1:1', '4:3', '3:4']);
+  assert.deepEqual(catalog.models[0].imageOptions.resolutionOptions.map(option => option.value), ['1k', '2k', '4k']);
   assert.equal(Object.hasOwn(catalog, 'providers'), false);
   assert.equal(JSON.stringify(catalog).includes('private.example'), false);
   assert.equal(JSON.stringify(catalog).includes('agent-vault://'), false);
@@ -43,6 +46,23 @@ async function run() {
   assert.equal(usage.unit, 'NN_CREDIT');
   assert.equal(usage.pendingReservations, 0);
   assert.ok(usage.refundedCredits >= 17);
+
+  const legacyRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'niannian-model-control-legacy-'));
+  await fs.writeFile(path.join(legacyRoot, 'config.json'), JSON.stringify({
+    schemaVersion: 'niannian.model_control_config.v2',
+    providers: [{id:'yunwu-agent-vault', label:'云雾', kind:'image', enabled:true}],
+    models: [
+      {id:'yunwu-gpt-image-2-c', label:'旧 Image2', kind:'image', providerId:'yunwu-agent-vault', providerLabel:'云雾', tenantId:'tenant-a', enabled:true, imageOptions:{aspectRatioOptions:[{value:'9:16'}]}},
+      {id:'yunwu-gpt-image-2-c-edit', label:'云雾 Image2 图改图 4K', kind:'image', providerId:'yunwu-agent-vault', tenantId:'tenant-a', enabled:true}
+    ],
+    plans: [],
+    tenantPlans: []
+  }) + '\n');
+  const legacyPlane = createModelControlPlane({configPath:path.join(legacyRoot, 'config.json'), ledgerPath:path.join(legacyRoot, 'ledger.json')});
+  const migratedCatalog = await legacyPlane.publicCatalogForTenant('tenant-a');
+  assert.deepEqual(migratedCatalog.models.map(model => model.id), ['yunwu-gpt-image-2-c']);
+  assert.equal(migratedCatalog.models[0].imageOptions.aspectRatioOptions.length, 5);
+  await fs.rm(legacyRoot, {recursive:true, force:true});
 
   const welcomePlane = createModelControlPlane({configPath:path.join(root, 'welcome-config.json'), ledgerPath:path.join(root, 'welcome-ledger.json'), welcomeCredits:30});
   assert.equal(await welcomePlane.accountBalance(other.tenantId, other.id), 30);
