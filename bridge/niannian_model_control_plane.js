@@ -77,7 +77,7 @@ function publicCatalog(models, providers, tenantId, allowedModelIds = []) {
   return {
     schemaVersion: 'niannian.canvas_model_catalog.v2',
     tenantId,
-    models: models.filter(item => (item.tenantId === tenantId || item.tenantId === 'default') && item.enabled === true && enabledProviderIds.has(item.providerId) && (!allowed.size || allowed.has(item.id) || item.id === 'dola-seedance-2-5')).map(item => ({
+    models: models.filter(item => (item.tenantId === tenantId || item.tenantId === 'default') && item.enabled === true && enabledProviderIds.has(item.providerId) && (item.id === 'dola-seedance-2-5' || !allowed.size || allowed.has(item.id))).map(item => ({
       id: item.id,
       label: item.label,
       kind: item.kind,
