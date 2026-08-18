@@ -35,6 +35,10 @@ const migratedEntrance = normalizeLegacyH3Node({
   data:{prompt:'只完成第1组的0.0-5.0秒进门子段'}
 });
 assert.equal(migratedEntrance.meta.aspectRatio, '9:16');
+assert.equal(migratedEntrance.meta.aspect_ratio, '9:16');
+assert.equal(migratedEntrance.meta.videoSize, '9:16');
+assert.equal(migratedEntrance.meta.size, '9:16');
+assert.equal(migratedEntrance.meta.aspect, '9:16');
 assert.equal(migratedEntrance.meta.resolution, '2k');
 assert.equal(migratedEntrance.meta.durationSeconds, 5);
 
