@@ -181,6 +181,7 @@ const canvasDolaRuntime = canvasDolaRuntimeModule.createCanvasDolaRuntime({
   jobService:canvasGenerationJobService,
   assetService:canvasAssetService,
   enabled:canvasProviderStatus.dolaSubmitEnabled,
+  playwrightMode:canvasProviderStatus.dolaPlaywrightConfigured === true,
   dola:{baseUrl:canvasProviderStatus.dolaApiUrl,apiKey:process.env.NIANNIAN_DOLA_API_KEY}
 });
 const canvasTextRuntime = canvasTextRuntimeModule.createCanvasTextRuntime();

@@ -35,10 +35,11 @@ function createCanvasDolaRuntime(options = {}) {
   const jobs = options.jobService;
   const assets = options.assetService;
   const enabled = options.enabled === true;
-  const adapter = options.adapter || (enabled ? createDolaDesktopApiAdapter(options.dola || {}) : null);
+  const playwrightMode = options.playwrightMode === true;
+  const adapter = options.adapter || (!playwrightMode && enabled ? createDolaDesktopApiAdapter(options.dola || {}) : null);
   const preflightPage = options.preflightPage || dolaPlaywrightController.preflight;
   const preparePage = options.preparePage || dolaPlaywrightController.prepare;
-  const submitPage = options.submitPage || null;
+  const submitPage = options.submitPage || (playwrightMode ? dolaPlaywrightController.submit : null);
   const inspectMedia = options.inspectMedia || inspectDolaMedia;
   const submissionsInFlight = new Map();
   if (!jobs || !assets) throw new Error('canvas Dola runtime requires job and asset services');
@@ -62,7 +63,14 @@ function createCanvasDolaRuntime(options = {}) {
 
   async function dryRun(job) {
     assertDolaJob(job);
-    if (!adapter) throw runtimeError('CANVAS_PROVIDER_SUBMIT_DISABLED', 'Dola 视频生成尚未启用，当前任务仅完成准备。');
+    if (!adapter && !playwrightMode) throw runtimeError('CANVAS_PROVIDER_SUBMIT_DISABLED', 'Dola 视频生成尚未启用，当前任务仅完成准备。');
+    if (playwrightMode) {
+      const inputs = await ownedInputs(job);
+      const counts = {image:0,audio:0,video:0};
+      for (const asset of inputs) counts[String(asset.kind).includes('audio') ? 'audio' : String(asset.kind).includes('video') ? 'video' : 'image'] += 1;
+      if (counts.image > 30 || counts.audio > 10 || counts.video > 10) throw runtimeError('DOLA_INPUT_LIMIT_EXCEEDED', 'Dola 素材数量超出限制', 422);
+      return {channel:'dola-seedance-2-5',durationSeconds:30,aspectRatio:job.aspectRatio,accountSlot:job.accountSlot,inputCounts:counts};
+    }
     return adapter.dryRun({prompt:job.prompt,aspectRatio:job.aspectRatio,accountSlot:job.accountSlot}, await ownedInputs(job));
   }
 
@@ -111,6 +119,7 @@ function createCanvasDolaRuntime(options = {}) {
     if (!job) throw runtimeError('CANVAS_JOB_NOT_FOUND', '任务不存在', 404);
     if (job.nodeType !== 'video' || !isDolaVideoChannel(job.videoChannel) || !job.providerTaskId || ['succeeded','failed','review'].includes(job.status)) return job;
     try {
+      if (playwrightMode) return job;
       const result = await adapter.query(job.providerTaskId);
       if (result.status === 'generating') return await jobs.updateOwned(ownerId, projectId, jobId, {status:'running',providerSubmitState:'running',publicError:null});
       if (result.status === 'failed') return await jobs.updateOwned(ownerId, projectId, jobId, {status:'failed',providerSubmitState:'failed',failureCategory:'provider_request',publicError:'Dola 视频任务失败，请检查提示词和素材后重试。'});

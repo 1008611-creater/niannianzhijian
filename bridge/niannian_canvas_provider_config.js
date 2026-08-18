@@ -39,7 +39,8 @@ function readCanvasProviderConfig(env = process.env) {
   const dolaApiUrl = String(env.NIANNIAN_DOLA_API_URL || '').trim().replace(/\/+$/, '');
   const dolaCredentialConfigured = isConfigured(env.NIANNIAN_DOLA_API_KEY);
   const dolaApiUrlValid = isDolaApiUrl(dolaApiUrl);
-  const dolaSubmitEnabled = dolaCredentialConfigured && dolaApiUrlValid && isOn(env.NIANNIAN_CANVAS_DOLA_SUBMIT);
+  const dolaPlaywrightConfigured = isOn(env.NIANNIAN_DOLA_PLAYWRIGHT) || isConfigured(env.NIANNIAN_DOLA_CDP_ENDPOINT);
+  const dolaSubmitEnabled = isOn(env.NIANNIAN_CANVAS_DOLA_SUBMIT) && (dolaPlaywrightConfigured || (dolaCredentialConfigured && dolaApiUrlValid));
   return Object.freeze({
     provider,
     baseUrl,
@@ -56,6 +57,7 @@ function readCanvasProviderConfig(env = process.env) {
     dolaApiUrl,
     dolaApiUrlValid,
     dolaCredentialConfigured,
+    dolaPlaywrightConfigured,
     dolaSubmitEnabled
   });
 }
