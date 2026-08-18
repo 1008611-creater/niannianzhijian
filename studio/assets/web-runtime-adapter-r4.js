@@ -176,7 +176,7 @@
     if (!response.ok) throw new Error(body.error || '本机 Dola 通道请求失败');
     return body;
   }
-  async function runDolaLocalTask(request, extras) {
+  async function ensureDolaLocalBridge() {\n    try {\n      var response = await fetch(dolaLocalBridgeBase + '/api/v1/capabilities', {mode:'cors'});\n      if (!response.ok) throw new Error('bridge_unavailable');\n      return true;\n    } catch (_) {\n      throw new Error('本机 Dola 通道未启动。请先打开 Dola 客户端，并确认 9190 桥接服务已启动。');\n    }\n  }\n\n  async function runDolaLocalTask(request, extras) {
     function base64FromBytes(bytes) {
       var chunk = 0x8000;
       var binary = '';
