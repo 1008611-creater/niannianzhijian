@@ -22,6 +22,8 @@ async function run() {
   assert.deepEqual(targetDimensions('4:3'), {width:832, height:624});
   assert.deepEqual(targetDimensions('3:4'), {width:624, height:832});
   const h3Adapter = createRunningHubH3Adapter({baseUrl:'https://www.runninghub.cn'});
+  const defaultDryRun = h3Adapter.dryRun({prompt:'缺省规格仍使用竖屏安全默认值'}, 0);
+  assert.equal(defaultDryRun.payload.nodeInfoList.find(item => item.fieldName === 'aspect_ratio').fieldValue, '9:16');
   const genericOnlyAdapter = createRunningHubH3Adapter({baseUrl:'https://www.runninghub.cn',fetchImpl:async () => { throw new Error('must not reach provider'); }});
   const previousConsumerKey = process.env.NOMI_RUNNINGHUB_H3_API_KEY;
   const previousGenericKey = process.env.RUNNINGHUB_API_KEY;

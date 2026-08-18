@@ -50,15 +50,26 @@ function generationOptions(model, normalized) {
     };
   }
   if (normalized === "video") {
+    const videoOptions = model?.videoOptions && typeof model.videoOptions === "object" ? model.videoOptions : {};
+    const durationOptions = Array.isArray(videoOptions.durationOptions)
+      ? videoOptions.durationOptions.map((value) => typeof value === "object" ? value : { value: Number(value), label: `${value} 秒` })
+      : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((value) => ({ value, label: `${value} 秒` }));
+    const configuredRatios = Array.isArray(videoOptions.aspectRatioOptions) ? videoOptions.aspectRatioOptions.map((value) => typeof value === "object" ? value : option(value)) : ratios;
+    const configuredResolutions = Array.isArray(videoOptions.resolutionOptions) ? videoOptions.resolutionOptions.map((value) => typeof value === "object" ? value : option(value, String(value).toUpperCase())) : resolutions;
     return {
       videoOptions: {
-        sizeOptions: ratios,
-        resolutionOptions: resolutions,
-        defaultSize: ratios[0]?.value,
-        defaultResolution: resolutions[0]?.value,
+        ...videoOptions,
+        sizeOptions: configuredRatios,
+        resolutionOptions: configuredResolutions,
+        durationOptions,
+        defaultSize: videoOptions.defaultAspectRatio || configuredRatios[0]?.value,
+        defaultAspectRatio: videoOptions.defaultAspectRatio || configuredRatios[0]?.value,
+        defaultResolution: videoOptions.defaultResolution || configuredResolutions[0]?.value,
+        defaultDurationSeconds: Number(videoOptions.defaultDurationSeconds || 5),
         controls: [
           { key: "aspect_ratio", label: "比例", binding: "size", optionSource: "sizeOptions" },
-          { key: "resolution", label: "大小", binding: "resolution", optionSource: "resolutionOptions" }
+          { key: "resolution", label: "大小", binding: "resolution", optionSource: "resolutionOptions" },
+          { key: "duration_seconds", label: "时长", binding: "durationSeconds", optionSource: "durationOptions" }
         ]
       }
     };

@@ -18,7 +18,7 @@ async function waitForHealth(baseUrl) {
 
 async function main() {
   const studioIndex = require('node:fs').readFileSync(root + '/studio/index.html', 'utf8');
-  assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260818-yunwu-image2-catalog-r1/);
+  assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260818-h3-video-controls-r1/);
   assert.match(studioIndex, /index-M-8MrEH2-r28-19b89ec-r6\.js\?v=20260818-storyboard-group-contract-r8/);
   const generationController = require('node:fs').readFileSync(root + '/studio/assets/generationRunController-DH5v5RRt-r4.js', 'utf8');
   assert.match(generationController, /window\.nomiDesktop\?\.modelCatalog\?\.listVendors/);
@@ -67,7 +67,8 @@ async function main() {
           enabled: true,
           priceCredits: 20,
           resolutions: ['2k'],
-          aspectRatios: ['9:16', '16:9', '1:1']
+          aspectRatios: ['9:16', '16:9', '1:1'],
+          videoOptions: {aspectRatioOptions:['9:16','16:9','1:1'], resolutionOptions:['2k'], durationOptions:[5,10], defaultAspectRatio:'9:16', defaultResolution:'2k', defaultDurationSeconds:5}
         }, {
           id: 'dola-seedance-2-5',
           alias: 'dola-seedance-2-5',
@@ -104,6 +105,9 @@ async function main() {
       {value: '1:1', label: '1:1'}
     ]);
     assert.deepEqual(result.videoModels[0].meta.videoOptions.resolutionOptions, [{value: '2k', label: '2K'}]);
+    assert.deepEqual(result.videoModels[0].meta.videoOptions.durationOptions, [{value: 5, label: '5 秒'}, {value: 10, label: '10 秒'}]);
+    assert.equal(result.videoModels[0].meta.videoOptions.defaultAspectRatio, '9:16');
+    assert.equal(result.videoModels[0].meta.videoOptions.defaultDurationSeconds, 5);
     assert.deepEqual(result.videoModels[1].meta.videoOptions.sizeOptions, [
       {value: '9:16', label: '9:16'},
       {value: '16:9', label: '16:9'},

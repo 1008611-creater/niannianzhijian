@@ -194,20 +194,25 @@
             outputSizes: item.outputSizes || {},
             ...(item.kind === 'video' ? {
               videoOptions: {
-                sizeOptions: (item.aspectRatios || []).map(function (value) { return {value: String(value), label: String(value)}; }),
-                resolutionOptions: (item.resolutions || []).map(function (value) { return {value: String(value), label: String(value).toUpperCase()}; }),
-                defaultSize: item.aspectRatios?.[0],
-                defaultResolution: item.resolutions?.[0],
+                ...(item.videoOptions || {}),
+                sizeOptions: Array.isArray(item.videoOptions?.aspectRatioOptions) ? item.videoOptions.aspectRatioOptions.map(function (value) { return typeof value === 'object' ? value : {value: String(value), label: String(value)}; }) : (item.aspectRatios || []).map(function (value) { return {value: String(value), label: String(value)}; }),
+                resolutionOptions: Array.isArray(item.videoOptions?.resolutionOptions) ? item.videoOptions.resolutionOptions.map(function (value) { return typeof value === 'object' ? value : {value: String(value), label: String(value).toUpperCase()}; }) : (item.resolutions || []).map(function (value) { return {value: String(value), label: String(value).toUpperCase()}; }),
+                durationOptions: Array.isArray(item.videoOptions?.durationOptions) ? item.videoOptions.durationOptions.map(function (value) { return typeof value === 'object' ? value : {value: Number(value), label: String(value) + ' 秒'}; }) : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(function (value) { return {value: value, label: String(value) + ' 秒'}; }),
+                defaultSize: item.videoOptions?.defaultAspectRatio || item.aspectRatios?.[0],
+                defaultAspectRatio: item.videoOptions?.defaultAspectRatio || item.aspectRatios?.[0],
+                defaultResolution: item.videoOptions?.defaultResolution || item.resolutions?.[0],
+                defaultDurationSeconds: Number(item.videoOptions?.defaultDurationSeconds || 5),
                 controls: [
                   {key: 'aspect_ratio', label: '比例', binding: 'size', optionSource: 'sizeOptions'},
-                  {key: 'resolution', label: '大小', binding: 'resolution', optionSource: 'resolutionOptions'}
+                  {key: 'resolution', label: '大小', binding: 'resolution', optionSource: 'resolutionOptions'},
+                  {key: 'duration_seconds', label: '时长', binding: 'durationSeconds', optionSource: 'durationOptions'}
                 ]
               }
             } : {
               imageOptions: {
                 ...(item.imageOptions || {}),
                 aspectRatioOptions: Array.isArray(item.imageOptions?.aspectRatioOptions) ? item.imageOptions.aspectRatioOptions : (item.aspectRatios || []).map(function (value) { return {value: String(value), label: String(value)}; }),
-                imageSizeOptions: Array.isArray(item.imageOptions?.imageSizeOptions) ? item.imageOptions.imageSizeOptions : Object.entries(item.outputSizesByAspectRatio || {}).flatMap(function (resolutionEntry) { return Object.entries(resolutionEntry[1] || {}).map(function (entry) { return {value: String(entry[1]), label: String(entry[1]) + '（' + String(resolutionEntry[0]).toUpperCase() + ' · ' + String(entry[0]) + '）'}; }); }).concat(Object.entries(item.outputSizes || {}).map(function (entry) { return {value: String(entry[1]), label: String(entry[1]) + '（' + String(entry[0]).toUpperCase() + '）'}; })).filter(function (option, index, options) { return options.findIndex(function (candidate) { return candidate.value === option.value; }) === index; }),
+                imageSizeOptions: item.id === 'yunwu-gpt-image-2-c' ? [] : (Array.isArray(item.imageOptions?.imageSizeOptions) ? item.imageOptions.imageSizeOptions : Object.entries(item.outputSizesByAspectRatio || {}).flatMap(function (resolutionEntry) { return Object.entries(resolutionEntry[1] || {}).map(function (entry) { return {value: String(entry[1]), label: String(entry[1]) + '（' + String(resolutionEntry[0]).toUpperCase() + ' · ' + String(entry[0]) + '）'}; }); }).concat(Object.entries(item.outputSizes || {}).map(function (entry) { return {value: String(entry[1]), label: String(entry[1]) + '（' + String(entry[0]).toUpperCase() + '）'}; })).filter(function (option, index, options) { return options.findIndex(function (candidate) { return candidate.value === option.value; }) === index; })),
                 resolutionOptions: Array.isArray(item.imageOptions?.resolutionOptions) ? item.imageOptions.resolutionOptions : (item.resolutions || []).map(function (value) { return {value: String(value), label: String(value).toUpperCase()}; }),
                 defaultAspectRatio: item.imageOptions?.defaultAspectRatio || item.aspectRatios?.[0],
                 defaultImageSize: item.imageOptions?.defaultImageSize || Object.values(item.outputSizes || {})[0],

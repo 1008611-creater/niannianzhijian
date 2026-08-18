@@ -21,6 +21,7 @@ async function run() {
   assert.throws(() => readImageWorkflowCatalog({5:{workflowId:'2085000000000000001',imageNodes:['4','19','20','21','23'],targetNode:'6',promptNode:'7'}}), error => error?.code === 'NOMI_H3_IMAGE_WORKFLOW_CONFIG_INVALID');
   assert.deepEqual(Object.keys(readImageWorkflowCatalog(catalog)), ['5']);
   assert.deepEqual(targetFor({aspectRatio:'16:9',durationSeconds:5}), {aspectRatio:'16:9',durationSeconds:5,width:832,height:480});
+  assert.deepEqual(targetFor({prompt:'缺省规格仍使用竖屏安全默认值'}), {aspectRatio:'9:16',durationSeconds:5,width:480,height:832});
   assert.deepEqual(targetFor({aspectRatio:'9:16',durationSeconds:5,images:[image(1)]}), {aspectRatio:'9:16',durationSeconds:5,width:576,height:1024});
   assert.deepEqual(targetFor({aspectRatio:'9:16',durationSeconds:5,width:480,height:832,images:[image(1)]}), {aspectRatio:'9:16',durationSeconds:5,width:576,height:1024});
   assert.deepEqual(targetFor({aspectRatio:'9:16',durationSeconds:5,images:[image(1),image(2)]}), {aspectRatio:'9:16',durationSeconds:5,width:480,height:832});

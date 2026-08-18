@@ -7,7 +7,7 @@ const vm = require('vm');
 (async () => {
 const source = fs.readFileSync(require('path').join(__dirname, 'studio/assets/web-runtime-adapter-r4.js'), 'utf8');
 const studioIndex = fs.readFileSync(require('path').join(__dirname, 'studio/index.html'), 'utf8');
-assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260818-yunwu-image2-catalog-r1/);
+assert.match(studioIndex, /web-runtime-adapter-r4\.js\?v=20260818-h3-video-controls-r1/);
 assert.match(source, /\/api\/canvas\/provider-status/);
 assert.match(source, /\/api\/projects\/.*\/canvas\/jobs/);
 assert.match(source, /\/api\/projects\/.*\/text\/jobs/);
@@ -21,6 +21,8 @@ assert.match(source, /confirmProviderSpend:\s*true/);
 assert.match(source, /model: animateTransfer \? animateModel\(extras\) : \(video \? \(extras\.modelKey \|\| extras\.modelAlias \|\| 'minimax-h3'\)/);
 assert.match(source, /aspectRatio: video\s*\n\s*\? \(extras\.aspectRatio \|\| '9:16'\)/);
 assert.match(source, /outputSize: extras\.outputSize \|\| extras\.imageSize \|\| null/);
+assert.match(source, /durationOptions/);
+assert.match(source, /defaultDurationSeconds/);
 assert.doesNotMatch(source, /RUNNINGHUB_API_KEY|apiKey\s*:/);
 assert.match(source, /!isWebOrigin\s*&&\s*existingBridge/);
 assert.match(source, /runninghub-animate-motion-transfer/);

@@ -97,6 +97,7 @@ function publicCatalog(models, providers, tenantId, allowedModelIds = []) {
       }, {...(item.outputSizes || {})}),
       outputSizesByAspectRatio: item.outputSizesByAspectRatio || {},
       imageOptions: item.imageOptions || null,
+      videoOptions: item.videoOptions || null,
       supportsReferenceImages: item.supportsReferenceImages === true,
       supportsTextToImage: item.supportsTextToImage === true,
       supportsImageToImage: item.supportsImageToImage === true,
@@ -182,7 +183,7 @@ function createModelControlPlane(options = {}) {
       const publicImage = publicUnifiedImage2Channel(false);
       const defaults = [
         {id: 'yunwu-gpt-image-2-c', label: '云雾 Image2', kind: 'image', providerId: 'yunwu-agent-vault', providerLabel: '云雾', priceCredits: 10, priceCreditsByMode: publicImage.priceCreditsByMode, imageOptions: {supportsReferenceImages:true, supportsTextToImage:true, supportsImageToImage:true, modes:publicImage.modes, aspectRatioOptions:publicImage.catalogAspectRatios, imageSizeOptions:publicImage.catalogImageSizeOptions, resolutionOptions:publicImage.catalogResolutions, defaultAspectRatio:publicImage.defaultAspectRatio, defaultImageSize:publicImage.defaultImageSize, defaultResolution:'4k'}, resolutions: [...publicImage.resolutions], aspectRatios: [...publicImage.aspectRatios], outputSizes: {...publicImage.outputSizes}, outputSizesByAspectRatio: JSON.parse(JSON.stringify(publicImage.outputSizesByAspectRatio)), supportsReferenceImages:true, supportsTextToImage:true, supportsImageToImage:true},
-        {id: 'minimax-h3', label: 'H3 生视频', kind: 'video', providerId: 'runninghub-consumer', providerLabel: 'RunningHub', priceCredits: 20, resolutions: ['2k'], aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'], outputSizes: {}},
+        {id: 'minimax-h3', label: 'H3 生视频', kind: 'video', providerId: 'runninghub-consumer', providerLabel: 'RunningHub', priceCredits: 20, resolutions: ['2k'], aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'], outputSizes: {}, videoOptions: {aspectRatioOptions: ['9:16', '16:9', '1:1', '4:3', '3:4'], resolutionOptions: ['2k'], durationOptions: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], defaultAspectRatio: '9:16', defaultResolution: '2k', defaultDurationSeconds: 5}},
         {id: 'dola-seedance-2-5', label: 'Dola Seedance 2.5（30秒）', kind: 'video', providerId: 'dola-desktop-api', providerLabel: 'Dola', priceCredits: 0, resolutions: ['720p'], aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'], outputSizes: {}},
         {id: 'mcgrox-compiler', label: 'MCGrox 编排模型', kind: 'text', providerId: 'mcgrox-server', providerLabel: 'MCGrox', priceCredits: 1, resolutions: [], aspectRatios: [], outputSizes: {}}
       ];
@@ -216,9 +217,16 @@ function createModelControlPlane(options = {}) {
           existing.outputSizesByAspectRatio = item.outputSizesByAspectRatio;
           changed = true;
         }
-        else if (item.id === 'minimax-h3' && JSON.stringify(existing.aspectRatios || []) !== JSON.stringify(item.aspectRatios)) {
-          existing.aspectRatios = item.aspectRatios;
-          changed = true;
+        else if (item.id === 'minimax-h3') {
+          let repaired = false;
+          if (JSON.stringify(existing.aspectRatios || []) !== JSON.stringify(item.aspectRatios)) { existing.aspectRatios = item.aspectRatios; repaired = true; }
+          if (!existing.videoOptions || typeof existing.videoOptions !== 'object' || Array.isArray(existing.videoOptions)) { existing.videoOptions = item.videoOptions; repaired = true; }
+          else {
+            for (const [key, value] of Object.entries(item.videoOptions)) {
+              if (existing.videoOptions[key] === undefined || existing.videoOptions[key] === null) { existing.videoOptions[key] = value; repaired = true; }
+            }
+          }
+          if (repaired) changed = true;
         }
       }
       // The edit channel is an internal route selected by reference-image
