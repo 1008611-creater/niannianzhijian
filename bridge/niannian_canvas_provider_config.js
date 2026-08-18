@@ -139,7 +139,20 @@ function publicCanvasModelCatalog(env = process.env) {
         resolutions: ['720p'],
         aspectRatios: ['9:16', '16:9', '1:1', '4:3', '3:4'],
         outputSizes: {},
-        priceCredits: 0
+        priceCredits: 0,
+        videoOptions: {
+          durationOptions: [30],
+          defaultDurationSeconds: 30,
+          resolutionOptions: ['720p'],
+          aspectRatioOptions: ['9:16', '16:9', '1:1', '4:3', '3:4'],
+          defaultResolution: '720p',
+          defaultAspectRatio: '9:16',
+          controls: [
+            {key: 'duration_seconds', label: '时长', binding: 'durationSeconds', optionSource: 'durationOptions'},
+            {key: 'aspect_ratio', label: '比例', binding: 'size', optionSource: 'sizeOptions'},
+            {key: 'resolution', label: '清晰度', binding: 'resolution', optionSource: 'resolutionOptions'}
+          ]
+        }
       }
     ]
   };
