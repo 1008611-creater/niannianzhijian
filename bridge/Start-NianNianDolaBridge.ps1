@@ -42,4 +42,4 @@ do {
   Start-Sleep -Milliseconds 500
 } while ((Get-Date) -lt $deadline)
 
-throw 'Dola 桥接启动超时，请确认客户端已登录。'
+throw 'DOLA_BRIDGE_START_TIMEOUT'
