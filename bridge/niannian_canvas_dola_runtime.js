@@ -91,17 +91,22 @@ function createCanvasDolaRuntime(options = {}) {
     const retryable = job.status === 'failed' && !job.providerTaskId && job.providerSubmitState === 'failed';
     if (job.status !== 'awaiting_authorization' && !retryable) throw runtimeError('CANVAS_JOB_STATE_INVALID', '当前任务不能重复提交', 409);
     const input = await ownedInputs(job);
-    const preparedPage = await preparePage({
-      prompt:withDolaPromptPrefix(job.prompt),
-      aspectRatio:job.aspectRatio,
-      accountSlot:job.accountSlot,
-      assets:input.map(asset => ({kind:asset.kind,path:asset.storedPath,storedPath:asset.storedPath}))
-    });
     await jobs.updateOwned(ownerId, projectId, jobId, {status:'queued',providerSubmitState:'submitting',publicError:null});
     try {
-      const submitted = submitPage
-        ? await submitPage({browser:preparedPage.browser,page:preparedPage.page,prompt:withDolaPromptPrefix(job.prompt),aspectRatio:job.aspectRatio,accountSlot:job.accountSlot,idempotencyKey:job.id})
-        : await adapter.submit({prompt:withDolaPromptPrefix(job.prompt),aspectRatio:job.aspectRatio,accountSlot:job.accountSlot,idempotencyKey:job.id}, input);
+      let submitted;
+      if (playwrightMode) {
+        if (!preparePage || !submitPage) throw runtimeError('DOLA_PLAYWRIGHT_NOT_CONFIGURED', 'Dola 页面连接尚未配置');
+        const preparedPage = await preparePage({
+          prompt:withDolaPromptPrefix(job.prompt),
+          aspectRatio:job.aspectRatio,
+          accountSlot:job.accountSlot,
+          assets:input.map(asset => ({kind:asset.kind,path:asset.storedPath,storedPath:asset.storedPath}))
+        });
+        submitted = await submitPage({browser:preparedPage.browser,page:preparedPage.page,prompt:withDolaPromptPrefix(job.prompt),aspectRatio:job.aspectRatio,accountSlot:job.accountSlot,idempotencyKey:job.id});
+      } else {
+        if (!adapter) throw runtimeError('CANVAS_PROVIDER_SUBMIT_DISABLED', 'Dola 视频生成尚未启用，当前任务仅完成准备。');
+        submitted = await adapter.submit({prompt:withDolaPromptPrefix(job.prompt),aspectRatio:job.aspectRatio,accountSlot:job.accountSlot,idempotencyKey:job.id}, input);
+      }
       const providerTaskId = String(submitted.taskId || submitted.pageUrl || job.id);
       return await jobs.updateOwned(ownerId, projectId, jobId, {status:'queued',providerSubmitState:'accepted',providerTaskId:providerTaskId,providerChannel:submitted.channel || 'dola-seedance-2-5',providerPayload:submitted.payload || {pageUrl:submitted.pageUrl || null},publicError:null});
     } catch (error) {
