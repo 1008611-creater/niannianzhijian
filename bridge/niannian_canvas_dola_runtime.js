@@ -80,8 +80,10 @@ function createCanvasDolaRuntime(options = {}) {
 
   async function submitOnce(ownerId, projectId, jobId) {
     if (!enabled) throw runtimeError('CANVAS_PROVIDER_SUBMIT_DISABLED', 'Dola 视频生成尚未启用，当前任务仅完成准备。');
-    try { if (!preflightPage) throw runtimeError('DOLA_PLAYWRIGHT_NOT_CONFIGURED', 'Dola 页面连接尚未配置'); const check = await preflightPage(); if (!check.ready) throw new Error('Dola 页面未就绪'); }
-    catch (error) { throw runtimeError(error.code || 'DOLA_PLAYWRIGHT_NOT_READY', error.message || 'Dola 页面未就绪'); }
+    if (playwrightMode) {
+      try { if (!preflightPage) throw runtimeError('DOLA_PLAYWRIGHT_NOT_CONFIGURED', 'Dola 页面连接尚未配置'); const check = await preflightPage(); if (!check.ready) throw new Error('Dola 页面未就绪'); }
+      catch (error) { throw runtimeError(error.code || 'DOLA_PLAYWRIGHT_NOT_READY', error.message || 'Dola 页面未就绪'); }
+    }
     const job = await jobs.getOwned(ownerId, projectId, jobId);
     if (!job) throw runtimeError('CANVAS_JOB_NOT_FOUND', '任务不存在', 404);
     assertDolaJob(job);
