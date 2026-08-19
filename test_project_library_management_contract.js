@@ -42,8 +42,9 @@ assert(html.includes('web-runtime-adapter-r4.js?v=20260819-dola-bridge-preflight
 assert(html.includes('studio-route-boot.js?v=20260818-storyboard-group-contract-r8'));
 assert(html.includes('nomi-project-route-pending'));
 assert(studioApp.includes('renameRequestRef=y.useRef(0)'), '主界面必须为重命名请求保留顺序保护');
-assert(studioApp.includes('K.projects&&typeof K.projects.updateMetadata==="function"'), '重命名必须优先调用独立项目元数据接口');
-assert(studioApp.includes('K.projects.updateMetadata(s.id,{name:w})'), '重命名必须只提交项目名称元数据');
+assert(studioApp.includes('const projects=Q()?.projects'), '重命名必须从网页桥接读取独立项目元数据接口');
+assert(studioApp.includes('projects&&typeof projects.updateMetadata==="function"'), '重命名必须优先调用独立项目元数据接口');
+assert(studioApp.includes('projects.updateMetadata(s.id,{name:w})'), '重命名必须只提交项目名称元数据');
 assert(studioApp.includes('d(K&&K.name?{...s,...K,name:K.name}:N)'), '服务器确认成功后才能更新界面名称');
 assert(routeBoot.includes('projectId') && routeBoot.includes('nomi-studio-app'));
 assert(routeBoot.includes('.nomi-studio-app, .nomi-library-page'), '项目路由遮罩必须在画布或项目库任一真实页面挂载后关闭');
