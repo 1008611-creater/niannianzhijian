@@ -75,6 +75,7 @@ async function main() {
   for (const id of ['tmlab', 'djpsd', 'freebeat']) {
     assert.equal(channel(registry, id).evidence_level, 'preflight_only');
   }
+  assert.equal(registryModule.apiSafeProjection(registry).channels.find(item => item.channel_id === 'djpsd').evidence_verified, false);
   for (const id of ['tensor-art', 'echoon', 'navos']) {
     assert.equal(channel(registry, id).enabled, false);
     assert.equal(channel(registry, id).website_action_mode, 'disabled');
