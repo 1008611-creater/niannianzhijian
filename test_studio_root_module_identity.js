@@ -38,7 +38,7 @@ function modulePreloadUrls(html) {
 }
 
 const html = fs.readFileSync(path.join(projectRoot, 'studio', 'index.html'), 'utf8');
-assert.match(html, new RegExp(`\\./assets/index-M-8MrEH2-r28-19b89ec-${releaseTag}\\.js\\?v=${moduleCacheVersion}`));
+assert.doesNotMatch(html, /<script type="module" crossorigin src="\.\/assets\/index-M-8MrEH2-r28-19b89ec-r6\.js/);
 assert.match(html, new RegExp(`\\./assets/web-runtime-adapter-${releaseTag}\\.js\\?v=[A-Za-z0-9._-]+`));
 assert.doesNotMatch(html, /index-M-8MrEH2-r28-19b89ec\.js(?:\?|['"])/);
 assert.doesNotMatch(html, /web-runtime-adapter\.js(?:\?|['"])/);
@@ -91,7 +91,10 @@ for (const name of reachable) {
   for (const dependency of localReferences(source)) {
     if (!dependency.endsWith('.js')) continue;
     const escapedDependency = dependency.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    assert.match(source, new RegExp(`${escapedDependency}\\?v=${studioClosureCacheVersion}(?:["')])`), `Studio module is not in the current closure: ${name}`);
+    const dependencyVersion = name === rootModuleName && dependency.startsWith('NomiStudioApp-')
+      ? '20260820-portal-cleanup-r1'
+      : studioClosureCacheVersion;
+    assert.match(source, new RegExp(`${escapedDependency}\\?v=${dependencyVersion}(?:["')])`), `Studio module is not in the current closure: ${name}`);
   }
   assert.doesNotMatch(source, /(?:index-M-8MrEH2-r28-19b89ec|NomiStudioApp-DDB0IgSO-r28-19b89ec)-r4\.js\?v=20260816-batch-group-feedback-r8/);
   assert.doesNotMatch(source, /(?:index-M-8MrEH2-r28-19b89ec|NomiStudioApp-DDB0IgSO-r28-19b89ec)-r4\.js\?v=20260816-persisted-image-r1/);

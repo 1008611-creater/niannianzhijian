@@ -2,7 +2,7 @@
   'use strict';
 
   const projectPrefix = 'tapcanvas-open-workbench-project-v1:';
-  const appModule = './assets/index-M-8MrEH2-r28-19b89ec-r6.js?v=20260818-storyboard-group-contract-r8';
+  const appModule = './assets/index-M-8MrEH2-r28-19b89ec-r6.js?v=20260820-portal-cleanup-r1';
 
   function normalizedGroups(groups) {
     if (Array.isArray(groups)) return groups;
