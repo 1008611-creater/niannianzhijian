@@ -48,8 +48,11 @@ async function videoPage(browser) {
     await page.waitForTimeout(800);
   }
   try {
-    await page.locator('[contenteditable=true]').first().waitFor({state:'visible', timeout:30000});
     await page.getByText('Seedance 2.5 使用 30 秒', {exact:false}).first().waitFor({state:'visible', timeout:30000});
+    const editor = page.locator('[contenteditable=true]').first();
+    if (await editor.count() && !(await editor.isVisible().catch(() => false))) {
+      await editor.waitFor({state:'visible', timeout:10000});
+    }
   } catch {
     throw controllerError('DOLA_PLAYWRIGHT_PAGE_NOT_READY', 'Dola 视频页面尚未完成加载');
   }
