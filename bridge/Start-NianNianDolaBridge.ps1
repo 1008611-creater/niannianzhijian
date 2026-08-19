@@ -3,7 +3,7 @@ param(
   [string]$DolaExecutable = 'E:\8.15V3版本\国际-客户便携版\国际豆包-客户便携版\国际豆包.exe',
   [string]$BridgeRoot = $PSScriptRoot,
   [int]$BridgePort = 9190,
-  [int]$CdpPort = 9229
+  [int]$CdpPort = 9230
 )
 
 $ErrorActionPreference = 'Stop'

@@ -2,7 +2,7 @@
 
 const { chromium } = require('playwright');
 
-const DEFAULT_CDP = 'http://127.0.0.1:9229';
+const DEFAULT_CDP = 'http://127.0.0.1:9230';
 
 function controllerError(code, message) {
   const error = new Error(message || code);
