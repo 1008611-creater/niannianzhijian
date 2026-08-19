@@ -6,8 +6,7 @@
 
 ```powershell
 $env:DOLA_FASTAPI_KEY = "替换为随机密钥"
-$env:DOLA_BRIDGE_URL = "http://127.0.0.1:9190"
-python -m uvicorn api.dola_fastapi:app --host 127.0.0.1 --port 8091
+.\api\Start-DolaFastApi.ps1
 ```
 
 调用：
