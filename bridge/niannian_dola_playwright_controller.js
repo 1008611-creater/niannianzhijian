@@ -60,7 +60,7 @@ async function prepare(options = {}) {
   if (options.prompt && await editable.count()) await editable.fill(String(options.prompt));
   await ensureDurationAndRatio(page, options);
   const assets = Array.isArray(options.assets) ? options.assets.filter(Boolean) : [];
-  const fileInputs = page.locator('input[type=file][accept*="video/mp4"]');
+  const fileInputs = page.locator('input[type=file].intl-material-file, input[type=file][accept*="video/mp4"]');
   const groups = { image:[], video:[], audio:[] };
   for (const asset of assets) {
     const kind = String(asset.kind || '').toLowerCase();
@@ -69,6 +69,7 @@ async function prepare(options = {}) {
   }
   if (await fileInputs.count() && Object.values(groups).some(list => list.length)) {
     await fileInputs.first().setInputFiles([...groups.image, ...groups.video, ...groups.audio]);
+    await page.waitForTimeout(300);
   }
   return {browser, page, prepared:true, pageUrl:page.url(), body:await body(), counts:Object.fromEntries(Object.entries(groups).map(([kind,list]) => [kind,list.length]))};
 }
