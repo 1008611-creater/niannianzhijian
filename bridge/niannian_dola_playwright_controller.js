@@ -31,7 +31,8 @@ async function videoPage(browser) {
   const page = browser.contexts().flatMap(context => context.pages()).find(page => page.url().includes('dola.com'));
   if (!page) throw controllerError('DOLA_PLAYWRIGHT_PAGE_MISSING', '未找到 Dola 页面');
   const initialText = await page.locator('body').innerText().catch(() => '');
-  if (!page.url().includes('/chat/create-video')) {
+  const alreadyVideoComposer = /视频生成|Seedance 2\.5 使用 30 秒|\b30s\b/.test(initialText);
+  if (!page.url().includes('/chat/create-video') && !alreadyVideoComposer) {
     await page.goto('https://www.dola.com/chat/create-video', {waitUntil:'domcontentloaded'}).catch(error => {
       if (!page.url().includes('dola.com')) throw error;
     });
@@ -63,7 +64,7 @@ async function ensureDurationAndRatio(page, options = {}) {
     if (!await model.count()) throw controllerError('DOLA_PLAYWRIGHT_MODEL_MISSING', '未找到 Dreamina Seedance 2.5 模型');
     await model.click();
   }
-  const anyDuration = page.locator('button').filter({hasText:/^\s*\d+s\s*$/}).first();
+  const anyDuration = page.locator('button[data-input-engine-actionbar-control-key="video-duration"], button').filter({hasText:/^\s*(?:\d+s|\d+ 秒)\s*$/}).first();
   if (!await anyDuration.count()) throw controllerError('DOLA_PLAYWRIGHT_DURATION_MISSING', '未找到时长控件');
   if ((await anyDuration.innerText()).trim() !== '30s') {
     await anyDuration.click();
