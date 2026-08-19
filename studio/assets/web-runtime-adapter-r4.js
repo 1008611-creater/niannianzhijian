@@ -186,12 +186,19 @@
     }
   }
 
-  function dolaAssetKind(kind) {
+  function dolaAssetKind(kind, contentType, source) {
     var value = String(kind || '').trim().toLowerCase();
     if (value === 'image') return 'reference_image';
     if (value === 'video') return 'reference_video';
     if (value === 'audio') return 'reference_audio';
-    return value;
+    if (['reference_image', 'generated_image'].includes(value)) return value;
+    if (['reference_video', 'generated_video'].includes(value)) return value;
+    if (value === 'reference_audio') return value;
+    var media = String(contentType || '').toLowerCase();
+    var path = String(source || '').toLowerCase().split('?')[0];
+    if (media.indexOf('audio/') === 0 || /\.(mp3|wav|m4a|aac|flac)$/.test(path)) return 'reference_audio';
+    if (media.indexOf('video/') === 0 || /\.(mp4|mov|webm|m4v)$/.test(path)) return 'reference_video';
+    return 'reference_image';
   }
 
   async function runDolaLocalTask(request, extras) {
@@ -214,8 +221,9 @@
           var sourceResponse = await fetch(source, {credentials:'include'});
           if (!sourceResponse.ok) throw new Error('画布素材读取失败');
           var bytes = await sourceResponse.arrayBuffer();
-          assets.push({kind:dolaAssetKind(asset.asset.kind), name:asset.asset.originalName || asset.asset.id, contentType:asset.asset.mimeType || '', dataBase64:base64FromBytes(new Uint8Array(bytes))});
-        } else assets.push({kind:dolaAssetKind(asset.asset.kind), path:source});
+          assets.push({kind:dolaAssetKind(asset.asset.kind, asset.asset.mimeType, source), name:asset.asset.originalName || asset.asset.id, contentType:asset.asset.mimeType || '', dataBase64:base64FromBytes(new Uint8Array(bytes))});
+        } else if (source) assets.push({kind:dolaAssetKind(asset.asset.kind, asset.asset.mimeType, source), path:source});
+        else throw new Error('画布素材没有可读取的文件地址');
       }
     }
     var local = await dolaLocalRequest('/v1/jobs', {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({
