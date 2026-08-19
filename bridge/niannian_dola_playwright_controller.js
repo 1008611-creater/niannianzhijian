@@ -18,7 +18,18 @@ async function connect(endpoint = process.env.NIANNIAN_DOLA_CDP_ENDPOINT || DEFA
 async function videoPage(browser) {
   const page = browser.contexts().flatMap(context => context.pages()).find(page => page.url().includes('dola.com'));
   if (!page) throw controllerError('DOLA_PLAYWRIGHT_PAGE_MISSING', '未找到 Dola 页面');
-  if (!page.url().includes('/chat/create-video')) await page.goto('https://www.dola.com/chat/create-video', {waitUntil:'domcontentloaded'});
+  if (!page.url().includes('/chat/create-video')) {
+    await page.goto('https://www.dola.com/chat/create-video', {waitUntil:'domcontentloaded'}).catch(error => {
+      if (!page.url().includes('dola.com')) throw error;
+    });
+  }
+  const currentText = await page.locator('body').innerText().catch(() => '');
+  if (!currentText.includes('视频生成')) {
+    const aiCreate = page.getByText('AI 创作', {exact:true}).first();
+    if (await aiCreate.count()) await aiCreate.click();
+    const videoTab = page.getByText('视频', {exact:true}).first();
+    if (await videoTab.count()) await videoTab.click();
+  }
   try {
     await page.locator('[contenteditable=true]').first().waitFor({state:'visible', timeout:15000});
     await page.getByText('Seedance 2.5 使用 30 秒', {exact:false}).first().waitFor({state:'visible', timeout:15000});
@@ -29,6 +40,21 @@ async function videoPage(browser) {
 }
 
 async function ensureDurationAndRatio(page, options = {}) {
+  const modelButton = page.locator('button').filter({hasText:/^模型/}).first();
+  if (await modelButton.count() && !(await modelButton.innerText()).includes('2.5')) {
+    await modelButton.click();
+    const model = page.getByText('Dreamina Seedance 2.5', {exact:false}).first();
+    if (!await model.count()) throw controllerError('DOLA_PLAYWRIGHT_MODEL_MISSING', '未找到 Dreamina Seedance 2.5 模型');
+    await model.click();
+  }
+  const durationButton = page.locator('button').filter({hasText:/^30s$/}).first();
+  if (!await durationButton.count()) {
+    const anyDuration = page.locator('button').filter({hasText:/^\d+s$/}).first();
+    if (await anyDuration.count()) await anyDuration.click();
+    const thirty = page.getByText('30s', {exact:true}).last();
+    if (!await thirty.count()) throw controllerError('DOLA_PLAYWRIGHT_DURATION_MISSING', '未找到 30s 时长选项');
+    await thirty.click();
+  }
   const duration = page.getByText('Seedance 2.5 使用 30 秒', {exact:false}).first();
   if (await duration.count()) await duration.click();
   if (options.aspectRatio) {
