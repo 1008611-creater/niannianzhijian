@@ -48,7 +48,9 @@ async function videoPage(browser) {
     await page.waitForTimeout(800);
   }
   try {
-    await page.getByText('Seedance 2.5 使用 30 秒', {exact:false}).first().waitFor({state:'visible', timeout:30000});
+    const seedanceLabel = page.getByText('Seedance 2.5 使用 30 秒', {exact:false}).first();
+    const pageText = await page.locator('body').innerText().catch(() => '');
+    if (!pageText.includes('Seedance 2.5 使用 30 秒')) await seedanceLabel.waitFor({state:'visible', timeout:30000});
     const editor = page.locator('[contenteditable=true]').first();
     if (await editor.count() && !(await editor.isVisible().catch(() => false))) {
       await editor.waitFor({state:'visible', timeout:10000});
