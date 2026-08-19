@@ -1,6 +1,7 @@
 'use strict';
 
 const controller = require('./niannian_dola_playwright_controller');
+const {withDolaPromptPrefix} = require('./niannian_dola_desktop_api_adapter');
 
 function usage() {
   console.log('用法: node bridge/run_dola_video.js --prompt "提示词" [--ratio 16:9] [--image 文件] [--video 文件] [--audio 文件] [--submit]');
@@ -48,9 +49,10 @@ async function main() {
       ...input.videos.map(path => ({kind:'reference_video', path})),
       ...input.audios.map(path => ({kind:'reference_audio', path}))
     ];
-    const prepared = await controller.prepare({browser, page, prompt:input.prompt, aspectRatio:input.ratio, assets});
-    const submitted = await controller.submit({browser, page, prompt:input.prompt, aspectRatio:input.ratio});
-    console.log(JSON.stringify({ok:true,mode:'submitted',preflight,prepared:prepared.counts,submitted:{pageUrl:submitted.pageUrl}}, null, 2));
+    const promptSent = withDolaPromptPrefix(input.prompt);
+    const prepared = await controller.prepare({browser, page, prompt:promptSent, aspectRatio:input.ratio, assets});
+    const submitted = await controller.submit({browser, page, prompt:promptSent, aspectRatio:input.ratio});
+    console.log(JSON.stringify({ok:true,mode:'submitted',preflight,promptSent,prepared:prepared.counts,submitted:{pageUrl:submitted.pageUrl}}, null, 2));
   } finally {
     await browser.close().catch(() => {});
   }
