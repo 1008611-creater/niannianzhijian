@@ -111,7 +111,7 @@ function createCanvasDolaRuntime(options = {}) {
       return await jobs.updateOwned(ownerId, projectId, jobId, {status:'queued',providerSubmitState:'accepted',providerTaskId:providerTaskId,providerChannel:submitted.channel || 'dola-seedance-2-5',providerPayload:submitted.payload || {pageUrl:submitted.pageUrl || null},publicError:null});
     } catch (error) {
       const uncertain = String(error?.code || '').includes('NETWORK_UNCERTAIN');
-      await jobs.updateOwned(ownerId, projectId, jobId, {status:uncertain ? 'review' : 'failed',providerSubmitState:uncertain ? 'uncertain' : 'failed',failureCategory:failureCategory(error),publicError:publicFailure(error)});
+      await jobs.updateOwned(ownerId, projectId, jobId, {status:uncertain ? 'review' : 'failed',providerSubmitState:uncertain ? 'uncertain' : 'failed',failureCategory:failureCategory(error),providerErrorCode:error.providerCode || error.code || null,publicError:publicFailure(error)});
       throw error;
     }
   }
