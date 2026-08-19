@@ -121,7 +121,7 @@ async function submit(options = {}) {
   const browser = options.browser || await connect(options.endpoint);
   const page = options.page || await videoPage(browser);
   await ensureDurationAndRatio(page, options);
-  const send = page.locator('button[type=submit], button[data-testid*="send" i], [role=button][aria-label*="发送"], [role=button][aria-label*="生成"]').first();
+  const send = page.locator('#flow-end-msg-send, button[type=submit], button[data-testid*="send" i], [role=button][aria-label*="发送"], [role=button][aria-label*="生成"]').first();
   if (!await send.count()) throw controllerError('DOLA_PLAYWRIGHT_SUBMIT_CONTROL_MISSING', '未找到 Dola 视频生成按钮');
   if (await send.isDisabled()) throw controllerError('DOLA_PLAYWRIGHT_SUBMIT_DISABLED', 'Dola 视频生成按钮当前不可用');
   await send.click();
