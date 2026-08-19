@@ -1061,7 +1061,6 @@
       return taskFromTextJob(textPrepared.job);
     }
     var video = request.kind === 'text_to_video' || request.kind === 'image_to_video';
-    if (video && isDolaModel(extras)) return runDolaLocalTask(request, extras);
     var animateTransfer = video && isAnimateTransfer(extras);
     var prepared = await api('/api/projects/' + encodeURIComponent(project) + '/canvas/jobs', {
       method: 'POST',
