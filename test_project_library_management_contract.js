@@ -30,8 +30,10 @@ const html = fs.readFileSync(path.join(__dirname, 'studio', 'index.html'), 'utf8
 ].forEach(token => assert(controls.includes(token), `项目库管理界面缺少合同：${token}`));
 
 assert(html.includes('project-library-management.js?v=20260818-storyboard-group-contract-r8'));
-assert(html.includes('index-M-8MrEH2-r28-19b89ec-r6.js?v=20260819-project-rename-r2'));
-assert(studioEntry.includes('./NomiStudioApp-DDB0IgSO-r28-19b89ec-r6.js?v=20260819-project-rename-r2'));
+assert(html.includes('index-M-8MrEH2-r28-19b89ec-r6.js?v=20260820-portal-cleanup-r1'));
+assert(studioEntry.includes('./NomiStudioApp-DDB0IgSO-r28-19b89ec-r6.js?v=20260820-portal-cleanup-r1'));
+assert(studioEntry.includes('l.current.parentNode===document.body&&document.body.removeChild(l.current)'), 'Portal 卸载必须只移除仍挂在 body 下的节点');
+assert(!studioEntry.includes('!n&&!r&&l.current&&document.body.removeChild(l.current)'), 'Portal 卸载不能无条件重复移除节点');
 assert(!studioEntry.includes('./NomiStudioApp-DDB0IgSO-r28-19b89ec-r6.js?v=20260818-storyboard-group-contract-r8'), '主界面动态入口不能混用旧资源版本');
 assert(!studioEntry.includes('./NomiStudioApp-DDB0IgSO-r28-19b89ec-r6.js?v=20260819-project-rename-r1'), '主界面预加载不能残留旧资源版本');
 assert(html.includes('web-runtime-adapter-r4.js?v=20260819-dola-bridge-preflight-r4'));
