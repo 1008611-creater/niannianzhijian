@@ -256,8 +256,21 @@ async function loadVideoChannelEvidenceRegistry(filePath = path.join(__dirname, 
   if (options.verifyEvidence === false) return registry;
   for (const channel of registry.channels) {
     channel.evidence_verification = [];
+    // Disabled channels are never eligible for display, preparation, or submit.
+    // Their historical evidence may live outside the current machine; do not let
+    // stale archival paths block the active registry while preserving strict
+    // verification for every enabled channel.
+    if (channel.enabled !== true || channel.website_action_mode === 'disabled') continue;
     for (const reference of channel.evidence_paths) {
-      channel.evidence_verification.push(await verifyEvidenceReference(reference));
+      try {
+        channel.evidence_verification.push(await verifyEvidenceReference(reference));
+      } catch (error) {
+        // Preflight-only channels are informational and must fail closed when
+        // their historical evidence is unavailable, not prevent the rest of
+        // the registry from loading. Integrated/real channels remain strict.
+        if (channel.evidence_level !== 'preflight_only' || error.code !== 'video_channel_evidence_missing') throw error;
+        channel.evidence_verification.push({role:String(reference.role || ''), verified:false, reason:'historical_evidence_unavailable'});
+      }
     }
   }
   return registry;
