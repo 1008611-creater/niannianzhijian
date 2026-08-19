@@ -181,7 +181,10 @@ const canvasDolaRuntime = canvasDolaRuntimeModule.createCanvasDolaRuntime({
   jobService:canvasGenerationJobService,
   assetService:canvasAssetService,
   enabled:canvasProviderStatus.dolaSubmitEnabled,
-  playwrightMode:canvasProviderStatus.dolaPlaywrightConfigured === true,
+  // Canvas Dola submissions must use the authenticated FastAPI adapter. The
+  // direct Playwright path is a local manual-runner fallback only; allowing it
+  // here makes production depend on the desktop page and its 30s selector.
+  playwrightMode:false,
   dola:{baseUrl:canvasProviderStatus.dolaApiUrl,apiKey:process.env.NIANNIAN_DOLA_API_KEY}
 });
 const canvasTextRuntime = canvasTextRuntimeModule.createCanvasTextRuntime();
