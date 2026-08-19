@@ -11,8 +11,20 @@ function controllerError(code, message) {
 }
 
 async function connect(endpoint = process.env.NIANNIAN_DOLA_CDP_ENDPOINT || DEFAULT_CDP) {
-  try { return await chromium.connectOverCDP(endpoint); }
-  catch { throw controllerError('DOLA_PLAYWRIGHT_CONNECT_FAILED', '无法连接 Dola 浏览器会话'); }
+  const proxyKeys = ['HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','http_proxy','https_proxy','all_proxy'];
+  const previous = Object.fromEntries(proxyKeys.map(key => [key, process.env[key]]));
+  try {
+    for (const key of proxyKeys) delete process.env[key];
+    process.env.NO_PROXY = '127.0.0.1,localhost,::1';
+    process.env.no_proxy = process.env.NO_PROXY;
+    return await chromium.connectOverCDP(endpoint);
+  } catch { throw controllerError('DOLA_PLAYWRIGHT_CONNECT_FAILED', '无法连接 Dola 浏览器会话'); }
+  finally {
+    for (const key of proxyKeys) {
+      if (previous[key] === undefined) delete process.env[key];
+      else process.env[key] = previous[key];
+    }
+  }
 }
 
 async function videoPage(browser) {
@@ -51,10 +63,10 @@ async function ensureDurationAndRatio(page, options = {}) {
     if (!await model.count()) throw controllerError('DOLA_PLAYWRIGHT_MODEL_MISSING', '未找到 Dreamina Seedance 2.5 模型');
     await model.click();
   }
-  const durationButton = page.getByText('30s', {exact:true}).first();
-  if (!await durationButton.count()) {
-    const anyDuration = page.locator('button').filter({hasText:/^\d+s$/}).first();
-    if (await anyDuration.count()) await anyDuration.click();
+  const anyDuration = page.locator('button').filter({hasText:/^\s*\d+s\s*$/}).first();
+  if (!await anyDuration.count()) throw controllerError('DOLA_PLAYWRIGHT_DURATION_MISSING', '未找到时长控件');
+  if ((await anyDuration.innerText()).trim() !== '30s') {
+    await anyDuration.click();
     await page.waitForTimeout(500);
     const thirty = page.getByText(/^30s$/, {exact:true}).last();
     if (!await thirty.count()) throw controllerError('DOLA_PLAYWRIGHT_DURATION_MISSING', '未找到 30s 时长选项');
