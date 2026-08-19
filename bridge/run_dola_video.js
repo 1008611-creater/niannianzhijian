@@ -52,7 +52,7 @@ async function main() {
     const promptSent = withDolaPromptPrefix(input.prompt);
     const prepared = await controller.prepare({browser, page, prompt:promptSent, aspectRatio:input.ratio, assets});
     const submitted = await controller.submit({browser, page, prompt:promptSent, aspectRatio:input.ratio});
-    console.log(JSON.stringify({ok:true,mode:'submitted',preflight,promptSent,prepared:prepared.counts,submitted:{pageUrl:submitted.pageUrl}}, null, 2));
+    console.log(JSON.stringify({ok:true,mode:'submitted',preflight,promptSent,prepared:prepared.counts,submitted:{pageUrl:submitted.pageUrl,quotaConfirmed:submitted.quotaConfirmed,retried:submitted.retried}}, null, 2));
   } finally {
     await browser.close().catch(() => {});
   }

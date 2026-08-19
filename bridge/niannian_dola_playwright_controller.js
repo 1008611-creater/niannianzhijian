@@ -128,8 +128,31 @@ async function submit(options = {}) {
   const send = page.locator('#flow-end-msg-send, button[type=submit], button[data-testid*="send" i], [role=button][aria-label*="发送"], [role=button][aria-label*="生成"]').first();
   if (!await send.count()) throw controllerError('DOLA_PLAYWRIGHT_SUBMIT_CONTROL_MISSING', '未找到 Dola 视频生成按钮');
   if (await send.isDisabled()) throw controllerError('DOLA_PLAYWRIGHT_SUBMIT_DISABLED', 'Dola 视频生成按钮当前不可用');
+  const quotaPattern = /本次使用[\s\S]{0,120}(?:额度|视频生成额度)|将消耗[\s\S]{0,80}(?:额度|视频生成额度)/;
+  const waitForQuota = async (timeout = 8000) => {
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      const text = await page.locator('body').innerText().catch(() => '');
+      if (quotaPattern.test(text)) return true;
+      await page.waitForTimeout(500);
+    }
+    return false;
+  };
   await send.click();
-  return {browser, page, submitted:true, pageUrl:page.url()};
+  let quotaConfirmed = await waitForQuota();
+  let retried = false;
+  if (!quotaConfirmed) {
+    const bodyText = await page.locator('body').innerText().catch(() => '');
+    if (/不可用生成模型|无法直接生成|模型.*不支持/.test(bodyText)) {
+      await send.waitFor({state:'visible', timeout:15000}).catch(() => {});
+      if (!(await send.isDisabled().catch(() => true))) {
+        await send.click();
+        retried = true;
+        quotaConfirmed = await waitForQuota(10000);
+      }
+    }
+  }
+  return {browser, page, submitted:true, pageUrl:page.url(), quotaConfirmed, retried};
 }
 
 async function inspectJob(options = {}) {
