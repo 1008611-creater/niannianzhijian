@@ -8,6 +8,7 @@ const projectRoot = __dirname;
 const assetsRoot = path.join(projectRoot, 'studio', 'assets');
 const releaseTag = 'r(?:4|5|6)';
 const moduleCacheVersion = '20260818-storyboard-group-contract-r8';
+const rootModuleCacheVersion = '20260820-portal-cleanup-r1';
 const studioClosureCacheVersion = moduleCacheVersion;
 const rootModuleName = 'index-M-8MrEH2-r28-19b89ec-r6.js';
 const generationControllerName = 'generationRunController-DH5v5RRt-r4.js';
@@ -81,7 +82,7 @@ for (const name of reachable) {
   const source = fs.readFileSync(path.join(assetsRoot, name), 'utf8');
   assertCanonicalQueries(source);
   const rootModuleVersions = [...source.matchAll(new RegExp(`${rootModuleName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\?v=([^"')]+)`, 'g'))].map(match => match[1]);
-  assert.deepEqual([...new Set(rootModuleVersions)], rootModuleVersions.length ? [moduleCacheVersion] : [], `mixed root module identity: ${name}`);
+  assert.deepEqual([...new Set(rootModuleVersions)], rootModuleVersions.length ? [rootModuleCacheVersion] : [], `mixed root module identity: ${name}`);
   const generationControllerVersions = [...source.matchAll(new RegExp(`${generationControllerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\?v=([^"')]+)`, 'g'))].map(match => match[1]);
   assert.deepEqual([...new Set(generationControllerVersions)], generationControllerVersions.length ? [generationControllerCacheVersion] : [], `mixed generation controller identity: ${name}`);
   assert.doesNotMatch(source, /index-M-8MrEH2-r27\.js|NomiStudioApp-DDB0IgSO-r27\.js/);
@@ -91,8 +92,8 @@ for (const name of reachable) {
   for (const dependency of localReferences(source)) {
     if (!dependency.endsWith('.js')) continue;
     const escapedDependency = dependency.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const dependencyVersion = name === rootModuleName && dependency.startsWith('NomiStudioApp-')
-      ? '20260820-portal-cleanup-r1'
+    const dependencyVersion = dependency.startsWith('NomiStudioApp-') || dependency.startsWith('index-M-8MrEH2-')
+      ? rootModuleCacheVersion
       : studioClosureCacheVersion;
     assert.match(source, new RegExp(`${escapedDependency}\\?v=${dependencyVersion}(?:["')])`), `Studio module is not in the current closure: ${name}`);
   }
