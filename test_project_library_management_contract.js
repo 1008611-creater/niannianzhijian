@@ -9,6 +9,7 @@ const controls = fs.readFileSync(path.join(__dirname, 'studio', 'assets', 'proje
 const studioApp = fs.readFileSync(path.join(__dirname, 'studio', 'assets', 'NomiStudioApp-DDB0IgSO-r28-19b89ec-r6.js'), 'utf8');
 const studioEntry = fs.readFileSync(path.join(__dirname, 'studio', 'assets', 'index-M-8MrEH2-r28-19b89ec-r6.js'), 'utf8');
 const routeBoot = fs.readFileSync(path.join(__dirname, 'studio', 'assets', 'studio-route-boot.js'), 'utf8');
+const legacyMigration = fs.readFileSync(path.join(__dirname, 'studio', 'assets', 'legacy-canvas-groups-migration-r1.js'), 'utf8');
 const html = fs.readFileSync(path.join(__dirname, 'studio', 'index.html'), 'utf8');
 
 [
@@ -30,7 +31,8 @@ const html = fs.readFileSync(path.join(__dirname, 'studio', 'index.html'), 'utf8
 ].forEach(token => assert(controls.includes(token), `项目库管理界面缺少合同：${token}`));
 
 assert(html.includes('project-library-management.js?v=20260818-storyboard-group-contract-r8'));
-assert(html.includes('index-M-8MrEH2-r28-19b89ec-r6.js?v=20260820-portal-cleanup-r1'));
+assert(!html.includes('index-M-8MrEH2-r28-19b89ec-r6.js?v='), '主入口只能由迁移完成后的单一启动器加载');
+assert(legacyMigration.includes('index-M-8MrEH2-r28-19b89ec-r6.js?v=20260820-portal-cleanup-r1'));
 assert(studioEntry.includes('./NomiStudioApp-DDB0IgSO-r28-19b89ec-r6.js?v=20260820-portal-cleanup-r1'));
 assert(studioEntry.includes('l.current.parentNode===document.body&&document.body.removeChild(l.current)'), 'Portal 卸载必须只移除仍挂在 body 下的节点');
 assert(!studioEntry.includes('!n&&!r&&l.current&&document.body.removeChild(l.current)'), 'Portal 卸载不能无条件重复移除节点');

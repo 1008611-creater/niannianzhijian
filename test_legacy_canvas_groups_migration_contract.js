@@ -18,6 +18,7 @@ assert.match(script, /remoteCanvas\.nodes\.length === 0/);
 assert.match(script, /remoteNode\?\.status !== 'success'/);
 assert.match(script, /localNode\.result = remoteNode\.result/);
 assert.match(script, /migrate\(\)\.finally\(startStudio\)/);
+assert.match(script, /index-M-8MrEH2-r28-19b89ec-r6\.js\?v=20260820-portal-cleanup-r1/);
 assert.match(index, /legacy-canvas-groups-migration-r1\.js/);
 assert.doesNotMatch(index, /<script type="module" crossorigin src="\.\/assets\/index-M-8MrEH2-r28-19b89ec-r6\.js/);
 
