@@ -186,6 +186,14 @@
     }
   }
 
+  function dolaAssetKind(kind) {
+    var value = String(kind || '').trim().toLowerCase();
+    if (value === 'image') return 'reference_image';
+    if (value === 'video') return 'reference_video';
+    if (value === 'audio') return 'reference_audio';
+    return value;
+  }
+
   async function runDolaLocalTask(request, extras) {
     function base64FromBytes(bytes) {
       var chunk = 0x8000;
@@ -206,8 +214,8 @@
           var sourceResponse = await fetch(source, {credentials:'include'});
           if (!sourceResponse.ok) throw new Error('画布素材读取失败');
           var bytes = await sourceResponse.arrayBuffer();
-          assets.push({kind:asset.asset.kind, name:asset.asset.originalName || asset.asset.id, contentType:asset.asset.mimeType || '', dataBase64:base64FromBytes(new Uint8Array(bytes))});
-        } else assets.push({kind:asset.asset.kind, path:source});
+          assets.push({kind:dolaAssetKind(asset.asset.kind), name:asset.asset.originalName || asset.asset.id, contentType:asset.asset.mimeType || '', dataBase64:base64FromBytes(new Uint8Array(bytes))});
+        } else assets.push({kind:dolaAssetKind(asset.asset.kind), path:source});
       }
     }
     var local = await dolaLocalRequest('/v1/jobs', {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({
