@@ -31,7 +31,7 @@ async function videoPage(browser) {
   const page = browser.contexts().flatMap(context => context.pages()).find(page => page.url().includes('dola.com'));
   if (!page) throw controllerError('DOLA_PLAYWRIGHT_PAGE_MISSING', '未找到 Dola 页面');
   const initialText = await page.locator('body').innerText().catch(() => '');
-  if (!page.url().includes('/chat/create-video') && !initialText.includes('视频生成')) {
+  if (!page.url().includes('/chat/create-video')) {
     await page.goto('https://www.dola.com/chat/create-video', {waitUntil:'domcontentloaded'}).catch(error => {
       if (!page.url().includes('dola.com')) throw error;
     });
@@ -40,11 +40,11 @@ async function videoPage(browser) {
   if (currentText.includes('受区域限制') || currentText.includes('无法使用 Dola')) {
     throw controllerError('DOLA_REGION_RESTRICTED', 'Dola 当前会话受区域限制，无法进入视频创作页');
   }
-  if (!currentText.includes('视频生成')) {
-    const aiCreate = page.getByText('AI 创作', {exact:true}).first();
-    if (await aiCreate.count()) await aiCreate.click();
-    const videoTab = page.getByText('视频', {exact:true}).first();
+  const videoTab = page.getByText('视频', {exact:true}).first();
+  const videoSelected = await videoTab.getAttribute('aria-selected').catch(() => null);
+  if (videoSelected !== 'true') {
     if (await videoTab.count()) await videoTab.click();
+    await page.waitForTimeout(800);
   }
   try {
     await page.locator('[contenteditable=true]').first().waitFor({state:'visible', timeout:30000});
@@ -68,8 +68,12 @@ async function ensureDurationAndRatio(page, options = {}) {
   if ((await anyDuration.innerText()).trim() !== '30s') {
     await anyDuration.click();
     await page.waitForTimeout(500);
-    const thirty = page.getByText(/^30s$/, {exact:true}).last();
-    if (!await thirty.count()) throw controllerError('DOLA_PLAYWRIGHT_DURATION_MISSING', '未找到 30s 时长选项');
+    const thirtyOptions = page.getByText(/30s|30 秒/, {exact:false});
+    let thirty = null;
+    for (let i = await thirtyOptions.count() - 1; i >= 0; i -= 1) {
+      if (await thirtyOptions.nth(i).isVisible().catch(() => false)) { thirty = thirtyOptions.nth(i); break; }
+    }
+    if (!thirty) throw controllerError('DOLA_PLAYWRIGHT_DURATION_MISSING', '未找到 30s 时长选项');
     await thirty.click();
   }
   const duration = page.getByText('Seedance 2.5 使用 30 秒', {exact:false}).first();
