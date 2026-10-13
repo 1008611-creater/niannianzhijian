@@ -1,0 +1,24 @@
+[Unit]
+Description=NianNian editor billing API
+After=network-online.target postgresql@14-main.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=niannian_redraw
+Group=niannian_redraw
+WorkingDirectory=/opt/niannian-editor-billing/current
+EnvironmentFile=/etc/niannian-ai/editor-sso.env
+Environment=NODE_ENV=production
+Environment=PORT=18086
+Environment=DATABASE_URL=postgresql://niannian_redraw@localhost/niannian_workbench_migrated?host=/var/run/postgresql
+Environment=PATH=/opt/node24-v24.17.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+ExecStart=/opt/node24-v24.17.0/bin/node ./server.cjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

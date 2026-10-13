@@ -1,0 +1,591 @@
+import {
+  generateText,
+  jsonSchema,
+  stepCountIs,
+  streamText,
+  tool,
+  type LanguageModel,
+  type ModelMessage,
+  type ToolResultPart,
+  type ToolSet,
+} from 'ai';
+import {
+  captureSynchronousStart,
+  errorMessage,
+  shouldFallbackAgentModel,
+  shouldRetryCompatibleMediaRequest,
+  shouldRetryTransientAgentRequest,
+} from './api-retry';
+export {
+  isCompatibleMediaFallbackError,
+  shouldRetryCompatibleMediaRequest,
+  shouldFallbackAgentModel,
+  shouldRetryTransientAgentRequest,
+  streamPartStartsCompatibleMediaOutput,
+} from './api-retry';
+import type { AgentContext } from './context';
+import type { AgentModelChoice } from './model-selection';
+import { TOOL_SCHEMAS } from './tools';
+import { ASK_MODE_TOOL_SCHEMAS } from './ask-mode-tools';
+import {
+  getLanguageModel,
+  getLanguageModelProviderOptions,
+  protocolForProvider,
+} from './client';
+import {
+  makeMessagesPortable,
+  normalizeLlmMessages,
+  prepareChatCompletionsMediaMessages,
+  withoutModelImages,
+} from './messages';
+import { describeImagesForTextModel } from './vision';
+import { resolveVisionModel } from './visionConfig';
+import {
+  createInlineThinkingExtractor,
+  loadAgentSettings,
+  type AgentSettings,
+} from './settings/agentSettings';
+import type { GuardDecision } from './skills/costGuard';
+import { completeAbortedTurn } from './abortedTurn';
+import { executeOpenChatCutTool, type CodexToolExecution } from './codex/runtime';
+import { toolFailureReason, ToolFailureTracker } from './toolFailure';
+import {
+  runtimeGuardForTool,
+  type RuntimeGuardRequest,
+} from './runtime-guard';
+import type {
+  AgentEvent,
+  LLMMessage,
+  RunAgentOptions,
+} from './runtime';
+import type { AgentToolSchema } from './tool-schema';
+
+const MAX_TOOL_TURNS = 30;
+const COMPATIBLE_CHAT_FIRST_OUTPUT_MS = 45_000;
+const COMPATIBLE_CHAT_FALLBACK_TOTAL_MS = 90_000;
+type ToolResultOutput = ToolResultPart['output'];
+
+function toolModelOutput(output: unknown): ToolResultOutput {
+  const shaped = output as {
+    denied?: boolean;
+    note?: string;
+    __images?: Array<{ frame: number; base64: string }>;
+  } | null;
+  if (shaped?.denied) {
+    return { type: 'execution-denied', reason: shaped.note ?? 'User denied tool execution.' };
+  }
+  if (Array.isArray(shaped?.__images)) {
+    return {
+      type: 'content',
+      value: [
+        ...shaped.__images.map((image) => ({
+          type: 'file' as const,
+          data: { type: 'data' as const, data: image.base64 },
+          mediaType: 'image/jpeg',
+          filename: `timeline-frame-${image.frame}.jpg`,
+        })),
+        {
+          type: 'text' as const,
+          text: shaped.note ?? `${shaped.__images.length} frames rendered`,
+        },
+      ],
+    };
+  }
+  const value = JSON.stringify(output ?? null);
+  return { type: 'text', value };
+}
+export function apiToolExecutionOutput(execution: CodexToolExecution): unknown {
+  if (!execution.success) throw new Error(toolFailureReason(execution.result));
+  return execution.result;
+}
+
+
+function createAgentTools(
+  ctx: AgentContext,
+  onEvent: (event: AgentEvent) => void,
+  settings: AgentSettings,
+  onSkillGuard?: (info: RuntimeGuardRequest) => Promise<GuardDecision>,
+  onFollowup?: () => void,
+  onToolExecution?: () => void,
+  schemas: readonly AgentToolSchema[] = TOOL_SCHEMAS,
+): ToolSet {
+  return Object.fromEntries(schemas.map((schema) => [
+    schema.name,
+    tool({
+      description: schema.description,
+      inputSchema: jsonSchema<Record<string, unknown>>(
+        schema.input_schema as Parameters<typeof jsonSchema<Record<string, unknown>>>[0],
+      ),
+      execute: async (input) => {
+        onToolExecution?.();
+        const execution = await executeOpenChatCutTool(schema, input ?? {}, {
+          ctx,
+          onEvent,
+          settings,
+          resolveGuard: runtimeGuardForTool,
+          onSkillGuard,
+          onFollowup,
+        });
+        return apiToolExecutionOutput(execution);
+      },
+      toModelOutput: ({ output }) => toolModelOutput(output),
+    }),
+  ]));
+}
+
+function responseUsedTools(messages: readonly ModelMessage[]): boolean {
+  return messages.some((message) => message.role === 'assistant'
+    && Array.isArray(message.content)
+    && message.content.some((part) => part.type === 'tool-call'));
+}
+
+function withoutAssistantText(messages: readonly ModelMessage[]): ModelMessage[] {
+  return messages.flatMap((message): ModelMessage[] => {
+    if (message.role !== 'assistant') return [message];
+    if (typeof message.content === 'string') return [];
+    const content = message.content.filter((part) => part.type !== 'text');
+    return content.length ? [{ ...message, content } as ModelMessage] : [];
+  });
+}
+
+export function agentRequestDiagnosticHeaders(
+  messages: readonly ModelMessage[],
+  toolCount: number,
+): Record<string, string> {
+  return {
+    'x-openchatcut-request-kind': 'agent',
+    'x-openchatcut-streaming': 'true',
+    'x-openchatcut-tool-count': String(Math.max(0, Math.min(999999, Math.trunc(toolCount)))),
+    'x-openchatcut-message-count': String(Math.max(0, Math.min(999999, messages.length))),
+  };
+}
+export interface ApiRuntimeDependencies {
+  readonly model?: LanguageModel;
+}
+
+/** A provider failed before output or tool execution, so the caller may safely retry another configured provider. */
+export class AgentPreOutputFailure extends Error {
+  readonly originalError: unknown;
+
+  constructor(error: unknown) {
+    super(errorMessage(error).trim());
+    this.name = 'AgentPreOutputFailure';
+    this.originalError = error;
+  }
+}
+
+export async function runApiAgent(
+  messages: LLMMessage[],
+  ctx: AgentContext,
+  onEvent: (event: AgentEvent) => void,
+  choice: AgentModelChoice,
+  system: string,
+  contextWasCompacted: boolean,
+  maxOutputTokens: number,
+  opts?: RunAgentOptions,
+  dependencies: ApiRuntimeDependencies = {},
+  toolSchemas: readonly AgentToolSchema[] = TOOL_SCHEMAS,
+): Promise<LLMMessage[]> {
+  let conv = normalizeLlmMessages(messages);
+  const settings = loadAgentSettings();
+  const toolFailures = opts?.toolFailures ?? new ToolFailureTracker();
+
+  let toolTurns = 0;
+  let compatibleMediaFallbackRequired = false;
+  let outputObserved = false;
+  let toolExecutionObserved = false;
+
+  for (;;) {
+    const extract = createInlineThinkingExtractor();
+    let textStarted = false;
+    let visibleText = '';
+    let bufferedText = '';
+    let askedFollowup = false;
+    const emitVisibleText = (delta: string) => {
+      if (!textStarted) {
+        onEvent({ type: 'text-start' });
+        textStarted = true;
+      }
+      visibleText += delta;
+      onEvent({ type: 'text-delta', delta });
+    };
+    const emitText = (delta: string) => {
+      bufferedText += delta;
+    };
+    const flushBufferedText = () => {
+      if (!bufferedText) return;
+      const pending = bufferedText;
+      bufferedText = '';
+      emitVisibleText(pending);
+    };
+    const emitFailureCompletion = (): ModelMessage => {
+      bufferedText = '';
+      const report = toolFailures.report();
+      toolFailures.clear();
+      emitVisibleText(report);
+      return { role: 'assistant', content: report };
+    };
+    const tools = !choice.capabilities.supportsTools.value
+      ? {}
+      : createAgentTools(
+          ctx,
+          onEvent,
+          settings,
+          opts?.onSkillGuard,
+          () => { askedFollowup = true; },
+          () => { toolExecutionObserved = true; },
+          opts?.askOnly ? ASK_MODE_TOOL_SCHEMAS : toolSchemas,
+        );
+
+    try {
+      // Responses relays do not consistently persist `rs_*` item IDs. Keep
+      // OpenAI turns stateless by replaying portable local history and asking
+      // the provider not to store the response.
+      // Compatible Chat providers keep vendor history intact and move only
+      // tool-result media into a supported user attachment message. A provider
+      // that rejects the attachment before producing output gets one text-only
+      // retry; the original conversation and tool instances stay unchanged.
+      const protocol = protocolForProvider(choice.provider);
+      const mediaPreparation = prepareChatCompletionsMediaMessages(conv);
+      const supportsImages = choice.capabilities.supportsImages.value;
+      let textOnlyMessages: ModelMessage[];
+      if (supportsImages) {
+        textOnlyMessages = conv;
+      } else {
+        const vision = resolveVisionModel(choice);
+        textOnlyMessages = vision
+          ? await describeImagesForTextModel(conv, vision, opts?.signal)
+          : withoutModelImages(conv);
+      }
+      let requestCarriesMedia = protocol === 'openai-compatible'
+        && supportsImages
+        && !compatibleMediaFallbackRequired
+        && mediaPreparation.movedMedia;
+      let requestMessages = protocol === 'openai'
+        ? makeMessagesPortable(textOnlyMessages, choice.openAiApiMode)
+        : protocol === 'openai-compatible'
+          ? supportsImages && !compatibleMediaFallbackRequired
+            ? mediaPreparation.messages
+            : textOnlyMessages
+          : textOnlyMessages;
+      const providerOptions = getLanguageModelProviderOptions(choice.provider, choice.openAiApiMode);
+      const model = dependencies.model
+        ?? await getLanguageModel(choice.provider, choice.model, choice.openAiApiMode);
+      let retriedWithoutMedia = false;
+      let retriedTransientRequest = false;
+      let aborted = false;
+      let responseMessages: ModelMessage[] = [];
+
+      requestAttempt:
+      for (;;) {
+        let outputStarted = false;
+        let compatibleStreamTimedOut = false;
+        const compatibleStreamAbort = new AbortController();
+        const compatibleStreamSignal = choice.openAiApiMode === 'chat'
+          ? opts?.signal
+            ? AbortSignal.any([opts.signal, compatibleStreamAbort.signal])
+            : compatibleStreamAbort.signal
+          : opts?.signal;
+        const compatibleStreamDeadline = choice.openAiApiMode === 'chat'
+          ? setTimeout(() => {
+              if (!outputStarted && !toolExecutionObserved) {
+                compatibleStreamTimedOut = true;
+                compatibleStreamAbort.abort(new Error('Compatible Chat stream produced no visible output.'));
+              }
+            }, COMPATIBLE_CHAT_FIRST_OUTPUT_MS)
+          : undefined;
+        const started = captureSynchronousStart(() => streamText({
+          model,
+          system,
+          messages: requestMessages,
+          tools,
+          maxOutputTokens,
+          maxRetries: 0,
+          headers: {
+            ...agentRequestDiagnosticHeaders(requestMessages, Object.keys(tools).length),
+            ...(opts?.operationId ? { 'x-niannian-operation-id': opts.operationId } : {}),
+          },
+          abortSignal: compatibleStreamSignal,
+          // Guard against hanging model calls: first token within 30s, each
+          // step capped at 2min, tool executions at 30s (all local store ops
+          // finish in ms; media prep happens before the request).
+          timeout: { stepMs: 120_000, firstChunkMs: 30_000, toolMs: 30_000 },
+          ...(providerOptions ? { providerOptions } : {}),
+        }));
+        if (!started.ok) {
+          if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
+          if (opts?.signal?.aborted) {
+            aborted = true;
+            break requestAttempt;
+          }
+          if (shouldRetryCompatibleMediaRequest({
+            protocol,
+            movedMedia: requestCarriesMedia,
+            retryAttempted: retriedWithoutMedia,
+            outputStarted,
+            aborted,
+            error: started.error,
+          })) {
+            requestMessages = mediaPreparation!.messagesWithoutMedia;
+            requestCarriesMedia = false;
+            retriedWithoutMedia = true;
+            compatibleMediaFallbackRequired = true;
+            continue requestAttempt;
+          }
+          if (shouldRetryTransientAgentRequest({
+            retryAttempted: retriedTransientRequest,
+            outputStarted,
+            aborted,
+            error: started.error,
+          })) {
+            retriedTransientRequest = true;
+            continue requestAttempt;
+          }
+          throw started.error;
+        }
+        const result = started.value;
+
+        try {
+          for await (const part of result.stream) {
+            if (part.type === 'text-delta') {
+              // A provider can emit an empty text-start before rejecting the
+              // request. Only actual user-visible text prevents a safe retry.
+              if (part.text) {
+                outputStarted = true;
+                outputObserved = true;
+                if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
+              }
+              const extracted = extract.push(part.text);
+              if (extracted.thinking) onEvent({ type: 'thinking-delta', delta: extracted.thinking });
+              if (extracted.text) emitText(extracted.text);
+            } else if (part.type === 'reasoning-delta') {
+              if (part.text) {
+                outputStarted = true;
+                outputObserved = true;
+                if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
+                onEvent({ type: 'thinking-delta', delta: part.text });
+              }
+            } else if (part.type === 'tool-input-start') {
+              outputStarted = true;
+              if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
+              onEvent({ type: 'tool-input-start', name: part.toolName });
+            } else if (part.type === 'tool-input-delta') {
+              if (part.delta) {
+                outputStarted = true;
+                if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
+              }
+              if (part.delta) onEvent({ type: 'tool-input-delta', delta: part.delta });
+            } else if (part.type === 'tool-result') {
+              toolFailures.record(part.toolName, { success: true, result: part.output });
+            } else if (part.type === 'tool-error') {
+              toolFailures.record(part.toolName, { success: false, result: part.error });
+            } else if (part.type === 'error') {
+              throw part.error;
+            } else if (part.type === 'finish') {
+              const inputTokens = part.totalUsage.inputTokens;
+              if (inputTokens !== undefined) {
+                onEvent({
+                  type: 'context-usage',
+                  usage: {
+                    inputTokens,
+                    contextWindowTokens: choice.capabilities.contextWindowTokens.value,
+                    contextWindowEstimated: choice.capabilities.contextWindowTokens.estimated,
+                    isEstimated: false,
+                    modelId: choice.id,
+                    compacted: contextWasCompacted,
+                    messageCount: requestMessages.length,
+                  },
+                });
+              }
+            } else if (part.type === 'abort') {
+              if (compatibleStreamTimedOut && !opts?.signal?.aborted) {
+                throw new Error('Compatible Chat stream produced no visible output.');
+              }
+              aborted = true;
+              break;
+            }
+          }
+          // Some compatible endpoints close a stream successfully without
+          // emitting text, reasoning, or a tool call. Treat that as an
+          // unusable streaming response and use the same bounded fallback.
+          if (
+            choice.openAiApiMode === 'chat'
+            && !outputStarted
+            && !toolExecutionObserved
+            && !aborted
+            && !opts?.signal?.aborted
+          ) {
+            compatibleStreamTimedOut = true;
+            throw new Error('Compatible Chat stream completed without visible output.');
+          }
+        } catch (error) {
+          if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
+          if (compatibleStreamTimedOut && !opts?.signal?.aborted) {
+            const fallbackResult = await generateText({
+              model,
+              system,
+              messages: requestMessages,
+              tools,
+              maxOutputTokens,
+              maxRetries: 0,
+              stopWhen: stepCountIs(MAX_TOOL_TURNS),
+              headers: {
+                ...agentRequestDiagnosticHeaders(requestMessages, Object.keys(tools).length),
+                'x-openchatcut-streaming-fallback': 'true',
+                ...(opts?.operationId ? { 'x-niannian-operation-id': opts.operationId } : {}),
+              },
+              abortSignal: opts?.signal,
+              timeout: { totalMs: COMPATIBLE_CHAT_FALLBACK_TOTAL_MS },
+              ...(providerOptions ? { providerOptions } : {}),
+            });
+            const fallbackThinking = fallbackResult.reasoningText;
+            if (fallbackThinking) onEvent({ type: 'thinking-delta', delta: fallbackThinking });
+            const fallbackText = fallbackResult.text;
+            if (fallbackText) {
+              outputObserved = true;
+              const extracted = extract.push(fallbackText);
+              if (extracted.thinking) onEvent({ type: 'thinking-delta', delta: extracted.thinking });
+              if (extracted.text) emitText(extracted.text);
+              const tail = extract.flush();
+              if (tail.thinking) onEvent({ type: 'thinking-delta', delta: tail.thinking });
+              if (tail.text) emitText(tail.text);
+            }
+            const inputTokens = fallbackResult.usage.inputTokens;
+            if (inputTokens !== undefined) {
+              onEvent({
+                type: 'context-usage',
+                usage: {
+                  inputTokens,
+                  contextWindowTokens: choice.capabilities.contextWindowTokens.value,
+                  contextWindowEstimated: choice.capabilities.contextWindowTokens.estimated,
+                  isEstimated: false,
+                  modelId: choice.id,
+                  compacted: contextWasCompacted,
+                  messageCount: requestMessages.length,
+                },
+              });
+            }
+            responseMessages = fallbackResult.responseMessages;
+            break requestAttempt;
+          }
+          if (opts?.signal?.aborted) {
+            aborted = true;
+          } else if (shouldRetryCompatibleMediaRequest({
+            protocol,
+            movedMedia: requestCarriesMedia,
+            retryAttempted: retriedWithoutMedia,
+            outputStarted,
+            aborted,
+            error,
+          })) {
+            requestMessages = mediaPreparation!.messagesWithoutMedia;
+            requestCarriesMedia = false;
+            retriedWithoutMedia = true;
+            compatibleMediaFallbackRequired = true;
+            continue requestAttempt;
+          } else if (shouldRetryTransientAgentRequest({
+            retryAttempted: retriedTransientRequest,
+            outputStarted,
+            aborted,
+            error,
+          })) {
+            retriedTransientRequest = true;
+            continue requestAttempt;
+          } else {
+            throw error;
+          }
+        }
+
+        if (compatibleStreamDeadline) clearTimeout(compatibleStreamDeadline);
+
+        const tail = extract.flush();
+        if (tail.thinking) onEvent({ type: 'thinking-delta', delta: tail.thinking });
+        if (tail.text) emitText(tail.text);
+
+        try {
+          responseMessages = await result.responseMessages;
+        } catch (error) {
+          if (aborted || opts?.signal?.aborted) {
+            responseMessages = [];
+          } else if (shouldRetryCompatibleMediaRequest({
+            protocol,
+            movedMedia: requestCarriesMedia,
+            retryAttempted: retriedWithoutMedia,
+            outputStarted,
+            aborted,
+            error,
+          })) {
+            requestMessages = mediaPreparation!.messagesWithoutMedia;
+            requestCarriesMedia = false;
+            retriedWithoutMedia = true;
+            compatibleMediaFallbackRequired = true;
+            continue requestAttempt;
+          } else if (shouldRetryTransientAgentRequest({
+            retryAttempted: retriedTransientRequest,
+            outputStarted,
+            aborted,
+            error,
+          })) {
+            retriedTransientRequest = true;
+            continue requestAttempt;
+          } else {
+            throw error;
+          }
+        }
+        break requestAttempt;
+      }
+
+      if (aborted || opts?.signal?.aborted) {
+        const abortedWithFailure = toolFailures.hasUnresolved;
+        if (abortedWithFailure) {
+          bufferedText = '';
+          responseMessages = withoutAssistantText(responseMessages);
+        } else {
+          flushBufferedText();
+        }
+        toolFailures.clear();
+        const persisted = responseMessages.length || !visibleText
+          ? responseMessages
+          : [{ role: 'assistant', content: [{ type: 'text', text: visibleText }] } as ModelMessage];
+        return completeAbortedTurn(conv, persisted);
+      }
+      const unresolved = toolFailures.hasUnresolved;
+      if (unresolved) {
+        bufferedText = '';
+        responseMessages = withoutAssistantText(responseMessages);
+      } else {
+        flushBufferedText();
+      }
+      const usedTools = responseUsedTools(responseMessages);
+      if (askedFollowup) return [...conv, ...responseMessages];
+      if (!usedTools && unresolved) return [...conv, emitFailureCompletion()];
+      conv = [...conv, ...responseMessages];
+      if (!usedTools) return conv;
+
+      if (++toolTurns >= MAX_TOOL_TURNS) {
+        onEvent({ type: 'max-turns', turns: toolTurns });
+        return toolFailures.hasUnresolved
+          ? [...conv, emitFailureCompletion()]
+          : conv;
+      }
+    } catch (error) {
+      if (opts?.signal?.aborted) {
+        toolFailures.clear();
+        return conv;
+      }
+      if (shouldFallbackAgentModel({
+        outputStarted: outputObserved,
+        toolExecutionStarted: toolExecutionObserved,
+        aborted: false,
+        error,
+      })) {
+        throw new AgentPreOutputFailure(error);
+      }
+      const failureMessage = toolFailures.hasUnresolved ? emitFailureCompletion() : null;
+      if (!failureMessage) flushBufferedText();
+      const message = errorMessage(error).trim();
+      onEvent({ type: 'error', message });
+      return failureMessage ? [...conv, failureMessage] : conv;
+    }
+  }
+}
