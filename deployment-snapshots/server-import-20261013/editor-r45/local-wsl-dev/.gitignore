@@ -1,0 +1,6 @@
+env/
+runtime/
+data/
+node_modules/
+.next-local-wsl/
+
